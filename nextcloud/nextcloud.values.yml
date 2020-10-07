@@ -46,8 +46,8 @@ lifecycle: {}
 
 nextcloud:
   host: "***REMOVED***"
-  username: ""
-  password: ""
+  username: changeme
+  password: changeme
   update: 0
   datadir: /var/www/html/data
   tableprefix:
