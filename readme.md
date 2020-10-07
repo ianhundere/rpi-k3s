@@ -54,5 +54,35 @@
         - `sudo vi /etc/fstab`
     - add the master's ip etc to `/etc/fstab`
         - `192.168.3.100:/mnt/ssd   /mnt/ssd   nfs    rw  0  0`
-6. configure k3s
-    - ssh to 
+6. configure k3s master node
+    - ssh to master node
+        - `ssh pi@kube-master`
+    - if you're not root, you'll want to enable to ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`
+        - `export K3S_KUBECONFIG_MODE="644"`
+    - tell k3s not to deploy its default load balancer, servicelb, and proxy, traefik, since we'll install metalb as load balancer and nginx as proxy manually later on.
+        - `export INSTALL_K3S_EXEC=" --no-deploy servicelb --no-deploy traefik"`
+    - run the k3s installer
+        - `curl -sfL https://get.k3s.io | sh -`
+    - verify the master is up
+        - `sudo systemctl status k3s`
+        - `kubectl get nodes -o wide`
+        - `kubectl get pods -A -o wide`
+    - save the access token to configure the agents
+        - `sudo cat /var/lib/rancher/k3s/server/node-token`
+7. configure k3s worker nodes
+    - ssh to work node
+        - `ssh pi@kube-worker1`
+    - set permissions on config file.
+        - `export K3S_KUBECONFIG_MODE="644"`
+    - set the endpoint for the agent
+        - `export K3S_URL="https://192.168.3.100:6443"`
+    - set the token saved from configuring the k3s master node
+        - `export K3S_TOKEN="`
+    - kun the k3s installer
+        - `curl -sfL https://get.k3s.io | sh -`
+    - verify agent is up
+        - `sudo systemctl status k3s-agent`
+        - `kubectl get nodes -o wide`
+        - `kubectl get pods -A -o wide`
+8. connect remotely to cluster
+    - 
