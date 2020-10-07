@@ -1,4 +1,11 @@
-- initial setup
+# rpi-k3s
+Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that runs openVPN and Kodi on boot. I figured I ought to start playing with Kubernetes at home since I play with it all day at work. So I built a Kubernetes Raspberry Pi cluster with 4 Raspberry Pi 4s each with 4GB RAM. I learned a lot and managed to get everything up and running without too much hair pulling. I currently have NextCloud and a UniFi Controller configured, but hope to add further applications in the future such as Plex, Bitwarden, and video security software integrated with unlocked Wyze cameras. Some of the lessons I learned were things I've learned at work, but it they're always good reminders.
+##### Lessons Learned
+- Always understand the why behind how something works (or doesn't) before moving on
+- Document everything
+- Take your time
+
+# initial setup
 1. download latest vers of buster-lite (e.g. https://downloads.raspberrypi.org/raspios_lite_armhf_latest)
 2. flash to sd card
 3. create empty ssh file under `/boot/`
@@ -22,7 +29,7 @@
 11. switch firewall to legacy config:
     - `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
     - `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`
-- configure nfs storage
+# configure nfs storage
 1. list all connected devices and find the correct drive:
     - `sudo fdisk -l`
 2. create partition
@@ -54,35 +61,35 @@
         - `sudo vi /etc/fstab`
     - add the master's ip etc to `/etc/fstab`
         - `192.168.3.100:/mnt/ssd   /mnt/ssd   nfs    rw  0  0`
-6. configure k3s master node
-    - ssh to master node
-        - `ssh pi@kube-master`
-    - if you're not root, you'll want to enable to ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`
-        - `export K3S_KUBECONFIG_MODE="644"`
-    - tell k3s not to deploy its default load balancer, servicelb, and proxy, traefik, since we'll install metalb as load balancer and nginx as proxy manually later on.
-        - `export INSTALL_K3S_EXEC=" --no-deploy servicelb --no-deploy traefik"`
-    - run the k3s installer
-        - `curl -sfL https://get.k3s.io | sh -`
-    - verify the master is up
-        - `sudo systemctl status k3s`
-        - `kubectl get nodes -o wide`
-        - `kubectl get pods -A -o wide`
-    - save the access token to configure the agents
-        - `sudo cat /var/lib/rancher/k3s/server/node-token`
-7. configure k3s worker nodes
-    - ssh to work node
-        - `ssh pi@kube-worker1`
-    - set permissions on config file.
-        - `export K3S_KUBECONFIG_MODE="644"`
-    - set the endpoint for the agent
-        - `export K3S_URL="https://192.168.3.100:6443"`
-    - set the token saved from configuring the k3s master node
-        - `export K3S_TOKEN="`
-    - kun the k3s installer
-        - `curl -sfL https://get.k3s.io | sh -`
-    - verify agent is up
-        - `sudo systemctl status k3s-agent`
-        - `kubectl get nodes -o wide`
-        - `kubectl get pods -A -o wide`
-8. connect remotely to cluster
+# configure k3s master node
+1. ssh to master node
+    - `ssh pi@kube-master`
+2. if you're not root, you'll want to enable to ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`
+    - `export K3S_KUBECONFIG_MODE="644"`
+3. tell k3s not to deploy its default load balancer, servicelb, and proxy, traefik, since we'll install metalb as load balancer and nginx as proxy manually later on.
+    - `export INSTALL_K3S_EXEC=" --no-deploy servicelb --no-deploy traefik"`
+4. run the k3s installer
+    - `curl -sfL https://get.k3s.io | sh -`
+5. verify the master is up
+    - `sudo systemctl status k3s`
+    - `kubectl get nodes -o wide`
+    - `kubectl get pods -A -o wide`
+6. save the access token to configure the agents
+    - `sudo cat /var/lib/rancher/k3s/server/node-token`
+# configure k3s worker nodes
+1. ssh to work node
+    - `ssh pi@kube-worker1`
+2. set permissions on config file.
+    - `export K3S_KUBECONFIG_MODE="644"`
+3. set the endpoint for the agent
+    - `export K3S_URL="https://192.168.3.100:6443"`
+4. set the token saved from configuring the k3s master node
+    - `export K3S_TOKEN="`
+5. kun the k3s installer
+    - `curl -sfL https://get.k3s.io | sh -`
+6. verify agent is up
+    - `sudo systemctl status k3s-agent`
+    - `kubectl get nodes -o wide`
+    - `kubectl get pods -A -o wide`
+# connect remotely to cluster
     - 
