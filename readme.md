@@ -30,7 +30,6 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
          static ip_address=192.168.3.103/24
          static routers=192.168.3.1
          static domain_name_servers=192.168.3.1```
-      ````
 11. switch firewall to legacy config:
     - `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
     - `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`
@@ -105,4 +104,20 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 
 ## connect remotely to cluster
 
-    -
+1. install `kubectl` if it's not already installed local computer, [Install Guide](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
+2. create the necessary directory and file
+    - `mkdir ~/.kube/`
+    - `touch ~/.kube/config`
+3. copy the file using `scp`
+    - `scp pi@192.168.3.100:/etc/rancher/k3s/k3s.yaml ~/.kube/config`
+4. you can either simply edit the `config` file and locate `127.0.0.1` and replace it with the IP address of the master node or use `sed`
+    - `sed -i '' 's/127\.0\.0\.1/192\.168\.3\.100/g' ~/.kube/config`
+
+## install metallb - k8s load balancer
+
+1. create the `metallb-system` namespace
+    - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml`
+2. apply the metallb manifest which includes the controller deployment, speaker daemonset and necessary service accounts for the controller and speaker, along with the RBAC permissions that everything need to function
+    - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml`
+3. create the memberlist secret contains the secretkey to encrypt the communication between speakers for the fast dead node detection.
+    - `kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)`
