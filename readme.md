@@ -1,12 +1,12 @@
 # rpi-k3s
 
-Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that runs openVPN and Kodi on boot. I figured I ought to start playing with Kubernetes at home since I play with it all day at work. So I built a Kubernetes Raspberry Pi cluster with 4 Raspberry Pi 4s each with 4GB RAM. I learned a lot and managed to get everything up and running without too much hair pulling. I currently have NextCloud and a UniFi Controller configured, but hope to add further applications in the future such as Plex, Bitwarden, and video security software integrated with unlocked Wyze cameras. Some of the lessons I learned were things I've learned at work, but it they're always good reminders.
+Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that runs openVPN and Kodi on boot. I figured I ought to start playing with Kubernetes at home since I play with it all day at work. So I built a Kubernetes Raspberry Pi cluster with 4 Raspberry Pi 4s each with 4GB RAM. I learned a lot and managed to get everything up and running without too much hair pulling. I currently have NextCloud and a UniFi Controller configured, but hope to add further applications in the future such as Plex, Bitwarden, and video security software integrated with unlocked Wyze cameras. Some of the lessons I learned were things I've learned at work, but they're always good reminders.
 
 ##### Lessons Learned
 
--   Always understand the why behind how something works (or doesn't) before moving on
--   Document everything
 -   Take your time
+-   Document everything
+-   It often pays to know and understand the why behind something working (or not working) before moving on
 
 ## initial setup
 
@@ -121,3 +121,14 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml`
 3. create the memberlist secret contains the secretkey to encrypt the communication between speakers for the fast dead node detection.
     - `kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)`
+4. apply the `ConfigMap` which will indicate what protocol (e.g. `layer2`) and IPs to use (e.g. `192.168.3.240-192.168.3.250`).
+    - `kubectl apply -f config.yml`
+
+## install nginx - web proxy
+
+1. install helm
+    - `brew install helm`
+2. add the nginx repo
+    - `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx`
+3. install nginx
+    - 
