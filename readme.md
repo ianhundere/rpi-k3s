@@ -128,7 +128,54 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 
 1. install helm
     - `brew install helm`
-2. add the nginx repo
-    - `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx`
+2. add the nginx repo / update repo
+    - `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx; helm repo update`
 3. install nginx
-    - 
+    - `helm install nginx-ingress ingress-nginx/ingress-nginx --set defaultBackend.enabled=false -n kube-system`
+
+## install cert-manager
+
+1. create namespace
+    - `kubectl create ns cert-manager`
+2. add the cert-manager repo / update repo
+    - `helm repo add jetstack https://charts.jetstack.io; helm repo update`
+3. install cert-manager
+    - `helm install cert-manager jetstack/cert-manager -n cert-manager --set installCRDs=true`
+4. configure the certificate issuers
+###### prod
+```
+$ cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    email: <EMAIL>
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+EOF
+```
+###### staging
+```
+$ cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    email: <EMAIL>
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+EOF
