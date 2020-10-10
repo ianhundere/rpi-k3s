@@ -1,16 +1,20 @@
 # rpi-k3s
-Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that runs openVPN and Kodi on boot. I figured I ought to start playing with Kubernetes at home since I play with it all day at work. So I built a Kubernetes Raspberry Pi cluster with 4 Raspberry Pi 4s each with 4GB RAM. I learned a lot and managed to get everything up and running without too much hair pulling. I currently have NextCloud and a UniFi Controller configured, but hope to add further applications in the future such as Plex, Bitwarden, and video security software integrated with unlocked Wyze cameras. Some of the lessons I learned were things I've learned at work, but it they're always good reminders.
-##### Lessons Learned
-- Always understand the why behind how something works (or doesn't) before moving on
-- Document everything
-- Take your time
 
-# initial setup
+Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that runs openVPN and Kodi on boot. I figured I ought to start playing with Kubernetes at home since I play with it all day at work. So I built a Kubernetes Raspberry Pi cluster with 4 Raspberry Pi 4s each with 4GB RAM. I learned a lot and managed to get everything up and running without too much hair pulling. I currently have NextCloud and a UniFi Controller configured, but hope to add further applications in the future such as Plex, Bitwarden, and video security software integrated with unlocked Wyze cameras. Some of the lessons I learned were things I've learned at work, but it they're always good reminders.
+
+##### Lessons Learned
+
+-   Always understand the why behind how something works (or doesn't) before moving on
+-   Document everything
+-   Take your time
+
+## initial setup
+
 1. download latest vers of buster-lite (e.g. https://downloads.raspberrypi.org/raspios_lite_armhf_latest)
-2. flash to sd card
+2. flash sd card
 3. create empty ssh file under `/boot/`
     - `touch ssh`
-4. connect via ssh 
+4. connect via ssh
     - `ssh pi@192.168.3.229`
 5. configure static ip via router; you'll also want to do this via `/etc/dhcpcd.conf` file.
 6. set password
@@ -22,14 +26,17 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 9. enable container features by adding the following to `/boot/cmdline.txt`:
     - `cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory`
 10. edit `/etc/dhcpcd.conf`
-    - ```interface eth0
+    - ````interface eth0
          static ip_address=192.168.3.103/24
          static routers=192.168.3.1
          static domain_name_servers=192.168.3.1```
+      ````
 11. switch firewall to legacy config:
     - `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
     - `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`
-# configure nfs storage
+
+## configure nfs storage
+
 1. list all connected devices and find the correct drive:
     - `sudo fdisk -l`
 2. create partition
@@ -60,8 +67,10 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - add the following to `/etc/exports`
         - `sudo vi /etc/fstab`
     - add the master's ip etc to `/etc/fstab`
-        - `192.168.3.100:/mnt/ssd   /mnt/ssd   nfs    rw  0  0`
-# configure k3s master node
+        - `192.168.3.100:/mnt/ssd /mnt/ssd nfs rw 0 0`
+
+## configure k3s master node
+
 1. ssh to master node
     - `ssh pi@kube-master`
 2. if you're not root, you'll want to enable to ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`
@@ -76,7 +85,9 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - `kubectl get pods -A -o wide`
 6. save the access token to configure the agents
     - `sudo cat /var/lib/rancher/k3s/server/node-token`
-# configure k3s worker nodes
+
+## configure k3s worker nodes
+
 1. ssh to work node
     - `ssh pi@kube-worker1`
 2. set permissions on config file.
@@ -91,5 +102,7 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - `sudo systemctl status k3s-agent`
     - `kubectl get nodes -o wide`
     - `kubectl get pods -A -o wide`
-# connect remotely to cluster
-    - 
+
+## connect remotely to cluster
+
+    -
