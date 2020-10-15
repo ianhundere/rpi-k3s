@@ -3,13 +3,13 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  namespace: "nextcloud"
-  name: "nextcloud-ssd"
+  namespace: nextcloud
+  name: nextcloud-ssd
 spec:
-  storageClassName: "manual"
+  storageClassName: manual
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: "50Gi"
+      storage: 50Gi
 ---

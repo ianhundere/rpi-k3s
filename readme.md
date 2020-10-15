@@ -102,6 +102,12 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - `kubectl get nodes -o wide`
     - `kubectl get pods -A -o wide`
 
+###### uninstall
+1. master
+    - `sudo /usr/local/bin/k3s-agent-uninstall.sh`
+2. workers
+    - `sudo rm -rf /var/lib/rancher`
+
 ## connect remotely to cluster
 
 1. install `kubectl` if it's not already installed local computer, [Install Guide](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
@@ -179,3 +185,15 @@ spec:
         ingress:
           class: nginx
 EOF
+```
+## install unifi-controller
+1. create namespace
+    - `kubectl create ns unifi`
+2. apply yaml
+    - `kubectl apply -f .`
+
+## install nextcloud
+1. create namespace
+    - `kubectl create ns nextcloud`
+2. apply yaml
+    - `kubectl apply -f .`
