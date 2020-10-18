@@ -189,11 +189,56 @@ EOF
 ## install unifi-controller
 1. create namespace
     - `kubectl create ns unifi`
-2. apply yaml
+2. create the NFS directory on the master node
+    - `cd /mnt/ssd && sudo mkdir unifi`
+3. apply yaml
     - `kubectl apply -f .`
+4. allow internal access by sshing to router
+    - `configure`
+    - `set system static-host-mapping host-name ***REMOVED*** inet 192.168.3.240`
+    - `commit`
+    - `save`
+5. allow external access by forwarding the following ports on router to LB (e.g. `192.168.3.240`)
+    - `3478` UDP / STUN
+    - `10001` UDP / device discovery
+    - `8080` TCP / device and controller communication
+    - `8443` TCP / controller GUI/API
+    - `8843` TCP / HTTPS portal redirection
+    - `8880` TCP / HTTP GUI portal redirection
+    - `6789` TCP / throughput test
 
 ## install nextcloud
 1. create namespace
     - `kubectl create ns nextcloud`
-2. apply yaml
-    - `kubectl apply -f .`
+2. create the NFS directory on the master node
+    - `cd /mnt/ssd && sudo mkdir nextcloud`
+3. apply pv and pvc
+    - `kubectl apply -f nextcloud.persistentvolume.yml`
+    - `kubectl apply -f nextcloud.persistentvolumeclaim.yml`
+4. update values in `nextcloud.values.yml`
+    - ```nextcloud:
+        host: "***REMOVED***"
+        username: <changeme>
+        password: <changeme>
+    - ```persistence:
+        enabled: true
+        existingClaim: "nextcloud-ssd"
+        accessMode: ReadWriteOnce
+        size: "60Gi"
+5. apply `nextcloud.values.yml`
+    - `helm install nextcloud nextcloud/nextcloud --values nextcloud.values.yml -n nextcloud`
+6. allow internal access by sshing to router
+    - `configure`
+    - `set system static-host-mapping host-name ***REMOVED*** inet 192.168.3.240`
+    - `commit`
+    - `save`
+7. allow external access by forwarding the following ports on router
+    - TCP `443` / GUI
+    - TCP `80` / GUI
+8. apply ingress
+    - `kubectl apply -f nextcloud.ingress.yml`
+9. add files manually via scp / run `occ` to add them to the db:
+    - `scp -r <files> pi@kube-master:~`
+    - `kubectl exec -it <nextcloud_pod_name> bash -n nextcloud`
+    - `sudo -u www-data php /var/www/html/occ files:scan --path "<user_id/files>"`
+    
