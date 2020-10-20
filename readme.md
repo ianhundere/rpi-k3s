@@ -4,9 +4,9 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 
 ##### Lessons Learned
 
--   Take your time
--   Document everything
--   It often pays to know and understand the why behind something working (or not working) before moving on
+- Assume nothing
+- Document everything
+- It often pays to know and understand the why behind something working (or not working) before moving on
 
 ## initial setup
 
