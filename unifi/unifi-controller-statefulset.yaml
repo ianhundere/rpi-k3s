@@ -25,7 +25,7 @@ spec:
             - name: PUID
               value: "1000"
           image: linuxserver/unifi-controller:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           name: unifi-controller
           ports:
             - containerPort: 3478
