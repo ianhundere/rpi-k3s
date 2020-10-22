@@ -241,4 +241,4 @@ EOF
     - `scp -r <files> pi@kube-master:~`
     - `kubectl exec -it <nextcloud_pod_name> bash -n nextcloud`
     - `sudo -u www-data php /var/www/html/occ files:scan --path "<user_id/files>"`
-    
+## install plex
