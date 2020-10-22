@@ -195,7 +195,7 @@ EOF
     - `kubectl apply -f .`
 4. allow internal access by sshing to router
     - `configure`
-    - `set system static-host-mapping host-name ***REMOVED*** inet 192.168.3.240`
+    - `set system static-host-mapping host-name <sub-domain> inet 192.168.3.240`
     - `commit`
     - `save`
 5. allow external access by forwarding the following ports on router to LB (e.g. `192.168.3.240`)
@@ -217,7 +217,7 @@ EOF
     - `kubectl apply -f nextcloud.persistentvolumeclaim.yml`
 4. update values in `nextcloud.values.yml`
     - ```nextcloud:
-        host: "***REMOVED***"
+        host: "<sub-domain>"
         username: <changeme>
         password: <changeme>
     - ```persistence:
@@ -229,7 +229,7 @@ EOF
     - `helm install nextcloud nextcloud/nextcloud --values nextcloud.values.yml -n nextcloud`
 6. allow internal access by sshing to router
     - `configure`
-    - `set system static-host-mapping host-name ***REMOVED*** inet 192.168.3.240`
+    - `set system static-host-mapping host-name <sub-domain> inet 192.168.3.240`
     - `commit`
     - `save`
 7. allow external access by forwarding the following ports on router
