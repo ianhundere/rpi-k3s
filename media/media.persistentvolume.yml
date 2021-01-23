@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: "media-ssd"
+  labels:
+    type: "local"
+spec:
+  storageClassName: "manual"
+  capacity:
+    storage: "400Gi"
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/mnt/ssd/media"

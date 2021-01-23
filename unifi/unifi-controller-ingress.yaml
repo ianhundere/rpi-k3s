@@ -10,10 +10,10 @@ metadata:
 spec:
   tls:
   - hosts:
-    - ***REMOVED***
+    - host.name
     secretName: unifi-cert
   rules:
-  - host: ***REMOVED***
+  - host: host.name
     http:
       paths:
         - path: /
