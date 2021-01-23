@@ -1,0 +1,59 @@
+replicaCount: 1
+
+image:
+  repository: "haugene/transmission-openvpn"
+  tag: "latest"
+  pullPolicy: "IfNotPresent"
+
+env:
+  - name: OPENVPN_PROVIDER
+    value: "PROTONVPN"
+  - name: OPENVPN_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: "openvpn"
+        key: "username"
+  - name: OPENVPN_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: "openvpn"
+        key: "password"
+  - name: OPENVPN_CONFIG 
+    value: "ch-05.protonvpn.com.udp,ch-08.protonvpn.com.udp,nl-04.protonvpn.com.udp,nl-11.protonvpn.com.udp"
+  - name: LOCAL_NETWORK
+    value: "192.168.3.0/24"
+  - name: TRANSMISSION_PEER_PORT
+    value: "47444"
+  - name: TRANSMISSION_DOWNLOAD_DIR
+    value: "/downloads/transmission"
+  - name: PUID
+    value: "1000"
+  - name: PGID
+    value: "1000"
+
+service:
+  type: ClusterIP
+  port: 80
+
+volumes:
+  - name: "media-ssd"
+    persistentVolumeClaim:
+      claimName: "media-ssd"
+  - name: "dev-tun"
+    hostPath:
+      path: "/dev/net/tun"
+
+volumeMounts:
+  - name: "media-ssd"
+    mountPath: "/data"
+    subPath: "configs/transmission-data"
+  - name: "media-ssd"
+    mountPath: "/downloads/transmission"
+    subPath: "downloads/transmission"
+  - name: "dev-tun"
+    mountPath: "/dev/net/tun"
+
+securityContext:
+  capabilities:
+    add:
+      - NET_ADMIN

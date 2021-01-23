@@ -25,10 +25,10 @@ ingress:
     certmanager.k8s.io/cluster-issuer: letsencrypt-prod
   tls:
   - hosts:
-    - ***REMOVED***
+    - home.name
     secretName: nextcloud-prod-tls
   rules:
-  - host: ***REMOVED***
+  - host: host.name
     http:
       paths:
         - path: /
@@ -45,7 +45,7 @@ lifecycle: {}
   # preStopCommand: []
 
 nextcloud:
-  host: "***REMOVED***"
+  host: home.name
   username: changeme
   password: changeme
   update: 0

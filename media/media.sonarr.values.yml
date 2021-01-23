@@ -1,0 +1,32 @@
+replicaCount: 1
+
+image:
+  repository: linuxserver/sonarr
+  tag: arm32v7-latest # ARM image
+  pullPolicy: IfNotPresent
+
+env:
+  - name: PUID
+    value: "1000"
+  - name: PGID
+    value: "1000"
+
+service:
+  type: ClusterIP
+  port: 80
+
+volumes:
+  - name: media-ssd
+    persistentVolumeClaim:
+      claimName: "media-ssd" # PersistentVolumeClaim created earlier
+
+volumeMounts:
+  - name: media-ssd
+    mountPath: "/config"
+    subPath: "configs/sonarr" # Path /mnt/ssd/media/configs/sonarr where sonarr writes the configuration
+  - name: media-ssd
+    mountPath: "/downloads/transmission"
+    subPath: "downloads/transmission" # Path /mnt/ssd/media/downloads/transmission where sonarr picks up downloaded episodes
+  - name: media-ssd
+    mountPath: "/tv"
+    subPath: "library/tv" # Path /mnt/ssd/media/library/tv where sonarr moves and renames the episodes
