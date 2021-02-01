@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: "linuxserver/radarr"
-  tag: arm32v7-latest
+  tag: arm32v7-3.0.1.4259-ls91
   pullPolicy: IfNotPresent
 
 env:
@@ -18,16 +18,15 @@ service:
 volumes:
   - name: "media-ssd"
     persistentVolumeClaim:
-      claimName: "media-ssd" # PersistentVolumeClaim created earlier
+      claimName: "media-ssd"
 
 volumeMounts:
   - name: "media-ssd"
     mountPath: "/config"
-    subPath: "configs/radarr" # Path /mnt/ssd/media/configs/radarr where radarr writes the configuration
+    subPath: "configs/radarr"
   - name: "media-ssd"
     mountPath: "/downloads/transmission"
-    subPath: "downloads/transmission" # Path /mnt/ssd/media/downloads/transmission where radarr picks up downloaded movies
+    subPath: "downloads/transmission"
   - name: media-ssd
     mountPath: "/movies"
-    subPath: "library/movies" # Path /mnt/ssd/media/library/movies where radarr moves and renames the movies
-
+    subPath: "library/movies"

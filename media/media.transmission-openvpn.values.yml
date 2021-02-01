@@ -1,9 +1,9 @@
 replicaCount: 1
 
 image:
-  repository: "haugene/transmission-openvpn"
-  tag: "latest"
-  pullPolicy: "IfNotPresent"
+  repository: haugene/transmission-openvpn
+  tag: 3.0.2-armhf
+  pullPolicy: IfNotPresent
 
 env:
   - name: OPENVPN_PROVIDER

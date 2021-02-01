@@ -26,10 +26,10 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 9. enable container features by adding the following to `/boot/cmdline.txt`:
     - `cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory`
 10. edit `/etc/dhcpcd.conf`
-    - ````interface eth0
+    - ```interface eth0
          static ip_address=192.168.3.103/24
          static routers=192.168.3.1
-         static domain_name_servers=192.168.3.1```
+         static domain_name_servers=192.168.3.1
 11. switch firewall to legacy config:
     - `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
     - `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`

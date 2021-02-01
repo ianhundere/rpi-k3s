@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: linuxserver/sonarr
-  tag: arm32v7-latest # ARM image
+  tag: arm32v7-2.0.0.5344-ls92
   pullPolicy: IfNotPresent
 
 env:
@@ -18,15 +18,15 @@ service:
 volumes:
   - name: media-ssd
     persistentVolumeClaim:
-      claimName: "media-ssd" # PersistentVolumeClaim created earlier
+      claimName: "media-ssd"
 
 volumeMounts:
   - name: media-ssd
     mountPath: "/config"
-    subPath: "configs/sonarr" # Path /mnt/ssd/media/configs/sonarr where sonarr writes the configuration
+    subPath: "configs/sonarr"
   - name: media-ssd
     mountPath: "/downloads/transmission"
-    subPath: "downloads/transmission" # Path /mnt/ssd/media/downloads/transmission where sonarr picks up downloaded episodes
+    subPath: "downloads/transmission"
   - name: media-ssd
     mountPath: "/tv"
-    subPath: "library/tv" # Path /mnt/ssd/media/library/tv where sonarr moves and renames the episodes
+    subPath: "library/tv"
