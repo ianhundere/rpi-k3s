@@ -2,7 +2,7 @@ claimToken: "claim-x8Txb8YiYSwHaa3syxog"
 
 image:
   repository: linuxserver/plex
-  tag: arm32v7-latest
+  tag: arm32v7-version-1.21.2.3943-a91458577
   pullPolicy: IfNotPresent
 
 kubePlex:
@@ -11,8 +11,8 @@ kubePlex:
 timezone: America/New_York
 
 service:
-  type: LoadBalancer # We will use a LoadBalancer to obtain a virtual IP that can be exposed to Plex Media via our router
-  port: 32400 # Port to expose Plex
+  type: LoadBalancer
+  port: 32400
 
 nodeSelector:
   beta.kubernetes.io/arch: arm

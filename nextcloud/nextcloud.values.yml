@@ -3,7 +3,7 @@
 ##
 image:
   repository: nextcloud
-  tag: 19.0.3-apache
+  tag: 20.0.3-apache
   pullPolicy: IfNotPresent
   # pullSecrets:
   #   - myRegistrKeySecretName
@@ -25,10 +25,10 @@ ingress:
     certmanager.k8s.io/cluster-issuer: letsencrypt-prod
   tls:
   - hosts:
-    - home.name
+    - ${NEXTCLOUD_HOST}
     secretName: nextcloud-prod-tls
   rules:
-  - host: host.name
+  - host: ${NEXTCLOUD_HOST}
     http:
       paths:
         - path: /
@@ -45,9 +45,9 @@ lifecycle: {}
   # preStopCommand: []
 
 nextcloud:
-  host: home.name
-  username: changeme
-  password: changeme
+  host: ${NEXTCLOUD_HOST}
+  username: ${NEXTCLOUD_USERNAME}
+  password: ${NEXTCLOUD_PW}
   update: 0
   datadir: /var/www/html/data
   tableprefix:
