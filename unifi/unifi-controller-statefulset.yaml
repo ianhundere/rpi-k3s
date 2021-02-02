@@ -40,6 +40,13 @@ spec:
           volumeMounts:
             - mountPath: /config
               name: unifi
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Gi
+            requests:
+              cpu: 100m
+              memory: 256Mi
       restartPolicy: Always
       volumes:
         - name: unifi

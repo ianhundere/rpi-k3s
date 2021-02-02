@@ -99,6 +99,13 @@ spec:
         volumeMounts:
         - name: tmp-dir
           mountPath: /tmp
+        resources:
+          limits:
+            cpu: 100m
+            memory: 32Mi
+          requests:
+            cpu: 50m
+            memory: 16Mi
       nodeSelector:
         kubernetes.io/os: linux
 ---
