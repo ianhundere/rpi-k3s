@@ -25,10 +25,10 @@ ingress:
     certmanager.k8s.io/cluster-issuer: letsencrypt-prod
   tls:
   - hosts:
-    - ${NEXTCLOUD_HOST}
+    - host.name
     secretName: nextcloud-prod-tls
   rules:
-  - host: ${NEXTCLOUD_HOST}
+  - host: host.name
     http:
       paths:
         - path: /
@@ -45,9 +45,9 @@ lifecycle: {}
   # preStopCommand: []
 
 nextcloud:
-  host: ${NEXTCLOUD_HOST}
-  username: ${NEXTCLOUD_USERNAME}
-  password: ${NEXTCLOUD_PW}
+  host: host.name
+  username: changeme
+  password: changeme
   update: 0
   datadir: /var/www/html/data
   tableprefix:
@@ -313,11 +313,11 @@ resources:
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
   limits:
-    cpu: 100m
-    memory: 128Mi
+    cpu: 1000m
+    memory: 1Gi
   requests:
-    cpu: 100m
-    memory: 128Mi
+    cpu: 500m
+    memory: 512Mi
 
 ## Liveness and readiness probe values
 ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
