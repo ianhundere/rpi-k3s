@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ninjam-server
+  namespace: ninjam
+  labels:
+    app: ninjam-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ninjam-server
+  template:
+    metadata:
+      labels:
+        app: ninjam-server
+    spec:
+      containers:
+        - name: ninjam-server
+          image: zfigz/ninjam-server:v0.0.4
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: config-volume
+            mountPath: /usr/local/ninjam/config.cfg
+            subPath: config.cfg
+          - name: session-volume
+            mountPath: /usr/local/ninjam/sessions
+            subPath: sessions
+          ports:
+            - containerPort: 2050
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+      nodeSelector:
+        beta.kubernetes.io/arch: arm
+        beta.kubernetes.io/os: linux
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ninjam-server
+        - name: session-volume
+          persistentVolumeClaim:
+            claimName: ninjam-server-ssd
