@@ -1,15 +1,16 @@
----
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: media-ssd
+  name: ninjam-server-ssd
+  namespace: ninjam
   labels:
+    app: ninjam-server
     type: local
 spec:
   storageClassName: manual
   capacity:
-    storage: 400Gi
+    storage: 10Gi
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: /mnt/ssd/media
+    path: /mnt/ssd/ninjam

@@ -1,13 +1,14 @@
----
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  namespace: media
-  name: media-ssd
+  name: ninjam-server-ssd
+  namespace: ninjam
+  labels:
+    app: ninjam-server
 spec:
   storageClassName: manual
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 400Gi
+      storage: 10Gi

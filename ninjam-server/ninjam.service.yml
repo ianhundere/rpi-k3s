@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: ninjam
+  labels:
+    app: ninjam-server
+  name: ninjam-server
+spec:
+  ports:
+    - port: 2050
+      targetPort: 2050
+      protocol: TCP
+  selector:
+    app: ninjam-server
+  externalIPs:
+    - "192.168.3.240"
