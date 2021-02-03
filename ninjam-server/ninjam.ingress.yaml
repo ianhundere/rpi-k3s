@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: ninjam
+  name: ninjam-server
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: 50m
+spec:
+  tls:
+  - hosts:
+    - ninjam.clusterian.pw
+    secretName: ninjam-cert
+  rules:
+  - host: ninjam.clusterian.pw
+    http:
+      paths:
+        - path: /
+          backend:
+            serviceName: ninjam-server
+            servicePort: 2050
