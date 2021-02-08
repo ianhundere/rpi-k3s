@@ -98,7 +98,7 @@ metadata:
   labels:
     app: ninjam-server-cronjob
 spec:
-  schedule: 0 8 * * *
+  schedule: "0 8 * * *"
   successfulJobsHistoryLimit: 7
   failedJobsHistoryLimit: 3
   concurrencyPolicy: Forbid
@@ -126,11 +126,11 @@ spec:
                 ]
               resources:
                 requests:
-                  cpu: 500m
-                  memory: 100Mi
+                  cpu: 100m
+                  memory: 32Mi
                 limits:
-                  cpu: 600m
-                  memory: 200Mi
+                  cpu: 200m
+                  memory: 64Mi
           containers:
             - name: ninjam-server-cronjob2
               image: raspbernetes/kubectl
