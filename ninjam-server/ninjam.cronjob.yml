@@ -1,0 +1,158 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ninjam-server-cronjob-sessions-ssd
+  labels:
+    app: ninjam-server-cronjob
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /mnt/ssd/ninjam/sessions
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ninjam-server-cronjob-jamz-ssd
+  labels:
+    app: ninjam-server-cronjob
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /mnt/ssd/nextcloud/data/***REMOVED***/files/jamz
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ninjam-server-cronjob-sessions-ssd
+  namespace: ninjam
+  labels:
+    app: ninjam-server-cronjob
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ninjam-server-cronjob-jamz-ssd
+  namespace: ninjam
+  labels:
+    app: ninjam-server-cronjob
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ninjam-server-cronjob
+  namespace: ninjam
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: ninjam
+  name: ninjam-server-cronjob
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/exec"]
+    verbs: ["get", "exec", "list", "watch", "create"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ninjam-server-cronjob
+  namespace: ninjam
+subjects:
+  - kind: ServiceAccount
+    name: ninjam-server-cronjob
+    namespace: ninjam
+roleRef:
+  kind: ClusterRole
+  name: ninjam-server-cronjob
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: ninjam-server-cronjob
+  namespace: ninjam
+  labels:
+    app: ninjam-server-cronjob
+spec:
+  schedule: 0 8 * * *
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 1800
+      backoffLimit: 3
+      template:
+        spec:
+          serviceAccountName: ninjam-server-cronjob
+          initContainers:
+            - name: ninjam-server-cronjob1
+              image: ubuntu
+              imagePullPolicy: IfNotPresent
+              volumeMounts:
+                - name: session-volume
+                  mountPath: sessions
+                - name: jamz-volume
+                  mountPath: jamz
+              command: ["/bin/bash", "-c"]
+              args:
+                [
+                  "if echo $(find sessions/ -maxdepth 1 -type d -mmin +720 -print) | grep ninjam; then echo 'moving 12 hour old jamz' && find sessions/ -maxdepth 1 -type d -mmin +720 -exec mv {} jamz \\;; fi;",
+                  "if echo $(find jamz/ -maxdepth 1 -type d -mtime +3 -print) | grep ninjam; then echo 'deleting 3 day old jamz' && find jamz/ -maxdepth 1 -type d -mtime +3 -exec rm -r {} \\;; fi;",
+                ]
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 100Mi
+                limits:
+                  cpu: 600m
+                  memory: 200Mi
+          containers:
+            - name: ninjam-server-cronjob2
+              image: raspbernetes/kubectl
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                [
+                  "kubectl exec -it $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- bash",
+                  "apt-get update; apt-get install -y sudo; sudo -u www-data php occ files:scan --path=/***REMOVED***/files/jamz;",
+                ]
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 32Mi
+                limits:
+                  cpu: 200m
+                  memory: 64Mi
+          restartPolicy: OnFailure
+          volumes:
+            - name: session-volume
+              persistentVolumeClaim:
+                claimName: ninjam-server-cronjob-sessions-ssd
+            - name: jamz-volume
+              persistentVolumeClaim:
+                claimName: ninjam-server-cronjob-jamz-ssd
