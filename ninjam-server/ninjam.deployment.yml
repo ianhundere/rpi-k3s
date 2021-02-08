@@ -20,12 +20,12 @@ spec:
           image: zfigz/ninjam-server:v0.0.4
           imagePullPolicy: IfNotPresent
           volumeMounts:
-          - name: config-volume
-            mountPath: /usr/local/ninjam/config.cfg
-            subPath: config.cfg
-          - name: session-volume
-            mountPath: /usr/local/ninjam/sessions
-            subPath: sessions
+            - name: config-volume
+              mountPath: /usr/local/ninjam/config.cfg
+              subPath: config.cfg
+            - name: session-volume
+              mountPath: /usr/local/ninjam/sessions
+              subPath: sessions
           ports:
             - containerPort: 2050
               protocol: TCP

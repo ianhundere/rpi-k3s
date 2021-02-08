@@ -234,16 +234,21 @@ redis:
 cronjob:
   enabled: false
   # Nexcloud image is used as default but only curl is needed
-  image: {}
-    # repository: nextcloud
-    # tag: 16.0.3-apache
-    # pullPolicy: IfNotPresent
+  image:
+    repository: nextcloud
+    tag: 20.0.3-apache
+    pullPolicy: IfNotPresent
     # pullSecrets:
     #   - myRegistrKeySecretName
   # Every 5 minutes
   # Note: Setting this to any any other value than 5 minutes might
   #  cause issues with how nextcloud background jobs are executed
-  schedule: "*/5 * * * *"
+  schedule: "* * * * *"
+  command: ["/bin/sh", "-c"]
+  args:
+    [
+      "sleep 1h"
+    ]
   annotations: {}
   # Set curl's insecure option if you use e.g. self-signed certificates
   curlInsecure: false
