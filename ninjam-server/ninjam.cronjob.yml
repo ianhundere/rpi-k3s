@@ -98,13 +98,13 @@ metadata:
   labels:
     app: ninjam-server-cronjob
 spec:
-  schedule: "0 8 * * *"
-  successfulJobsHistoryLimit: 7
-  failedJobsHistoryLimit: 3
+  schedule: "0 */1 * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
+  suspend: false
   jobTemplate:
     spec:
-      ttlSecondsAfterFinished: 1800
       backoffLimit: 3
       template:
         spec:
@@ -121,8 +121,8 @@ spec:
               command: ["/bin/bash", "-c"]
               args:
                 [
-                  "if echo $(find sessions/ -maxdepth 1 -type d -mmin +720 -print) | grep ninjam; then echo 'moving 12 hour old jamz' && find sessions/ -maxdepth 1 -type d -mmin +720 -exec mv {} jamz \\;; fi;",
-                  "if echo $(find jamz/ -maxdepth 1 -type d -mtime +3 -print) | grep ninjam; then echo 'deleting 3 day old jamz' && find jamz/ -maxdepth 1 -type d -mtime +3 -exec rm -r {} \\;; fi;",
+                  "if echo $(find sessions/* -maxdepth 1 -type d -mmin +15 -print) | grep ninjam; then echo 'moving 15min old jamz' && find sessions/* -maxdepth 1 -type d -mmin +15 -exec mv {} jamz \\;; fi;",
+                  "if echo $(find jamz/* -maxdepth 1 -type d -mtime +3 -print) | grep ninjam; then echo 'deleting 3 day old jamz' && find jamz/* -maxdepth 1 -type d -mtime +3 -exec rm -r {} \\;; fi;",
                 ]
               resources:
                 requests:
