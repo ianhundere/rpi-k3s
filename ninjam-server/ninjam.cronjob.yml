@@ -110,7 +110,7 @@ spec:
         spec:
           serviceAccountName: ninjam-server-cronjob
           initContainers:
-            - name: ninjam-server-cronjob1
+            - name: ninjam-server-cronjob-init
               image: ubuntu
               imagePullPolicy: IfNotPresent
               volumeMounts:
@@ -118,36 +118,43 @@ spec:
                   mountPath: sessions
                 - name: jamz-volume
                   mountPath: jamz
-              command: ["/bin/bash", "-c"]
-              args:
-                [
-                  "if echo $(find sessions/* -maxdepth 1 -type d -mmin +15 -print) | grep ninjam; then echo 'moving 15min old jamz' && find sessions/* -maxdepth 1 -type d -mmin +15 -exec mv {} jamz \\;; fi;",
-                  "if echo $(find jamz/* -maxdepth 1 -type d -mtime +3 -print) | grep ninjam; then echo 'deleting 3 day old jamz' && find jamz/* -maxdepth 1 -type d -mtime +3 -exec rm -r {} \\;; fi;",
-                ]
-              resources:
-                requests:
-                  cpu: 100m
-                  memory: 32Mi
-                limits:
-                  cpu: 200m
-                  memory: 64Mi
-          containers:
-            - name: ninjam-server-cronjob2
-              image: raspbernetes/kubectl
-              imagePullPolicy: IfNotPresent
               command: ["/bin/sh", "-c"]
               args:
                 [
-                  "kubectl exec -it $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- bash",
-                  "apt-get update; apt-get install -y sudo; sudo -u www-data php occ files:scan --path=/***REMOVED***/files/jamz;",
+                  "if find sessions -maxdepth 1 -name *.ninjam -type d -mmin +15 -print | grep ninjam; then echo 'moving 15min old jamz' && find sessions -maxdepth 1 -name *.ninjam -type d -mmin +15 -exec mv {} jamz \\;; fi;",
+                  "if find jamz -maxdepth 1 -name *.ninjam -type d -mtime +3 -print | grep ninjam; then echo 'deleting 3 day old jamz' && find jamz -maxdepth 1 -name *.ninjam -type d -mtime +3 -exec rm -r {} \\;; fi;",
                 ]
               resources:
                 requests:
-                  cpu: 100m
-                  memory: 32Mi
+                  cpu: 50m
+                  memory: 8Mi
                 limits:
-                  cpu: 200m
-                  memory: 64Mi
+                  cpu: 100m
+                  memory: 16Mi
+          containers:
+            - name: ninjam-server-cronjob
+              image: raspbernetes/kubectl
+              imagePullPolicy: IfNotPresent
+              lifecycle:
+                postStart:
+                  exec:
+                    command:
+                      [
+                        "/bin/sh",
+                        "-c",
+                        "kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get update",
+                        "kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get install -y sudo",
+                      ]
+              command: ["/bin/sh", "-c"]
+              args:
+                - kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- sudo -u www-data php occ files:scan --path=/***REMOVED***/files/jamz
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 8Mi
+                limits:
+                  cpu: 100m
+                  memory: 16Mi
           restartPolicy: OnFailure
           volumes:
             - name: session-volume
