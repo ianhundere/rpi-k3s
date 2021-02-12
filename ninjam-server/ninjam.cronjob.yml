@@ -133,7 +133,7 @@ spec:
                   memory: 16Mi
           containers:
             - name: ninjam-server-cronjob
-              image: raspbernetes/kubectl
+              image: raspbernetes/kubectl:1.18.2
               imagePullPolicy: IfNotPresent
               lifecycle:
                 postStart:
