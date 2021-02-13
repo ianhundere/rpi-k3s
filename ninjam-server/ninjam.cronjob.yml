@@ -110,7 +110,7 @@ spec:
         spec:
           serviceAccountName: ninjam-server-cronjob
           initContainers:
-            - name: ninjam-server-cronjob-init
+            - name: ninjam-server-cronjob-init1
               image: ubuntu
               imagePullPolicy: IfNotPresent
               volumeMounts:
@@ -118,7 +118,7 @@ spec:
                   mountPath: sessions
                 - name: jamz-volume
                   mountPath: jamz
-              command: ["/bin/sh", "-c"]
+              command: ["/bin/bash", "-c"]
               args:
                 [
                   "if find sessions -maxdepth 1 -name *.ninjam -type d -mmin +15 -print | grep ninjam; then echo 'moving 15min old jamz' && find sessions -maxdepth 1 -name *.ninjam -type d -mmin +15 -exec mv {} jamz \\;; fi;",
@@ -131,30 +131,35 @@ spec:
                 limits:
                   cpu: 100m
                   memory: 16Mi
+            - name: ninjam-server-cronjob-init2
+              image: raspbernetes/kubectl:1.18.2
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                [
+                  "kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get update && kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get install -y sudo",
+                ]
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 32Mi
+                limits:
+                  cpu: 200m
+                  memory: 64Mi
           containers:
             - name: ninjam-server-cronjob
               image: raspbernetes/kubectl:1.18.2
               imagePullPolicy: IfNotPresent
-              lifecycle:
-                postStart:
-                  exec:
-                    command:
-                      [
-                        "/bin/sh",
-                        "-c",
-                        "kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get update",
-                        "kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get install -y sudo",
-                      ]
               command: ["/bin/sh", "-c"]
               args:
                 - kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- sudo -u www-data php occ files:scan --path=/***REMOVED***/files/jamz
               resources:
                 requests:
-                  cpu: 50m
-                  memory: 8Mi
-                limits:
                   cpu: 100m
-                  memory: 16Mi
+                  memory: 32Mi
+                limits:
+                  cpu: 200m
+                  memory: 64Mi
           restartPolicy: OnFailure
           volumes:
             - name: session-volume
