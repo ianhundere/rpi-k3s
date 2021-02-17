@@ -3,7 +3,7 @@
 ##
 image:
   repository: nextcloud
-  tag: 20.0.3-apache
+  tag: 20.0.7-apache
   pullPolicy: IfNotPresent
   # pullSecrets:
   #   - myRegistrKeySecretName
@@ -236,7 +236,7 @@ cronjob:
   # Nexcloud image is used as default but only curl is needed
   image:
     repository: nextcloud
-    tag: 20.0.3-apache
+    tag: 20.0.7-apache
     pullPolicy: IfNotPresent
     # pullSecrets:
     #   - myRegistrKeySecretName
