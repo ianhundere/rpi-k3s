@@ -1,8 +1,8 @@
-claimToken: "claim-x8Txb8YiYSwHaa3syxog"
+claimToken: ""
 
 image:
   repository: linuxserver/plex
-  tag: arm32v7-version-1.21.2.3943-a91458577
+  tag: version-1.23.2.4656-85f0adf5b
   pullPolicy: IfNotPresent
 
 kubePlex:
