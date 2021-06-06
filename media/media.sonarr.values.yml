@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: linuxserver/sonarr
-  tag: arm32v7-2.0.0.5344-ls92
+  tag: version-3.0.6.1196
   pullPolicy: IfNotPresent
 
 env:

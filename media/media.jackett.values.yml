@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: gjeanmart/jackettvpn
-  tag: v0.17.405
+  tag: v0.17.677
   pullPolicy: IfNotPresent
 
 env:
