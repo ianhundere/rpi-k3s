@@ -242,3 +242,32 @@ EOF
     - `kubectl exec -it <nextcloud_pod_name> bash -n nextcloud`
     - `sudo -u www-data php /var/www/html/occ files:scan --path "<user_id/files>"`
 ## install plex
+1. create namespace
+    - `kubectl create ns media`
+2. create the NFS directory on the master node
+    - `cd /mnt/ssd && sudo mkdir media`
+3. apply pv and pvc
+    - `kubectl apply -f media.persistentvolume*.yml`
+4. add repo for now (will break helm charts into separate resources)
+    - `helm repo add bananaspliff https://bananaspliff.github.io/geek-charts`
+5. update repo
+    - `helm repo update`
+6. create secret for vpn
+    - `kubectl create secret generic openvpn --from-literal='username=<VPN_USERNAME>' --from-literal='password=<VPN_PASSWORD>' -n media`
+ 7. apply transmission helm
+    - `helm install transmission bananaspliff/transmission-openvpn --values media.transmission-openvpn.values.yml -n media`
+8. create the NFS directory on the master node
+    - `mkdir -p /mnt/ssd/media/configs/jackett/openvpn/`
+9. create a file called `credentials.conf` in `/mnt/ssd/media/configs/jackett/openvpn/` with:
+    - ```
+        <VPN_USERNAME>
+        <VPN_PASSWORD>
+10. create the NFS directory on the master node
+    - `mkdir -p /mnt/ssd/media/configs/jackett/Jackett/`
+11. create a file called `ServerConfig.json` with:
+    - ```
+        {
+            "BasePathOverride": "/jackett"
+        }
+12. apply jackett helm
+    - `helm install jackett bananaspliff/jackett --values media.jackett.values.yml -n media`
