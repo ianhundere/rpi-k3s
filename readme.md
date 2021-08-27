@@ -271,3 +271,31 @@ EOF
         }
 12. apply jackett helm
     - `helm install jackett bananaspliff/jackett --values media.jackett.values.yml -n media`
+13. create the NFS directory on the master node
+    - `mkdir -p /mnt/ssd/media/configs/sonarr/`
+14. create a file called `config.xml` with:
+    - ```
+        <Config>
+        <UrlBase>/sonarr</UrlBase>
+        </Config>
+15. apply sonarr helm
+    - `helm install sonarr bananaspliff/sonarr --values media.sonarr.values.yml -n media`
+16. create the NFS directory on the master node
+    - `mkdir -p /mnt/ssd/media/configs/radarr/`
+17. create a file called `config.xml` with:
+    - ```
+        <Config>
+        <UrlBase>/sonarr</UrlBase>
+        </Config>
+18. apply radarr helm
+    - `helm install radarr bananaspliff/radarr --values media.radarr.values.yml -n media`
+19. get claim token by visiting [plex](plex.tv/claim).
+20. apply plex helm
+    - `helm install plex kube-plex/charts/kube-plex/ --values media.plex.values.yml -n media`
+21. configuring jackett
+    - add indexers to jackett
+    - keep notes of the category #s as those are used in radarr and sonarr
+22. configuring radarr and sonarr
+    - configure the connection to transmission in settings under `Download Client` > `+` (add transmission) using the hostname and port `transmission-transmission-openvpn.media:80`
+    - add indexers in settings under `Indexers` > `+` (add indexer)
+        - add the URL / `http://media.192.168.3.240.nip.io/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
