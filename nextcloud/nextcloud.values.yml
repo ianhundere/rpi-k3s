@@ -7,7 +7,7 @@ image:
   pullPolicy: IfNotPresent
 replicaCount: 1
 nextcloud:
-  host: nextcloud.***REMOVED***.pw
+  host: %NEXCLOUD_HOST%
   username: %NEXTCLOUD_USER%
   password: %NEXTCLOUD_PASSWORD%
   update: 0
