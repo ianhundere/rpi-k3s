@@ -25,7 +25,6 @@ spec:
     targetPort: 32443
   selector:
     app: kube-plex
-  sessionAffinity: None
   type: LoadBalancer
 status:
   loadBalancer:
