@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: sonarr
+  name: sonarr
+  namespace: media
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarr
+  template:
+    metadata:
+      labels:
+        app: sonarr
+    spec:
+      containers:
+      - env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        image: linuxserver/sonarr:version-3.0.6.1196
+        imagePullPolicy: IfNotPresent
+        name: sonarr
+        ports:
+        - containerPort: 8989
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - mountPath: /config
+          name: media-ssd
+          subPath: configs/sonarr
+        - mountPath: /downloads/transmission
+          name: media-ssd
+          subPath: downloads/transmission
+        - mountPath: /tv
+          name: media-ssd
+          subPath: library/tv
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - name: media-ssd
+        persistentVolumeClaim:
+          claimName: media-ssd
