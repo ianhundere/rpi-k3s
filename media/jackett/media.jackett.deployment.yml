@@ -32,7 +32,7 @@ spec:
         - name: LAN_NETWORK
           value: 192.168.3.0/24
         - name: CREATE_TUN_DEVICE
-          value: "true"
+          value: "true" # Needed for VPN
         - name: PUID
           value: "1000"
         - name: PGID
@@ -65,7 +65,7 @@ spec:
       - name: media-ssd
         persistentVolumeClaim:
           claimName: media-ssd
-      - hostPath:
+      - name: dev-tun
+        hostPath: # Needed for VPN
           path: /dev/net/tun
           type: ""
-        name: dev-tun
