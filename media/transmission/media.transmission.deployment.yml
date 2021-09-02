@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: transmission-openvpn
+  name: transmission-openvpn
+  namespace: media
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transmission-openvpn
+      release: transmission
+  template:
+    metadata:
+      labels:
+        app: transmission-openvpn
+        release: transmission
+    spec:
+      containers:
+      - env:
+        - name: OPENVPN_PROVIDER
+          value: PROTONVPN
+        - name: OPENVPN_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: openvpn
+        - name: OPENVPN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: openvpn
+        - name: OPENVPN_CONFIG
+          value: ch-05.protonvpn.com.udp,ch-08.protonvpn.com.udp,nl-04.protonvpn.com.udp,nl-11.protonvpn.com.udp
+        - name: LOCAL_NETWORK
+          value: 192.168.3.0/24
+        - name: TRANSMISSION_PEER_PORT
+          value: "47444"
+        - name: TRANSMISSION_DOWNLOAD_DIR
+          value: /downloads/transmission
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        image: haugene/transmission-openvpn:3.6
+        imagePullPolicy: IfNotPresent
+        name: transmission-openvpn
+        ports:
+        - containerPort: 9091
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+        volumeMounts:
+        - mountPath: /data
+          name: media-ssd
+          subPath: configs/transmission-data
+        - mountPath: /downloads/transmission
+          name: media-ssd
+          subPath: downloads/transmission
+        - mountPath: /dev/net/tun
+          name: dev-tun
+      dnsConfig:
+        nameservers:
+        - 8.8.8.8
+        - 8.8.4.4
+      dnsPolicy: None
+      restartPolicy: Always
+      volumes:
+      - name: media-ssd
+        persistentVolumeClaim:
+          claimName: media-ssd
+      - hostPath:
+          path: /dev/net/tun
+          type: ""
+        name: dev-tun
