@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: jackett
+  name: jackett
+  namespace: media
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jackett
+  template:
+    metadata:
+      labels:
+        app: jackett
+    spec:
+      containers:
+      - env:
+        - name: VPN_ENABLED
+          value: "yes"
+        - name: VPN_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: openvpn
+        - name: VPN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: openvpn
+        - name: LAN_NETWORK
+          value: 192.168.3.0/24
+        - name: CREATE_TUN_DEVICE
+          value: "true"
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        image: gjeanmart/jackettvpn:v0.17.677
+        imagePullPolicy: IfNotPresent
+        name: jackett
+        ports:
+        - containerPort: 9117
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+        volumeMounts:
+        - mountPath: /config
+          name: media-ssd
+          subPath: configs/jackett
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - name: media-ssd
+        persistentVolumeClaim:
+          claimName: media-ssd
+      - hostPath:
+          path: /dev/net/tun
+          type: ""
+        name: dev-tun
