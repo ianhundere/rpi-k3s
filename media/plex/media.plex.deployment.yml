@@ -32,7 +32,7 @@ spec:
             - name: PMS_INTERNAL_ADDRESS
               value: http://plex-kube-plex:32400
             - name: PMS_IMAGE
-              value: linuxserver/plex:version-1.23.2.4656-85f0adf5b
+              value: linuxserver/plex:arm32v7-version-1.24.1.4931-1a38e63c6
             - name: KUBE_NAMESPACE
               valueFrom:
                 fieldRef:

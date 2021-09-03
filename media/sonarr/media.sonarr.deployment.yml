@@ -21,7 +21,7 @@ spec:
           value: "1000"
         - name: PGID
           value: "1000"
-        image: linuxserver/sonarr:version-3.0.6.1196
+        image: linuxserver/sonarr:version-3.0.6.1265
         imagePullPolicy: IfNotPresent
         name: sonarr
         ports:
