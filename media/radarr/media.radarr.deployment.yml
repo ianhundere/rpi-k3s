@@ -22,7 +22,7 @@ spec:
           value: "1000"
         - name: PGID
           value: "1000"
-        image: linuxserver/radarr:version-3.2.2.5080
+        image: linuxserver/radarr:arm32v7-version-3.2.2.5080
         imagePullPolicy: IfNotPresent
         name: radarr
         ports:
