@@ -2,15 +2,15 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: sonarr
-  name: sonarr
+    app: jackett
+  name: jackett
   namespace: media
 spec:
   ports:
   - name: http
     port: 80
     protocol: TCP
-    targetPort: 8989
+    targetPort: 9117
   selector:
-    app: sonarr
+    app: jackett
   type: ClusterIP
