@@ -37,7 +37,7 @@ spec:
           value: "1000"
         - name: PGID
           value: "1000"
-        image: gjeanmart/jackettvpn:v0.18.379
+        image: zfigz/docker-jackettvpn:v0.0.1
         imagePullPolicy: IfNotPresent
         name: jackett
         ports:
