@@ -225,19 +225,21 @@ EOF
         existingClaim: "nextcloud-ssd"
         accessMode: ReadWriteOnce
         size: "60Gi"
-5. apply `nextcloud.values.yml`
+5. add repo
+    - `helm repo add nextcloud https://nextcloud.github.io/helm/`
+6. apply `nextcloud.values.yml`
     - `helm install nextcloud nextcloud/nextcloud --values nextcloud.values.yml -n nextcloud`
-6. allow internal access by sshing to router
+7. allow internal access by sshing to router
     - `configure`
     - `set system static-host-mapping host-name <sub-domain> inet 192.168.3.240`
     - `commit`
     - `save`
-7. allow external access by forwarding the following ports on router
+8. allow external access by forwarding the following ports on router
     - TCP `443` / GUI
     - TCP `80` / GUI
-8. apply ingress
+9. apply ingress
     - `kubectl apply -f nextcloud.ingress.yml`
-9. add files manually via scp / run `occ` to add them to the db:
+10. add files manually via scp / run `occ` to add them to the db:
     - `scp -r <files> pi@kube-master:~`
     - `kubectl exec -it <nextcloud_pod_name> bash -n nextcloud`
     - `sudo -u www-data php /var/www/html/occ files:scan --path "<user_id/files>"`
