@@ -3,7 +3,7 @@
 ##
 image:
   repository: nextcloud
-  tag: 21.0.0-apache
+  tag: 21.0.5-apache
   pullPolicy: IfNotPresent
 replicaCount: 1
 nextcloud:
