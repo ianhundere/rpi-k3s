@@ -43,7 +43,7 @@ spec:
           value: "1000"
         - name: PGID
           value: "1000"
-        image: haugene/transmission-openvpn:3.7
+        image: haugene/transmission-openvpn:4.0
         imagePullPolicy: IfNotPresent
         name: transmission-openvpn
         ports:
