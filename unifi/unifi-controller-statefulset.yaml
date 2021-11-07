@@ -24,7 +24,7 @@ spec:
               value: "1000"
             - name: PUID
               value: "1000"
-          image: linuxserver/unifi-controller:arm32v7-version-6.4.54
+          image: linuxserver/unifi-controller:arm32v7-version-6.2.26
           imagePullPolicy: IfNotPresent
           name: unifi-controller
           ports:
@@ -47,6 +47,7 @@ spec:
             requests:
               cpu: 100m
               memory: 256Mi
+      nodeName: kube-master
       restartPolicy: Always
       volumes:
         - name: unifi-ssd
