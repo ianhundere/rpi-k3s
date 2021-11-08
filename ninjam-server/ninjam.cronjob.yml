@@ -90,7 +90,7 @@ roleRef:
   name: ninjam-server-cronjob
   apiGroup: rbac.authorization.k8s.io
 ---
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: ninjam-server-cronjob
