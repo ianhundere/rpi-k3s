@@ -35,16 +35,16 @@ data:
 
 
     #user/password/permissions sets
-    User administrator myadminpass *   # allow all functions
-    User user anotherpass CBTKRM      # allow chat, bpm/bpi, topic changing, and kicking, a reserved slot, and multiple logins
-    User myuser mypass                 # allow default functions (chat, no topic)
+    User %NINJAM_USER% %NINJAM_PASSWORD%                 # allow all functions
+    User                              # allow chat, bpm/bpi, topic changing, and kicking, a reserved slot, and multiple logins
+    User                              # allow default functions (chat, no topic)
 
     # optional user/pass with simple status retrieving permissions (this also has the advantage of having the server do less work)
     # StatusUserPass username password
 
     DefaultTopic "Make some noise."
     DefaultBPM 120
-    DefaultBPI 8
+    DefaultBPI 32
 
     # two parameters: path to log to, and session length (in minutes). 0 for length means 30 seconds.
     # if the first parameter (path) is empty, no logging is done
