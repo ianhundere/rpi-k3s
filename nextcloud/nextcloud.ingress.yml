@@ -17,10 +17,10 @@ metadata:
 spec:
   tls:
   - hosts:
-    - %NEXTCLOUD_HOST%
+    - ${NEXTCLOUD_HOST}
     secretName: nextcloud-prod-tls
   rules:
-  - host: %NEXTCLOUD_HOST%
+  - host: ${NEXTCLOUD_HOST}
     http:
       paths:
         - path: /

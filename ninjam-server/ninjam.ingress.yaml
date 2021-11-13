@@ -10,10 +10,10 @@ metadata:
 spec:
   tls:
   - hosts:
-    - %NINJAM_HOST%
+    - "${NINJAM_HOST}" 
     secretName: ninjam-cert
   rules:
-  - host: %NINJAM_HOST%
+  - host: "${NINJAM_HOST}" 
     http:
       paths:
         - path: /
