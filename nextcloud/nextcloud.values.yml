@@ -7,9 +7,9 @@ image:
   pullPolicy: IfNotPresent
 replicaCount: 1
 nextcloud:
-  host: %NEXCLOUD_HOST%
-  username: %NEXTCLOUD_USER%
-  password: %NEXTCLOUD_PASSWORD%
+  host: ${NEXCLOUD_HOST}
+  username: ${NEXTCLOUD_USER}
+  password: ${NEXTCLOUD_PASSWORD}
   update: 0
   datadir: /var/www/html/data
 service:
