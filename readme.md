@@ -60,12 +60,11 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
         - `sudo exportfs -ra`
     - install nfs on workers
         - `sudo apt-get install nfs-common -y`
-    - configure disk to automatically mount
+    - create directory to mount nfs share
         - `sudo mkdir /mnt/ssd`
         - `sudo chown -R pi:pi /mnt/ssd/`
-    - add the following to `/etc/exports`
+    - configure disk to automatically mount by adding the master's ip etc to `/etc/fstab`
         - `sudo vi /etc/fstab`
-    - add the master's ip etc to `/etc/fstab`
         - `192.168.3.100:/mnt/ssd /mnt/ssd nfs rw 0 0`
 
 ## configure k3s master node
