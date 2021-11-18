@@ -19,12 +19,14 @@ spec:
       containers:
         - env:
             - name: MEM_LIMIT
-              value: 1024M
+              value: "2048M"
+            - name: MEM_STARTUP
+              value: "2048M"
             - name: PGID
               value: "1000"
             - name: PUID
               value: "1000"
-          image: linuxserver/unifi-controller:arm32v7-version-6.4.54
+          image: linuxserver/unifi-controller:arm32v7-version-6.2.26
           imagePullPolicy: IfNotPresent
           name: unifi-controller
           ports:
@@ -42,12 +44,11 @@ spec:
               name: unifi-ssd
           resources:
             limits:
-              cpu: 200m
-              memory: 512Mi
+              cpu: 1000m
+              memory: 2048Mi
             requests:
               cpu: 100m
-              memory: 256Mi
-      nodeName: kube-master
+              memory: 128Mi
       restartPolicy: Always
       volumes:
         - name: unifi-ssd

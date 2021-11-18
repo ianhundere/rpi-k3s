@@ -81,7 +81,9 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - `sudo systemctl status k3s`
     - `kubectl get nodes -o wide`
     - `kubectl get pods -A -o wide`
-6. save the access token to configure the agents
+6. taint your master node to avoid deploying to it / save resources for orchestration
+    - `kubectl taint node kube-master node-role.kubernetes.io/master:NoSchedule`
+7. save the access token to configure the agents
     - `sudo cat /var/lib/rancher/k3s/server/node-token`
 
 ## configure k3s worker nodes
@@ -121,9 +123,9 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 ## install metallb - k8s load balancer
 
 1. create the `metallb-system` namespace
-    - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml`
+    - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.11.0/manifests/namespace.yaml`
 2. apply the metallb manifest which includes the controller deployment, speaker daemonset and necessary service accounts for the controller and speaker, along with the RBAC permissions that everything need to function
-    - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml`
+    - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.11.0/manifests/metallb.yaml`
 3. create the memberlist secret contains the secretkey to encrypt the communication between speakers for the fast dead node detection.
     - `kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)`
 4. apply the `ConfigMap` which will indicate what protocol (e.g. `layer2`) and IPs to use (e.g. `192.168.3.240-192.168.3.250`).
