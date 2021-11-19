@@ -80,7 +80,7 @@ spec:
               memory: 2Gi
           volumeMounts:
             - mountPath: /library
-              name: media-ssd
+              name: media-hdd
               subPath: library
             - mountPath: /config
               name: media-ssd
@@ -94,6 +94,9 @@ spec:
         - name: media-ssd
           persistentVolumeClaim:
             claimName: media-ssd
+        - name: media-hdd
+          persistentVolumeClaim:
+            claimName: hdd
         - emptyDir: {}
           name: shared
       dnsPolicy: ClusterFirst
