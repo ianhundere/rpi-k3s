@@ -40,10 +40,10 @@ spec:
           name: media-ssd
           subPath: configs/sonarr
         - mountPath: /downloads/transmission
-          name: media-ssd
+          name: media-hdd
           subPath: downloads/transmission
         - mountPath: /tv
-          name: media-ssd
+          name: media-hdd
           subPath: library/tv
       dnsPolicy: ClusterFirst
       restartPolicy: Always
@@ -51,3 +51,6 @@ spec:
       - name: media-ssd
         persistentVolumeClaim:
           claimName: media-ssd
+      - name: media-hdd
+        persistentVolumeClaim:
+          claimName: hdd

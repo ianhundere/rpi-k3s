@@ -1,0 +1,21 @@
+replicaCount: 2
+nfs:
+  server: "192.168.3.100"
+  path: "/mnt/hdd"
+  mountOptions:
+    - noatime
+storageClass:
+  defaultClass: false
+  pathPattern: "${.PVC.namespace}-${.PVC.name}"
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - nfs-subdir-external-provisioner
+          topologyKey: kubernetes.io/hostname

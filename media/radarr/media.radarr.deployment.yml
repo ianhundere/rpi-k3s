@@ -41,10 +41,10 @@ spec:
           name: media-ssd
           subPath: configs/radarr
         - mountPath: /downloads/transmission
-          name: media-ssd
+          name: media-hdd
           subPath: downloads/transmission
         - mountPath: /movies
-          name: media-ssd
+          name: media-hdd
           subPath: library/movies
       dnsPolicy: ClusterFirst
       restartPolicy: Always
@@ -52,3 +52,6 @@ spec:
       - name: media-ssd
         persistentVolumeClaim:
           claimName: media-ssd
+      - name: media-hdd
+        persistentVolumeClaim:
+          claimName: hdd
