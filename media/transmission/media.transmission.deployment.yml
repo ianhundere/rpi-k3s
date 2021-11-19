@@ -66,7 +66,7 @@ spec:
           name: media-ssd
           subPath: configs/transmission-data
         - mountPath: /downloads/transmission
-          name: media-ssd
+          name: media-hdd
           subPath: downloads/transmission
         - mountPath: /dev/net/tun
           name: dev-tun
@@ -80,6 +80,9 @@ spec:
       - name: media-ssd
         persistentVolumeClaim:
           claimName: media-ssd
+      - name: media-hdd
+        persistentVolumeClaim:
+          claimName: hdd
       - hostPath:
           path: /dev/net/tun
           type: ""
