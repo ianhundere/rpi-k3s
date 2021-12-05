@@ -41,7 +41,7 @@ spec:
           subPath: configs/sonarr
         - mountPath: /downloads/transmission
           name: media-hdd
-          subPath: downloads/transmission
+          subPath: downloads
         - mountPath: /tv
           name: media-hdd
           subPath: library/tv
