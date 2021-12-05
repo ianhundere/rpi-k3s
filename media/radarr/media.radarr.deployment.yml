@@ -42,7 +42,7 @@ spec:
           subPath: configs/radarr
         - mountPath: /downloads/transmission
           name: media-hdd
-          subPath: downloads
+          subPath: downloads/transmission
         - mountPath: /movies
           name: media-hdd
           subPath: library/movies
