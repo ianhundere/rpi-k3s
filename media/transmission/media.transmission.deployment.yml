@@ -39,6 +39,8 @@ spec:
           value: "47444"
         - name: TRANSMISSION_DOWNLOAD_DIR
           value: /downloads/transmission
+        - name: GLOBAL_APPLY_PERMISSIONS
+          value: "false"
         - name: PUID
           value: "1000"
         - name: PGID
@@ -62,12 +64,18 @@ spec:
             add:
             - NET_ADMIN
         volumeMounts:
-        - mountPath: /data
+        - mountPath: /data/transmission-home
           name: media-ssd
-          subPath: configs/transmission-data
+          subPath: configs/transmission-data/transmission-home
+        - mountPath: /data/watch
+          name: media-ssd
+          subPath: configs/transmission-data/watch
+        - mountPath: /data/incomplete
+          name: media-hdd
+          subPath: incomplete
         - mountPath: /downloads/transmission
           name: media-hdd
-          subPath: downloads/transmission
+          subPath: downloads
         - mountPath: /dev/net/tun
           name: dev-tun
       dnsConfig:
