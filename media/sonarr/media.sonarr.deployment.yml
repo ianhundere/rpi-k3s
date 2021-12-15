@@ -21,7 +21,7 @@ spec:
           value: "1000"
         - name: PGID
           value: "1000"
-        image: linuxserver/sonarr:version-3.0.6.1265
+        image: linuxserver/sonarr:version-3.0.6.1342
         imagePullPolicy: IfNotPresent
         name: sonarr
         ports:
@@ -30,11 +30,11 @@ spec:
           protocol: TCP
         resources:
           limits:
+            cpu: 1000m
+            memory: 512Mi
+          requests:
             cpu: 500m
             memory: 256Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
         volumeMounts:
         - mountPath: /config
           name: media-ssd
