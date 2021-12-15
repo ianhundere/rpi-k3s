@@ -32,7 +32,7 @@ spec:
             - name: PMS_INTERNAL_ADDRESS
               value: http://plex-kube-plex:32400
             - name: PMS_IMAGE
-              value: linuxserver/plex:arm32v7-1.24.5
+              value: linuxserver/plex:arm32v7-1.25.2
             - name: KUBE_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -73,11 +73,11 @@ spec:
             timeoutSeconds: 5
           resources:
             requests:
-              cpu: 500m
-              memory: 1Gi
-            limits:
-              cpu: 1000m
+              cpu: 2000m
               memory: 2Gi
+            limits:
+              cpu: 4000m
+              memory: 4Gi
           volumeMounts:
             - mountPath: /library
               name: media-hdd
