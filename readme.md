@@ -81,7 +81,7 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - `sudo systemctl status k3s`
     - `kubectl get nodes -o wide`
     - `kubectl get pods -A -o wide`
-6. taint your master node to avoid deploying to it / save resources for orchestration
+6. taint the master node to avoid deploying to it / save resources for orchestration
     - `kubectl taint node kube-master node-role.kubernetes.io/master:NoSchedule`
 7. save the access token to configure the agents
     - `sudo cat /var/lib/rancher/k3s/server/node-token`
@@ -96,13 +96,14 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - `export K3S_URL="https://192.168.3.100:6443"`
 4. set the token saved from configuring the k3s master node
     - `export K3S_TOKEN="`
-5. kun the k3s installer
+5. run the k3s installer
     - `curl -sfL https://get.k3s.io | sh -`
 6. verify agent is up
     - `sudo systemctl status k3s-agent`
     - `kubectl get nodes -o wide`
     - `kubectl get pods -A -o wide`
-
+7. label the worker nodes
+    - `kubectl label node <worker_name> node-role.kubernetes.io/node=""`
 ###### uninstall
 1. master
     - `sudo /usr/local/bin/k3s-agent-uninstall.sh`
@@ -257,7 +258,7 @@ EOF
     - `helm repo update`
 6. create secret for vpn
     - `kubectl create secret generic openvpn --from-literal='username=<VPN_USERNAME>' --from-literal='password=<VPN_PASSWORD>' -n media`
- 7. apply transmission helm
+7. apply transmission helm
     - `helm install transmission bananaspliff/transmission-openvpn --values media.transmission-openvpn.values.yml -n media`
 8. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/jackett/openvpn/`
