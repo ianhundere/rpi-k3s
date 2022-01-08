@@ -73,11 +73,13 @@ spec:
             timeoutSeconds: 5
           resources:
             requests:
-              cpu: 2000m
+              cpu: "1"
               memory: 2Gi
+              ephemeral-storage: 2Gi
             limits:
-              cpu: 4000m
+              cpu: "2"
               memory: 4Gi
+              ephemeral-storage: 4Gi
           volumeMounts:
             - mountPath: /library
               name: media-hdd
