@@ -30,7 +30,7 @@ spec:
                   key: password
                   name: openvpn
             - name: LAN_NETWORK
-              value: 192.168.3.0/24
+              value: "${CIDR}"
             - name: CREATE_TUN_DEVICE
               value: "true" # Needed for VPN
             - name: PUID

@@ -20,7 +20,7 @@ service:
   selector:
     app: nextcloud-ingress
   externalIPs:
-    - "192.168.3.240"
+    - ${METAL_LB_IP1}
 persistence:
   enabled: true
   existingClaim: nextcloud-ssd
