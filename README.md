@@ -15,7 +15,7 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 3. create empty ssh file under `/boot/`
     - `touch ssh`
 4. connect via ssh
-    - `ssh pi@192.168.3.229`
+    - `ssh pi@<pi_ip>`
 5. configure static ip via router; you'll also want to do this via `/etc/dhcpcd.conf` file.
 6. set password
     - `passwd`
@@ -27,9 +27,9 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - `cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory`
 10. edit `/etc/dhcpcd.conf`
     - ```interface eth0
-         static ip_address=192.168.3.103/24
-         static routers=192.168.3.1
-         static domain_name_servers=192.168.3.1
+         static ip_address=<pi_ip>/24
+         static routers=<router_ip>
+         static domain_name_servers=<router_ip>
       ```
 11. switch firewall to legacy config:
     - `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
@@ -66,7 +66,7 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
         - `sudo chown -R pi:pi /mnt/ssd/`
     - configure disk to automatically mount by adding the master's ip etc to `/etc/fstab`
         - `sudo vi /etc/fstab`
-        - `192.168.3.100:/mnt/ssd /mnt/ssd nfs rw 0 0`
+        - `<master_ip>:/mnt/ssd /mnt/ssd nfs rw 0 0`
 
 ## configure k3s master node
 
@@ -94,7 +94,7 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 2. set permissions on config file.
     - `export K3S_KUBECONFIG_MODE="644"`
 3. set the endpoint for the agent
-    - `export K3S_URL="https://192.168.3.100:6443"`
+    - `export K3S_URL="https://<master_ip:6443"`
 4. set the token saved from configuring the k3s master node
     - `export K3S_TOKEN=<master_node_token>`
 5. run the k3s installer
@@ -120,9 +120,9 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - `mkdir ~/.kube/`
     - `touch ~/.kube/config`
 3. copy the file using `scp`
-    - `scp pi@192.168.3.100:/etc/rancher/k3s/k3s.yaml ~/.kube/config`
+    - `scp pi@<master_ip>:/etc/rancher/k3s/k3s.yaml ~/.kube/config`
 4. you can either simply edit the `config` file and locate `127.0.0.1` and replace it with the IP address of the master node or use `sed`
-    - `sed -i '' 's/127\.0\.0\.1/192\.168\.3\.100/g' ~/.kube/config`
+    - `sed -i '' 's/127\.0\.0\.1/192\.168\.1\.1/g' ~/.kube/config`
 
 ## install metallb - k8s load balancer
 
@@ -132,7 +132,7 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.11.0/manifests/metallb.yaml`
 3. create the memberlist secret contains the secretkey to encrypt the communication between speakers for the fast dead node detection.
     - `kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)`
-4. apply the `ConfigMap` which will indicate what protocol (e.g. `layer2`) and IPs to use (e.g. `192.168.3.240-192.168.3.250`).
+4. apply the `ConfigMap` which will indicate what protocol (e.g. `layer2`) and IPs to use.
     - `kubectl apply -f config.yml`
 
 ## install nginx - web proxy
@@ -206,10 +206,10 @@ EOF
     - `kubectl apply -f .`
 4. allow internal access by sshing to router
     - `configure`
-    - `set system static-host-mapping host-name <sub-domain> inet 192.168.3.240`
+    - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
     - `commit`
     - `save`
-5. allow external access by forwarding the following ports on router to LB (e.g. `192.168.3.240`)
+5. allow external access by forwarding the following ports on router to LB (e.g. `${METAL_LB_IP1}`)
     - `3478` UDP / STUN
     - `10001` UDP / device discovery
     - `8080` TCP / device and controller communication
@@ -245,7 +245,7 @@ EOF
     - `helm install nextcloud nextcloud/nextcloud --values nextcloud.values.yml -n nextcloud`
 7. allow internal access by sshing to router
     - `configure`
-    - `set system static-host-mapping host-name <sub-domain> inet 192.168.3.240`
+    - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
     - `commit`
     - `save`
 8. allow external access by forwarding the following ports on router
@@ -320,7 +320,7 @@ EOF
 22. configuring radarr and sonarr
     - configure the connection to transmission in settings under `Download Client` > `+` (add transmission) using the hostname and port `transmission-transmission-openvpn.media:80`
     - add indexers in settings under `Indexers` > `+` (add indexer)
-        - add the URL / `http://media.192.168.3.240.nip.io/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
+        - add the URL / `http://media.${METAL_LB_IP1}.nip.io/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
 
 ## Backups
 

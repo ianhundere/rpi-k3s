@@ -29,4 +29,4 @@ spec:
 status:
   loadBalancer:
     ingress:
-      - ip: 192.168.3.241
+      - ip: ${METAL_LB_IP2}

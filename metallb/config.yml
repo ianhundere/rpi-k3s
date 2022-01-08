@@ -9,4 +9,4 @@ data:
     - name: default
       protocol: layer2
       addresses:
-      - 192.168.3.240-192.168.3.250
+      - ${METAL_LB_IP1}-${METAL_LB_IP11}
