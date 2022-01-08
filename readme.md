@@ -95,7 +95,7 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 3. set the endpoint for the agent
     - `export K3S_URL="https://192.168.3.100:6443"`
 4. set the token saved from configuring the k3s master node
-    - `export K3S_TOKEN="`
+    - `export K3S_TOKEN=<master_node_token>`
 5. run the k3s installer
     - `curl -sfL https://get.k3s.io | sh -`
 6. verify agent is up

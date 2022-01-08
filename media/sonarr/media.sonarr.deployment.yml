@@ -21,7 +21,7 @@ spec:
           value: "1000"
         - name: PGID
           value: "1000"
-        image: linuxserver/sonarr:arm32v7-3.0.6
+        image: linuxserver/sonarr:arm32v7-develop-version-3.0.6.1432
         imagePullPolicy: IfNotPresent
         name: sonarr
         ports:

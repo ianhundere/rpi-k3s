@@ -31,11 +31,11 @@ spec:
               protocol: TCP
           resources:
             limits:
-              cpu: 1000m
-              memory: 1Gi
+              cpu: "2"
+              memory: 2Gi
             requests:
-              cpu: 500m
-              memory: 512Mi
+              cpu: "1"
+              memory: 1Gi
       nodeSelector:
         beta.kubernetes.io/arch: arm
         beta.kubernetes.io/os: linux

@@ -17,41 +17,41 @@ spec:
         app: radarr
     spec:
       containers:
-      - env:
-        - name: PUID
-          value: "1000"
-        - name: PGID
-          value: "1000"
-        image: linuxserver/radarr:arm32v7-version-3.2.2.5080
-        imagePullPolicy: IfNotPresent
-        name: radarr
-        ports:
-        - containerPort: 7878
-          name: http
-          protocol: TCP
-        resources:
-          limits:
-            cpu: 1000m
-            memory: 512Mi
-          requests:
-            cpu: 500m
-            memory: 256Mi
-        volumeMounts:
-        - mountPath: /config
-          name: media-ssd
-          subPath: configs/radarr
-        - mountPath: /downloads/transmission
-          name: media-hdd
-          subPath: downloads/transmission
-        - mountPath: /movies
-          name: media-hdd
-          subPath: library/movies
+        - env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+          image: linuxserver/radarr:arm32v7-version-3.2.2.5080
+          imagePullPolicy: IfNotPresent
+          name: radarr
+          ports:
+            - containerPort: 7878
+              name: http
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+            requests:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - mountPath: /config
+              name: media-ssd
+              subPath: configs/radarr
+            - mountPath: /downloads/transmission
+              name: media-hdd
+              subPath: downloads/transmission
+            - mountPath: /movies
+              name: media-hdd
+              subPath: library/movies
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:
-      - name: media-ssd
-        persistentVolumeClaim:
-          claimName: media-ssd
-      - name: media-hdd
-        persistentVolumeClaim:
-          claimName: hdd
+        - name: media-ssd
+          persistentVolumeClaim:
+            claimName: media-ssd
+        - name: media-hdd
+          persistentVolumeClaim:
+            claimName: hdd

@@ -8,25 +8,25 @@ metadata:
 spec:
   externalTrafficPolicy: Cluster
   ports:
-  - name: pms
-    nodePort: 32081
-    port: 32400
-    protocol: TCP
-    targetPort: pms
-  - name: http
-    nodePort: 32178
-    port: 80
-    protocol: TCP
-    targetPort: pms
-  - name: https
-    nodePort: 32296
-    port: 443
-    protocol: TCP
-    targetPort: 32443
+    - name: pms
+      nodePort: 32081
+      port: 32400
+      protocol: TCP
+      targetPort: pms
+    - name: http
+      nodePort: 32178
+      port: 80
+      protocol: TCP
+      targetPort: pms
+    - name: https
+      nodePort: 32296
+      port: 443
+      protocol: TCP
+      targetPort: 32443
   selector:
     app: kube-plex
   type: LoadBalancer
 status:
   loadBalancer:
     ingress:
-    - ip: 192.168.3.241
+      - ip: 192.168.3.241

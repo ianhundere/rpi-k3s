@@ -8,25 +8,25 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     nginx.ingress.kubernetes.io/proxy-body-size: 50m
     nginx.ingress.kubernetes.io/configuration-snippet: |
-     location = /.well-known/carddav {
-       return 301 $scheme://$host/remote.php/dav;
-     }
-     location = /.well-known/caldav {
-       return 301 $scheme://$host/remote.php/dav;
-     }
+      location = /.well-known/carddav {
+        return 301 $scheme://$host/remote.php/dav;
+      }
+      location = /.well-known/caldav {
+        return 301 $scheme://$host/remote.php/dav;
+      }
 spec:
   tls:
-  - hosts:
-    - ${NEXTCLOUD_HOST}
-    secretName: nextcloud-prod-tls
+    - hosts:
+        - ${NEXTCLOUD_HOST}
+      secretName: nextcloud-prod-tls
   rules:
-  - host: ${NEXTCLOUD_HOST}
-    http:
-      paths:
-        - path: /
-          pathType: Prefix
-          backend:
-            service:
-              name: nextcloud
-              port:
-                number: 8080
+    - host: ${NEXTCLOUD_HOST}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nextcloud
+                port:
+                  number: 8080
