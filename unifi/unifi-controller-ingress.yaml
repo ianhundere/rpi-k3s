@@ -9,17 +9,17 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: HTTPS
 spec:
   tls:
-  - hosts:
-      - ${UNIFI_HOST}
-    secretName: unifi-cert
+    - hosts:
+        - ${UNIFI_HOST}
+      secretName: unifi-cert
   rules:
-  - host: ${UNIFI_HOST}
-    http:
-      paths:
-        - backend:
-            service:
-              name: unifi-controller
-              port:
-                number: 8443
-          path: /
-          pathType: Prefix
+    - host: ${UNIFI_HOST}
+      http:
+        paths:
+          - backend:
+              service:
+                name: unifi-controller
+                port:
+                  number: 8443
+            path: /
+            pathType: Prefix

@@ -7,10 +7,10 @@ metadata:
   namespace: media
 spec:
   ports:
-  - name: http
-    port: 80
-    protocol: TCP
-    targetPort: 9117
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 9117
   selector:
     app: jackett
   type: ClusterIP
