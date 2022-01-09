@@ -7,9 +7,9 @@ image:
   pullPolicy: IfNotPresent
 replicaCount: 1
 nextcloud:
-  host: ${NEXCLOUD_HOST}
-  username: ${NEXTCLOUD_USER}
-  password: ${NEXTCLOUD_PASSWORD}
+  host: "${NEXTCLOUD_HOST}"
+  username: "${NEXTCLOUD_USER}"
+  password: "${NEXTCLOUD_PASSWORD}"
   update: 0
   datadir: /var/www/html/data
 service:
@@ -20,7 +20,7 @@ service:
   selector:
     app: nextcloud-ingress
   externalIPs:
-    - ${METAL_LB_IP1}
+    - "${METAL_LB_IP1}"
 persistence:
   enabled: true
   existingClaim: nextcloud-ssd

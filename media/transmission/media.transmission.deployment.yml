@@ -34,7 +34,7 @@ spec:
             - name: OPENVPN_CONFIG
               value: ch-05.protonvpn.com.udp,ch-08.protonvpn.com.udp,nl-04.protonvpn.com.udp,nl-11.protonvpn.com.udp
             - name: LOCAL_NETWORK
-              value: ${CIDR}
+              value: "${CIDR}"
             - name: TRANSMISSION_PEER_PORT
               value: "47444"
             - name: TRANSMISSION_DOWNLOAD_DIR

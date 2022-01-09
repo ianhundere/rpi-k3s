@@ -29,4 +29,4 @@ spec:
 status:
   loadBalancer:
     ingress:
-      - ip: ${METAL_LB_IP2}
+      - ip: "${METAL_LB_IP2}"

@@ -33,4 +33,4 @@ spec:
   selector:
     app: unifi-controller
   externalIPs:
-    - ${METAL_LB_IP1}
+    - "${METAL_LB_IP1}"
