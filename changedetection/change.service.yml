@@ -13,4 +13,4 @@ spec:
   selector:
     app: changedetection
   externalIPs:
-    - ${METAL_LB_IP1}
+    - "${METAL_LB_IP1}"
