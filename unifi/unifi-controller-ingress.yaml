@@ -10,10 +10,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - ${UNIFI_HOST}
+        - "${UNIFI_HOST}"
       secretName: unifi-cert
   rules:
-    - host: ${UNIFI_HOST}
+    - host: "${UNIFI_HOST}"
       http:
         paths:
           - backend:

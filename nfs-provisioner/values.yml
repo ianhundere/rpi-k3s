@@ -1,6 +1,6 @@
 replicaCount: 2
 nfs:
-  server: ${MASTER_IP}
+  server: "${MASTER_IP}"
   path: "/mnt/hdd"
   mountOptions:
     - noatime

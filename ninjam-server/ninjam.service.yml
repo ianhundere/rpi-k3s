@@ -13,4 +13,4 @@ spec:
   selector:
     app: ninjam-server
   externalIPs:
-    - ${METAL_LB_IP1}
+    - "${METAL_LB_IP1}"
