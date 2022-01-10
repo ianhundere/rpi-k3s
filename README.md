@@ -72,38 +72,28 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 
 1. ssh to master node
     - `ssh pi@kube-master`
-2. if you're not root, you'll want to enable to ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`
-    - `export K3S_KUBECONFIG_MODE="644"`
-3. tell k3s not to deploy its default load balancer, servicelb, and proxy, traefik, since we'll install metalb as load balancer and nginx as proxy manually later on.
-    - `export INSTALL_K3S_EXEC=" --no-deploy servicelb --no-deploy traefik"`
-4. run the k3s installer
-    - `curl -sfL https://get.k3s.io | sh -`
-5. verify the master is up
+2. if you're not root, you'll want to enable to ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`. you'll also want to tell k3s not to deploy its default load balancer, servicelb, and proxy, traefik, since we'll install metalb as load balancer and nginx as proxy manually later on. finally we want to run the k3s installer
+    - `export K3S_KUBECONFIG_MODE="644"; export INSTALL_K3S_EXEC="--no-deploy servicelb --no-deploy traefik --kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80"; curl -sfL https://get.k3s.io | sh -`
+3. verify the master is up
     - `sudo systemctl status k3s`
     - `kubectl get nodes -o wide`
     - `kubectl get pods -A -o wide`
-6. taint the master node to avoid deploying to it / save resources for orchestration
+4. taint the master node to avoid deploying to it / save resources for orchestration
     - `kubectl taint node kube-master node-role.kubernetes.io/master:NoSchedule`
-7. save the access token to configure the agents
+5. save the access token to configure the agents
     - `sudo cat /var/lib/rancher/k3s/server/node-token`
 
 ## configure k3s worker nodes
 
 1. ssh to work node
     - `ssh pi@kube-worker1`
-2. set permissions on config file.
-    - `export K3S_KUBECONFIG_MODE="644"`
-3. set the endpoint for the agent
-    - `export K3S_URL="https://<master_ip:6443"`
-4. set the token saved from configuring the k3s master node
-    - `export K3S_TOKEN=<master_node_token>`
-5. run the k3s installer
-    - `curl -sfL https://get.k3s.io | sh -`
-6. verify agent is up
+2. set permissions on config file, set the endpoint for the agent, set the token saved from configuring the k3s master node, and run the k3s installer
+    - `export K3S_KUBECONFIG_MODE="644"; export K3S_URL="https://<master_ip:6443"; export K3S_TOKEN=<master_node_token>; export INSTALL_K3S_EXEC="--kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80"; | curl -sfL https://get.k3s.io | sh -`
+3. verify agent is up
     - `sudo systemctl status k3s-agent`
     - `kubectl get nodes -o wide`
     - `kubectl get pods -A -o wide`
-7. label the worker nodes
+4. label the worker nodes
     - `kubectl label node <worker_name> node-role.kubernetes.io/node=""`
 
 ###### uninstall
