@@ -44,11 +44,11 @@ spec:
               name: unifi-ssd
           resources:
             limits:
-              cpu: 1000m
-              memory: 2048Mi
+              cpu: 1
+              memory: 2Gi
             requests:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 500m
+              memory: 1Gi
       restartPolicy: Always
       volumes:
         - name: unifi-ssd

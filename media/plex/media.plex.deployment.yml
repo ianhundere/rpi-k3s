@@ -28,7 +28,7 @@ spec:
             - name: TZ
               value: America/New_York
             - name: PLEX_CLAIM
-              value: ""
+              value: "${PLEX_CLAIM}"
             - name: PMS_INTERNAL_ADDRESS
               value: http://plex-kube-plex:32400
             - name: PMS_IMAGE
@@ -73,11 +73,11 @@ spec:
             timeoutSeconds: 5
           resources:
             requests:
-              cpu: "1"
+              cpu: 2
               memory: 2Gi
               ephemeral-storage: 2Gi
             limits:
-              cpu: "2"
+              cpu: 4
               memory: 4Gi
               ephemeral-storage: 4Gi
           volumeMounts:

@@ -54,11 +54,11 @@ spec:
               protocol: TCP
           resources:
             requests:
-              cpu: 500m
-              memory: 1Gi
+              cpu: 1
+              memory: 512Mi
             limits:
-              cpu: 1000m
-              memory: 2Gi
+              cpu: 1500m
+              memory: 1Gi
           securityContext:
             capabilities:
               add:
