@@ -312,49 +312,11 @@ EOF
     - add indexers in settings under `Indexers` > `+` (add indexer)
         - add the URL / `http://media.${METAL_LB_IP1}.nip.io/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
 
-## Backups
+## backups
 
-K3s creates backups of the embedded etcd datastore (e.g. sqlite) every 12 hours to `/var/lib/rancher/k3s/server/db/snapshots/`.
+make a copy of `/var/lib/rancher/k3s/server/`
 
-1. Stop the master server
+## debugging
 
-```
-sudo systemctl stop k3s
-```
-
-2. Restore the master server with a snapshot
-
-```
-./k3s server \
-  --cluster-reset \
-  --cluster-reset-restore-path=<PATH-TO-SNAPSHOT>
-```
-
-> **Warning:** This forget all peers and the server becomes the sole member of a new cluster. You have to manually rejoin all servers.
-
-3. Connect to each worker; backup `/var/lib/rancher/k3s/server/db`
-
-```
-sudo systemctl stop k3s
-mv /var/lib/rancher/k3s/server/db /var/lib/rancher/k3s/server/db.bak
-sudo systemctl start k3s
-```
-
-4. Confirm all nodes are up and then delete the backup
-
-```
-rm -rf /var/lib/rancher/k3s/server/db.bak
-```
-
-This will rejoin the server one after another. After some time, all servers should be in sync again. Run `kubectl get node` to verify it.
-
-> **Info:** It exists no official tool to automate the procedure. In future, rancher might provide an operator to handle this ([issue](https://github.com/k3s-io/k3s/issues/3174)).
-
-## Debugging
-
-Cloud init logs can be found on the remote machines in:
-
--   `/var/log/cloud-init-output.log`
--   `/var/log/cloud-init.log`
 -   `journalctl -u k3s.service -e` last logs of the server
 -   `journalctl -u k3s-agent.service -e` last logs of the agent

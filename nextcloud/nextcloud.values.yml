@@ -28,10 +28,10 @@ persistence:
   size: 60Gi
 resources:
   limits:
-    cpu: 1000m
+    cpu: 2
     memory: 1Gi
   requests:
-    cpu: 500m
+    cpu: 1
     memory: 512Mi
 livenessProbe:
   enabled: true

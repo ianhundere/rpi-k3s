@@ -87,9 +87,6 @@ spec:
           resources:
             limits:
               cpu: 500m
-              memory: 512MiGi
-            requests:
-              cpu: 250m
               memory: 256Mi
       serviceAccountName: system-upgrade
       tolerations:
