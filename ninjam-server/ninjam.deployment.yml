@@ -37,8 +37,8 @@ spec:
               cpu: 1
               memory: 1Gi
       nodeSelector:
-        beta.kubernetes.io/arch: arm
-        beta.kubernetes.io/os: linux
+        kubernetes.io/arch: arm
+        kubernetes.io/os: linux
       volumes:
         - name: config-volume
           configMap:
