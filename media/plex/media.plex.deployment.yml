@@ -104,5 +104,5 @@ spec:
       dnsPolicy: ClusterFirst
       hostname: plex-kube-plex
       nodeSelector:
-        beta.kubernetes.io/arch: arm
-        beta.kubernetes.io/os: linux
+        kubernetes.io/arch: arm
+        kubernetes.io/os: linux
