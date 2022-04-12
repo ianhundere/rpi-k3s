@@ -256,58 +256,54 @@ EOF
     - `cd /mnt/ssd && sudo mkdir media`
 3. apply pv and pvc
     - `kubectl apply -f media.persistentvolume*.yml`
-4. add repo for now (will break helm charts into separate resources)
-    - `helm repo add bananaspliff https://bananaspliff.github.io/geek-charts`
-5. update repo
-    - `helm repo update`
-6. create secret for vpn
+4. create secret for vpn
     - `kubectl create secret generic openvpn --from-literal='username=<VPN_USERNAME>' --from-literal='password=<VPN_PASSWORD>' -n media`
-7. apply transmission helm
-    - `helm install transmission bananaspliff/transmission-openvpn --values media.transmission-openvpn.values.yml -n media`
-8. create the NFS directory on the master node
+5. apply transmission resources
+    - `kubectl apply -f media/transmission/media.transmission* -n media`
+6. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/jackett/openvpn/`
-9. create a file called `credentials.conf` in `/mnt/ssd/media/configs/jackett/openvpn/` with:
+7. create a file called `credentials.conf` in `/mnt/ssd/media/configs/jackett/openvpn/` with:
     - ```
         <VPN_USERNAME>
         <VPN_PASSWORD>
       ```
-10. create the NFS directory on the master node
+8. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/jackett/Jackett/`
-11. create a file called `ServerConfig.json` with:
+9. create a file called `ServerConfig.json` with:
     - ```
         {
             "BasePathOverride": "/jackett"
         }
       ```
-12. apply jackett helm
-    - `helm install jackett bananaspliff/jackett --values media.jackett.values.yml -n media`
-13. create the NFS directory on the master node
+10. apply jackett resources
+    - `kubectl apply -f media/jackett/media.jackett* -n media`
+11. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/sonarr/`
-14. create a file called `config.xml` with:
+12. create a file called `config.xml` with:
     - ```
         <Config>
         <UrlBase>/sonarr</UrlBase>
         </Config>
       ```
-15. apply sonarr helm
-    - `helm install sonarr bananaspliff/sonarr --values media.sonarr.values.yml -n media`
-16. create the NFS directory on the master node
+13. apply sonarr resources
+    - `kubectl apply -f media/sonarr/media.sonarr* -n media`
+14. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/radarr/`
-17. create a file called `config.xml` with:
+15. create a file called `config.xml` with:
     - ```
         <Config>
         <UrlBase>/sonarr</UrlBase>
         </Config>
       ```
-18. apply radarr helm
-    - `helm install radarr bananaspliff/radarr --values media.radarr.values.yml -n media`
-19. get claim token by visiting [plex](plex.tv/claim).
-20. apply plex helm
-    - `helm install plex kube-plex/charts/kube-plex/ --values media.plex.values.yml -n media`
-21. configuring jackett
+16. apply radarr resources
+    - `kubectl apply -f medoa/radarr/media.radarr* -n media`
+17. get claim token by visiting [plex](plex.tv/claim).
+18. apply plex resources
+    - `kubectl apply -f media/media.plex* -n media`
+19. configuring jackett
     - add indexers to jackett
     - keep notes of the category #s as those are used in radarr and sonarr
-22. configuring radarr and sonarr
+20. configuring radarr and sonarr
     - configure the connection to transmission in settings under `Download Client` > `+` (add transmission) using the hostname and port `transmission-transmission-openvpn.media:80`
     - add indexers in settings under `Indexers` > `+` (add indexer)
         - add the URL / `http://media.${METAL_LB_IP1}.nip.io/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
@@ -320,3 +316,9 @@ make a copy of `/var/lib/rancher/k3s/server/`
 
 -   `journalctl -u k3s.service -e` last logs of the server
 -   `journalctl -u k3s-agent.service -e` last logs of the agent
+
+## todos
+
+-   create `CronJob` to backup configs directory
+-   create `CronJob` to backup k3s directory
+-   add home assistant
