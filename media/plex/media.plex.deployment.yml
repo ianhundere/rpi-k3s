@@ -6,7 +6,7 @@ metadata:
   name: plex-kube-plex
   namespace: media
 spec:
-  replicas: 1
+  replicas: 2
   revisionHistoryLimit: 3
   selector:
     matchLabels:
@@ -45,7 +45,7 @@ spec:
             - name: CONFIG_PVC
               value: plex-kube-plex-config
           name: plex
-          image: linuxserver/plex:arm32v7-1.25.6
+          image: linuxserver/plex:arm32v7-1.25.9
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 32400
