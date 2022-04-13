@@ -6,7 +6,7 @@ metadata:
   name: plex-kube-plex
   namespace: media
 spec:
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 3
   selector:
     matchLabels:
@@ -31,13 +31,6 @@ spec:
               value: "${PLEX_CLAIM}"
             - name: PMS_INTERNAL_ADDRESS
               value: http://plex-kube-plex:32400
-            - name: PMS_IMAGE
-              value: linuxserver/plex:arm32v7-1.25.9
-            - name: KUBE_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
             - name: TRANSCODE_PVC
               value: plex-kube-plex-transcode
             - name: DATA_PVC
