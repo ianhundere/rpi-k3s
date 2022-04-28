@@ -38,7 +38,7 @@ spec:
             - name: CONFIG_PVC
               value: plex-kube-plex-config
           name: plex
-          image: linuxserver/plex:arm32v7-1.25.9
+          image: linuxserver/plex:1.26.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 32400
