@@ -51,19 +51,24 @@ spec:
               name: https
               protocol: TCP
           livenessProbe:
-            httpGet:
-              path: /identity
-              port: 32400
-              scheme: HTTP
-            initialDelaySeconds: 10
-            timeoutSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /identity
-              port: 32400
-              scheme: HTTP
-            initialDelaySeconds: 15
-            timeoutSeconds: 5
+            tcpSocket:
+              port: 32400 
+            initialDelaySeconds: 60
+            periodSeconds: 5
+          # livenessProbe:
+          #   httpGet:
+          #     path: /identity
+          #     port: 32400
+          #     scheme: HTTP
+          #   initialDelaySeconds: 10
+          #   timeoutSeconds: 10
+          # readinessProbe:
+          #   httpGet:
+          #     path: /identity
+          #     port: 32400
+          #     scheme: HTTP
+          #   initialDelaySeconds: 15
+          #   timeoutSeconds: 5
           resources:
             requests:
               cpu: 2
