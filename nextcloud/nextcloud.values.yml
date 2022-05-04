@@ -37,13 +37,13 @@ livenessProbe:
   enabled: true
   initialDelaySeconds: 30
   periodSeconds: 15
-  timeoutSeconds: 5
-  failureThreshold: 3
+  timeoutSeconds: 10
+  failureThreshold: 6
   successThreshold: 1
 readinessProbe:
   enabled: true
   initialDelaySeconds: 30
   periodSeconds: 15
-  timeoutSeconds: 5
-  failureThreshold: 3
+  timeoutSeconds: 10
+  failureThreshold: 6
   successThreshold: 1

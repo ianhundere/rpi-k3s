@@ -121,7 +121,7 @@ spec:
               command: ["/bin/bash", "-c"]
               args:
                 [
-                  "if find sessions -maxdepth 1 -name *.ninjam -type d -mmin +30 -print | grep ninjam; then echo 'moving 30min old jamz' && find sessions -maxdepth 1 -name *.ninjam -type d -mmin +30 -exec mv {} jamz \\;; fi; if find jamz -maxdepth 1 -name *.ninjam -type d -mtime +30 -print | grep ninjam; then echo 'deleting 3 day old jamz' && find jamz -maxdepth 1 -name *.ninjam -type d -mtime +30 -exec rm -r {} \\;; fi;",
+                  "if find sessions -maxdepth 1 -name *.ninjam -type d -mmin +30 -print | grep ninjam; then echo 'moving 30min old jamz' && find sessions -maxdepth 1 -name *.ninjam -type d -mmin +30 -exec mv {} jamz \\;; fi; if find jamz -maxdepth 1 -name *.ninjam -type d -mtime +30 -print | grep ninjam; then echo 'deleting 30 day old jamz' && find jamz -maxdepth 1 -name *.ninjam -type d -mtime +30 -exec rm -r {} \\;; fi;",
                 ]
               resources:
                 requests:
