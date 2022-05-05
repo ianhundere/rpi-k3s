@@ -47,3 +47,5 @@ readinessProbe:
   timeoutSeconds: 10
   failureThreshold: 6
   successThreshold: 1
+startupProbe:
+  enabled: true
