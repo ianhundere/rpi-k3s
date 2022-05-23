@@ -38,7 +38,7 @@ spec:
             - name: CONFIG_PVC
               value: plex-kube-plex-config
           name: plex
-          image: linuxserver/plex:1.26.0
+          image: linuxserver/plex:1.26.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 32400
@@ -50,25 +50,23 @@ spec:
             - containerPort: 32443
               name: https
               protocol: TCP
-          livenessProbe:
-            tcpSocket:
-              port: 32400 
-            initialDelaySeconds: 60
-            periodSeconds: 5
           # livenessProbe:
-          #   httpGet:
-          #     path: /identity
-          #     port: 32400
-          #     scheme: HTTP
-          #   initialDelaySeconds: 10
-          #   timeoutSeconds: 10
-          # readinessProbe:
-          #   httpGet:
-          #     path: /identity
-          #     port: 32400
-          #     scheme: HTTP
-          #   initialDelaySeconds: 15
-          #   timeoutSeconds: 5
+          #   tcpSocket:
+          #     port: 32400 
+          #   initialDelaySeconds: 60
+          #   periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /identity
+              port: http
+            initialDelaySeconds: 10
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /identity
+              port: http
+            initialDelaySeconds: 15
+            timeoutSeconds: 5
           resources:
             requests:
               cpu: 2
