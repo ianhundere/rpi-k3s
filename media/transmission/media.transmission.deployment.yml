@@ -50,6 +50,24 @@ spec:
           image: haugene/transmission-openvpn:4.0
           imagePullPolicy: IfNotPresent
           name: transmission-openvpn
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            successThreshold: 1
+            httpGet:
+              path: /web/
+              port: http
+            timeoutSeconds: 10
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 15
+            successThreshold: 1
+            httpGet:
+              path: /web/
+              port: http
           ports:
             - containerPort: 9091
               name: http
