@@ -40,6 +40,24 @@ spec:
           image: zfigz/docker-jackettvpn:v0.0.2
           imagePullPolicy: IfNotPresent
           name: jackett
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            successThreshold: 1
+            httpGet:
+              path: /health
+              port: http
+            timeoutSeconds: 10
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            httpGet:
+              path: /health
+              port: http
           ports:
             - containerPort: 9117
               name: http
