@@ -50,11 +50,6 @@ spec:
             - containerPort: 32443
               name: https
               protocol: TCP
-          # livenessProbe:
-          #   tcpSocket:
-          #     port: 32400 
-          #   initialDelaySeconds: 60
-          #   periodSeconds: 5
           livenessProbe:
             httpGet:
               path: /identity
