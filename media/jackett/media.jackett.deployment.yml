@@ -19,6 +19,8 @@ spec:
         - env:
             - name: VPN_ENABLED
               value: "yes"
+            - name: VPN_TYPE
+              value: "openvpn"
             - name: VPN_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -37,8 +39,8 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-          image: zfigz/docker-jackettvpn:v0.0.2
-          imagePullPolicy: IfNotPresent
+          image: zfigz/docker-jackettvpn:v0.0.3
+          imagePullPolicy: Always
           name: jackett
           livenessProbe:
             failureThreshold: 6
