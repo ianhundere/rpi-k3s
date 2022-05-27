@@ -44,7 +44,7 @@ spec:
           name: jackett
           livenessProbe:
             failureThreshold: 6
-            initialDelaySeconds: 60
+            initialDelaySeconds: 5
             periodSeconds: 10
             successThreshold: 1
             httpGet:
@@ -53,7 +53,16 @@ spec:
             timeoutSeconds: 10
           readinessProbe:
             failureThreshold: 6
-            initialDelaySeconds: 60
+            initialDelaySeconds: 5
+            timeoutSeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            httpGet:
+              path: /health
+              port: http
+          startupProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 30
             timeoutSeconds: 10
             periodSeconds: 10
             successThreshold: 1
