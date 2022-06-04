@@ -45,7 +45,7 @@ spec:
           livenessProbe:
             failureThreshold: 6
             initialDelaySeconds: 5
-            periodSeconds: 10
+            periodSeconds: 15
             successThreshold: 1
             httpGet:
               path: /health
@@ -55,7 +55,7 @@ spec:
             failureThreshold: 6
             initialDelaySeconds: 5
             timeoutSeconds: 10
-            periodSeconds: 10
+            periodSeconds: 15
             successThreshold: 1
             httpGet:
               path: /health
