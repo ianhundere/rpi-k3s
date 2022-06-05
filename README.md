@@ -88,7 +88,7 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 1. ssh to work node
     - `ssh pi@kube-worker1`
 2. set permissions on config file, set the endpoint for the agent, set the token saved from configuring the k3s master node, and run the k3s installer
-    - `export K3S_KUBECONFIG_MODE="644"; export K3S_URL="https://<master_ip:6443"; export K3S_TOKEN=<master_node_token>; export INSTALL_K3S_EXEC="--kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80"; | curl -sfL https://get.k3s.io | sh -`
+    - `export K3S_KUBECONFIG_MODE="644"; export K3S_URL="https://<master_ip:6443"; export K3S_TOKEN=<master_node_token>; export INSTALL_K3S_EXEC="--kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80"; curl -sfL https://get.k3s.io | sh -`
 3. verify agent is up
     - `sudo systemctl status k3s-agent`
     - `kubectl get nodes -o wide`
