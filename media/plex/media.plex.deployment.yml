@@ -95,5 +95,5 @@ spec:
       dnsPolicy: ClusterFirst
       hostname: plex-kube-plex
       nodeSelector:
-        kubernetes.io/arch: arm
+        kubernetes.io/arch: arm64
         kubernetes.io/os: linux
