@@ -25,13 +25,17 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
     - `sudo apt-get update && sudo apt-get -y dist-upgrade && sudo reboot`
 9. enable container features by adding the following to `/boot/cmdline.txt`:
     - `cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory`
-10. edit `/etc/dhcpcd.conf`
+10. enable arm64 cpu architecture by adding the following to `/boot/config.txt` under `[pi4]`:
+    - ```
+        arm_64bit=1
+      ```
+11. edit `/etc/dhcpcd.conf`
     - ```interface eth0
          static ip_address=<pi_ip>/24
          static routers=<router_ip>
          static domain_name_servers=<router_ip>
       ```
-11. switch firewall to legacy config:
+12. switch firewall to legacy config:
     - `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
     - `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`
 
@@ -193,7 +197,7 @@ EOF
 2. create the NFS directory on the master node
     - `cd /mnt/ssd && sudo mkdir unifi`
 3. apply yaml
-    - `kubectl apply -f .`
+    - `kubectl apply -f unifi -n unifi`
 4. allow internal access by sshing to router
     - `configure`
     - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
@@ -276,7 +280,7 @@ EOF
         }
       ```
 10. apply jackett resources
-    - `kubectl apply -f media/jackett/media.jackett* -n media`
+    - `kubectl apply -f media/jackett -n media`
 11. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/sonarr/`
 12. create a file called `config.xml` with:
@@ -286,7 +290,7 @@ EOF
         </Config>
       ```
 13. apply sonarr resources
-    - `kubectl apply -f media/sonarr/media.sonarr* -n media`
+    - `kubectl apply -f media/sonarr -n media`
 14. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/radarr/`
 15. create a file called `config.xml` with:
@@ -296,10 +300,10 @@ EOF
         </Config>
       ```
 16. apply radarr resources
-    - `kubectl apply -f medoa/radarr/media.radarr* -n media`
+    - `kubectl apply -f media/radarr -n media`
 17. get claim token by visiting [plex](plex.tv/claim).
 18. apply plex resources
-    - `kubectl apply -f media/media.plex* -n media`
+    - `kubectl apply -f media/plex -n media`
 19. configuring jackett
     - add indexers to jackett
     - keep notes of the category #s as those are used in radarr and sonarr
