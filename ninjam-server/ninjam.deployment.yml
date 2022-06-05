@@ -37,7 +37,7 @@ spec:
               cpu: 1
               memory: 1Gi
       nodeSelector:
-        kubernetes.io/arch: arm
+        kubernetes.io/arch: arm64
         kubernetes.io/os: linux
       volumes:
         - name: config-volume

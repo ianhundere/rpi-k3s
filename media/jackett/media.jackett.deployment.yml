@@ -15,6 +15,16 @@ spec:
       labels:
         app: jackett
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - transmission-openvpn
+            topologyKey: kubernetes.io/hostname
       containers:
         - env:
             - name: VPN_ENABLED
