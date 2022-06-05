@@ -118,6 +118,32 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 4. you can either simply edit the `config` file and locate `127.0.0.1` and replace it with the IP address of the master node or use `sed`
     - `sed -i '' 's/127\.0\.0\.1/192\.168\.1\.1/g' ~/.kube/config`
 
+## install envsubst / create .env file
+
+1. install envsubst; check your local os and follow accordingly
+2. create `.env`
+    - `touch .env` / copy the below with the correct values:
+
+```
+export NINJAM_HOST="blah"
+export NINJAM_USER="blah"
+export NINJAM_PASSWORD="blah"
+export NEXTCLOUD_HOST="blah"
+export NEXTCLOUD_USER="blah"
+export NEXTCLOUD_PASSWORD="blah"
+export UNIFI_HOST="blah"
+export METAL_LB_IP1="blah"
+export METAL_LB_IP2="blah"
+export METAL_LB_IP11="blah"
+export CIDR="blah"
+export NINJAM_CIDR="blah"
+export MASTER_IP="blah"
+export PLEX_CLAIM="blah"
+```
+
+3. make sure to source `.env` when a k8s resource needs creds:
+    - `source .env`
+
 ## install metallb - k8s load balancer
 
 1. create the `metallb-system` namespace
@@ -127,7 +153,7 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 3. create the memberlist secret contains the secretkey to encrypt the communication between speakers for the fast dead node detection.
     - `kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)`
 4. apply the `ConfigMap` which will indicate what protocol (e.g. `layer2`) and IPs to use.
-    - `kubectl apply -f config.yml`
+    - `envsubst < metallb/*.yml | kubectl apply -f -`
 
 ## install nginx - web proxy
 
@@ -197,7 +223,7 @@ EOF
 2. create the NFS directory on the master node
     - `cd /mnt/ssd && sudo mkdir unifi`
 3. apply yaml
-    - `kubectl apply -f unifi -n unifi`
+    - `envsubst < unifi/* | kubectl apply -f -`
 4. allow internal access by sshing to router
     - `configure`
     - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
@@ -236,7 +262,7 @@ EOF
 5. add repo
     - `helm repo add nextcloud https://nextcloud.github.io/helm/`
 6. apply `nextcloud.values.yml`
-    - `helm install nextcloud nextcloud/nextcloud --values nextcloud.values.yml -n nextcloud`
+    - `envsubst < nextcloud.values.yml | helm install nextcloud nextcloud/nextcloud --values - -n nextcloud`
 7. allow internal access by sshing to router
     - `configure`
     - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
@@ -246,7 +272,7 @@ EOF
     - TCP `443` / GUI
     - TCP `80` / GUI
 9. apply ingress
-    - `kubectl apply -f nextcloud.ingress.yml`
+    - `envsubst < nextcloud/nextcloud.ingress.yml | kubectl apply -f -`
 10. add files manually via scp / run `occ` to add them to the db:
     - `scp -r <files> pi@kube-master:~`
     - `kubectl exec -it <nextcloud_pod_name> bash -n nextcloud`
@@ -263,7 +289,7 @@ EOF
 4. create secret for vpn
     - `kubectl create secret generic openvpn --from-literal='username=<VPN_USERNAME>' --from-literal='password=<VPN_PASSWORD>' -n media`
 5. apply transmission resources
-    - `kubectl apply -f media/transmission/media.transmission* -n media`
+    - `envsubst < media/transmission/* | kubectl apply -f -`
 6. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/jackett/openvpn/`
 7. create a file called `credentials.conf` in `/mnt/ssd/media/configs/jackett/openvpn/` with:
@@ -280,7 +306,7 @@ EOF
         }
       ```
 10. apply jackett resources
-    - `kubectl apply -f media/jackett -n media`
+    - `envsubst < media/jackett/* | kubectl apply -f -`
 11. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/sonarr/`
 12. create a file called `config.xml` with:
@@ -303,7 +329,7 @@ EOF
     - `kubectl apply -f media/radarr -n media`
 17. get claim token by visiting [plex](plex.tv/claim).
 18. apply plex resources
-    - `kubectl apply -f media/plex -n media`
+    - `envsubst < plex/* | kubectl apply -f -`
 19. configuring jackett
     - add indexers to jackett
     - keep notes of the category #s as those are used in radarr and sonarr
