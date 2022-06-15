@@ -61,19 +61,19 @@ spec:
           imagePullPolicy: IfNotPresent
           name: transmission-openvpn
           livenessProbe:
-            failureThreshold: 6
+            failureThreshold: 12
             initialDelaySeconds: 60
-            periodSeconds: 15
+            periodSeconds: 30
             successThreshold: 1
             httpGet:
               path: /web/
               port: http
             timeoutSeconds: 10
           readinessProbe:
-            failureThreshold: 6
+            failureThreshold: 12
             initialDelaySeconds: 60
             timeoutSeconds: 10
-            periodSeconds: 15
+            periodSeconds: 30
             successThreshold: 1
             httpGet:
               path: /web/
