@@ -42,7 +42,7 @@ spec:
                   key: password
                   name: openvpn
             - name: OPENVPN_CONFIG
-              value: ch-05.protonvpn.com.udp,ch-08.protonvpn.com.udp,nl-04.protonvpn.com.udp,nl-11.protonvpn.com.udp
+              value: node-ch-05.protonvpn.net.tcp,node-ch-08.protonvpn.net.tcp,node-nl-20.protonvpn.net.tcp,node-nl-43.protonvpn.net.tcp
             - name: OPENVPN_OPTS
               value: "--mute-replay-warnings"
             - name: LOCAL_NETWORK
