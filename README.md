@@ -174,7 +174,7 @@ export PLEX_CLAIM="blah"
     - `helm install cert-manager jetstack/cert-manager -n cert-manager --set installCRDs=true`
 4. configure the certificate issuers
 
-###### prod
+###### staging
 
 ```
 $ cat <<EOF | kubectl apply -f -
@@ -195,7 +195,7 @@ spec:
 EOF
 ```
 
-###### staging
+###### prod
 
 ```
 $ cat <<EOF | kubectl apply -f -
