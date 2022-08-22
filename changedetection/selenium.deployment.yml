@@ -1,33 +1,34 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: changedetection
+  name: selenium
   namespace: changedetection
   labels:
-    app: changedetection
+    app: selenium
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: changedetection
+      app: selenium
   template:
     metadata:
+      annotations:
+        pod.beta.kubernetes.io/hostname: selenium
       labels:
-        app: changedetection
+        app: selenium
     spec:
       containers:
         - env:
-          - name: WEBDRIVER_URL
-            value: http://selenium:4444/wd/hub
-          name: changedetection
-          image: dgtlmoon/changedetection.io:0.39.15
+          - name: FETCH_WORKERS
+            value: "2"
+          name: selenium
+          image: seleniarm/standalone-chromium:4.0.0-20211213
           imagePullPolicy: IfNotPresent
           volumeMounts:
-            - name: changedetection-volume
-              mountPath: /datastore
-              subPath: changedetection/
+            - mountPath: /dev/shm
+              name: dshm
           ports:
-            - containerPort: 5000
+            - containerPort: 4444
               protocol: TCP
           resources:
             limits:
@@ -40,6 +41,6 @@ spec:
         kubernetes.io/arch: arm64
         kubernetes.io/os: linux
       volumes:
-        - name: changedetection-volume
-          persistentVolumeClaim:
-            claimName: changedetection-ssd
+      - name: dshm
+        emptyDir:
+          medium: Memory
