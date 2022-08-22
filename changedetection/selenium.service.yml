@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: changedetection
+  labels:
+    app: selenium
+  name: selenium
+spec:
+  ports:
+    - port: 4444
+      protocol: TCP
+  selector:
+    app: selenium
+
