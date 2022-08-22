@@ -2,12 +2,6 @@
 
 These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mini S with a N5095 CPU and 8GB RAM (dedicated to Plex).
 
-##### Lessons Learned
-
--   Assume nothing
--   Document everything
--   It often pays to know and understand the why behind something working (or not working) before moving on
-
 ## initial setup
 
 1. download latest vers of buster-lite (e.g. https://downloads.raspberrypi.org/raspios_lite_armhf_latest)
@@ -179,7 +173,7 @@ export PLEX_CLAIM="blah"
 2. add the cert-manager repo / update repo
     - `helm repo add jetstack https://charts.jetstack.io; helm repo update`
 3. install cert-manager
-    - `helm install cert-manager jetstack/cert-manager -n cert-manager --set installCRDs=true`
+    - `helm install cert-manager jetstack/cert-manager --version <vers> --set installCRDs=true --set extraArgs[0]="--leader-elect=true --enable-certificate-owner-ref=true" -n cert-manager`
 4. configure the certificate issuers
 
 ###### staging
@@ -345,6 +339,15 @@ EOF
     - configure the connection to transmission in settings under `Download Client` > `+` (add transmission) using the hostname and port `transmission-transmission-openvpn.media:80`
     - add indexers in settings under `Indexers` > `+` (add indexer)
         - add the URL / `http://media.${METAL_LB_IP1}.nip.io/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
+
+## install nfs-provisioner
+
+<sub>this is an optional step if you'd like the creation of persistent volume claims to be automated. i currently only use it for my hdd mount for media.</sub>
+
+1. add the nfs-provisioner repo
+    - `helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner`
+2. install nginx
+    - `helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --create-namespace --namespace nfs-provisioner --values values.yml`
 
 ## backups
 
