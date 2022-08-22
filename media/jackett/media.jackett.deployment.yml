@@ -108,3 +108,6 @@ spec:
           hostPath: # Needed for VPN
             path: /dev/net/tun
             type: ""
+      nodeSelector:
+        kubernetes.io/arch: arm64
+        kubernetes.io/os: linux
