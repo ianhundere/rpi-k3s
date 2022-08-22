@@ -62,17 +62,17 @@ spec:
           name: transmission-openvpn
           livenessProbe:
             failureThreshold: 12
-            initialDelaySeconds: 60
+            initialDelaySeconds: 10
+            timeoutSeconds: 30
             periodSeconds: 30
             successThreshold: 1
             httpGet:
               path: /web/
               port: http
-            timeoutSeconds: 10
           readinessProbe:
             failureThreshold: 12
-            initialDelaySeconds: 60
-            timeoutSeconds: 10
+            initialDelaySeconds: 15
+            timeoutSeconds: 30
             periodSeconds: 30
             successThreshold: 1
             httpGet:

@@ -31,14 +31,12 @@ spec:
               value: "${PLEX_CLAIM}"
             - name: PMS_INTERNAL_ADDRESS
               value: http://plex-kube-plex:32400
-            - name: TRANSCODE_PVC
-              value: plex-kube-plex-transcode
             - name: DATA_PVC
               value: plex-kube-plex-data
             - name: CONFIG_PVC
               value: plex-kube-plex-config
           name: plex
-          image: linuxserver/plex:1.26.1
+          image: linuxserver/plex:1.28.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 32400
@@ -66,11 +64,9 @@ spec:
             requests:
               cpu: 2
               memory: 2Gi
-              ephemeral-storage: 2Gi
             limits:
               cpu: 4
-              memory: 4Gi
-              ephemeral-storage: 4Gi
+              memory: 7.5Gi
           volumeMounts:
             - mountPath: /library
               name: media-hdd
@@ -78,9 +74,6 @@ spec:
             - mountPath: /config
               name: media-ssd
               subPath: plex/config
-            - mountPath: /transcode
-              name: media-ssd
-              subPath: plex/transcode
             - mountPath: /shared
               name: shared
       volumes:
@@ -95,5 +88,5 @@ spec:
       dnsPolicy: ClusterFirst
       hostname: plex-kube-plex
       nodeSelector:
-        kubernetes.io/arch: arm64
+        kubernetes.io/arch: amd64
         kubernetes.io/os: linux
