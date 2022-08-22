@@ -1,6 +1,6 @@
 # rpi-k3s
 
-Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that runs openVPN and Kodi on boot. I figured I ought to start playing with Kubernetes at home since I play with it all day at work. So I built a Kubernetes Raspberry Pi cluster with 4 Raspberry Pi 4s each with 4GB RAM. I learned a lot and managed to get everything up and running without too much hair pulling. I currently have NextCloud and a UniFi Controller configured, but hope to add further applications in the future such as Plex, Bitwarden, and video security software integrated with unlocked Wyze cameras. Some of the lessons I learned were things I've learned at work, but they're always good reminders.
+These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mini S with a N5095 CPU and 8GB RAM (dedicated to Plex).
 
 ##### Lessons Learned
 
@@ -89,16 +89,24 @@ Earlier in the year, I built a small Raspberry Pi using a Compute Module 3+ that
 
 ## configure k3s worker nodes
 
+<sub>for my x86 node, the beelink, i had to install:
+`apt-get install apparmor apparmor-utils`</sub>
+
 1. ssh to work node
     - `ssh pi@kube-worker1`
 2. set permissions on config file, set the endpoint for the agent, set the token saved from configuring the k3s master node, and run the k3s installer
-    - `export K3S_KUBECONFIG_MODE="644"; export K3S_URL="https://<master_ip:6443"; export K3S_TOKEN=<master_node_token>; export INSTALL_K3S_EXEC="--kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80"; curl -sfL https://get.k3s.io | sh -`
+    - `export K3S_KUBECONFIG_MODE="644"; export K3S_URL="https://<master_ip>:6443"; export K3S_TOKEN=<master_node_token>; export INSTALL_K3S_EXEC="--kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80"; curl -sfL https://get.k3s.io | sh -`
 3. verify agent is up
     - `sudo systemctl status k3s-agent`
     - `kubectl get nodes -o wide`
     - `kubectl get pods -A -o wide`
 4. label the worker nodes
     - `kubectl label node <worker_name> node-role.kubernetes.io/node=""`
+5. if mixing architectures, make sure to include `nodeSelector` to ensure your workloads get deployed to their relevant node especially if your images are tagged specific to the arch:
+    - ```
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      ```
 
 ###### uninstall
 

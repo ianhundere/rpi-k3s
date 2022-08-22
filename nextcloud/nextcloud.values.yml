@@ -3,7 +3,7 @@
 ##
 image:
   repository: nextcloud
-  tag: 23.0.4-apache
+  tag: 24.0.4-apache
   pullPolicy: IfNotPresent
 replicaCount: 1
 nextcloud:
@@ -51,3 +51,6 @@ startupProbe:
   enabled: true
   failureThreshold: 30
   periodSeconds: 10
+nodeSelector:
+  kubernetes.io/arch: arm64
+  kubernetes.io/os: linux
