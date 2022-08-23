@@ -96,10 +96,14 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
     - `kubectl get pods -A -o wide`
 4. label the worker nodes
     - `kubectl label node <worker_name> node-role.kubernetes.io/node=""`
-5. if mixing architectures, make sure to include `nodeSelector` to ensure your workloads get deployed to their relevant node especially if your images are tagged specific to the arch:
+5. if mixing architectures, make sure to include `nodeSelector` to ensure your workloads get deployed to their relevant node especially if your images aren't tagged specific to the arch (remember that the plex deployment is tagged specifically for an `x86` node):
     - ```
       nodeSelector:
         kubernetes.io/arch: amd64
+      ```
+    - ```
+      nodeSelector:
+        kubernetes.io/arch: arm64
       ```
 
 ###### uninstall
@@ -144,7 +148,12 @@ export PLEX_CLAIM="blah"
 ```
 
 3. make sure to source `.env` when a k8s resource needs creds:
+
     - `source .env`
+
+4. example cmds:
+    - `envsubst < media/jackett/media.jackett.deployment.yml | kubectl apply -f -`
+    - `envsubst < nextcloud.values.yml | helm upgrade nextcloud nextcloud/nextcloud --values - -n nextcloud`
 
 ## install metallb - k8s load balancer
 
