@@ -52,14 +52,20 @@ spec:
             httpGet:
               path: /identity
               port: http
-            initialDelaySeconds: 10
-            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            timeoutSeconds: 15
+            periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /identity
               port: http
-            initialDelaySeconds: 15
-            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            timeoutSeconds: 15
+            periodSeconds: 10
           resources:
             requests:
               cpu: 2
