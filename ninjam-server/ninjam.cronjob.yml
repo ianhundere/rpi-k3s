@@ -169,3 +169,6 @@ spec:
             - name: jamz-volume
               persistentVolumeClaim:
                 claimName: ninjam-server-cronjob-jamz-ssd
+          nodeSelector:
+            kubernetes.io/arch: arm64
+            kubernetes.io/os: linux
