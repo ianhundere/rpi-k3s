@@ -20,13 +20,13 @@ spec:
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - jackett
-            topologyKey: kubernetes.io/hostname
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - jackett
+              topologyKey: kubernetes.io/hostname
       containers:
         - env:
             - name: OPENVPN_PROVIDER
@@ -42,7 +42,7 @@ spec:
                   key: password
                   name: openvpn
             - name: OPENVPN_CONFIG
-              value: node-ch-05.protonvpn.net.tcp,node-ch-08.protonvpn.net.tcp,node-nl-20.protonvpn.net.tcp,node-nl-43.protonvpn.net.tcp
+              value: ch.protonvpn.net.tcp,nl.protonvpn.net.tcp
             - name: OPENVPN_OPTS
               value: "--mute-replay-warnings"
             - name: LOCAL_NETWORK
@@ -53,11 +53,13 @@ spec:
               value: /downloads/transmission
             - name: GLOBAL_APPLY_PERMISSIONS
               value: "false"
+            - name: CREATE_TUN_DEVICE
+              value: "false"
             - name: PUID
               value: "1000"
             - name: PGID
               value: "1000"
-          image: haugene/transmission-openvpn:4.1
+          image: haugene/transmission-openvpn:4.2
           imagePullPolicy: IfNotPresent
           name: transmission-openvpn
           livenessProbe:
@@ -94,13 +96,13 @@ spec:
               add:
                 - NET_ADMIN
           volumeMounts:
-            - mountPath: /data/transmission-home
+            - mountPath: /config/transmission-home
               name: media-ssd
               subPath: configs/transmission-data/transmission-home
-            - mountPath: /data/watch
+            - mountPath: /config/watch
               name: media-ssd
               subPath: configs/transmission-data/watch
-            - mountPath: /data/incomplete
+            - mountPath: /config/incomplete
               name: media-hdd
               subPath: incomplete
             - mountPath: /downloads/transmission
