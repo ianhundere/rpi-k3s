@@ -101,10 +101,10 @@ spec:
             - mountPath: /config/transmission-home
               name: media-ssd
               subPath: configs/transmission-data/transmission-home
-            - mountPath: /config/watch
+            - mountPath: /data/watch
               name: media-ssd
               subPath: configs/transmission-data/watch
-            - mountPath: /config/incomplete
+            - mountPath: /data/incomplete
               name: media-hdd
               subPath: incomplete
             - mountPath: /downloads/transmission
