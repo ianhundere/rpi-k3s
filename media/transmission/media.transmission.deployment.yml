@@ -55,8 +55,6 @@ spec:
               value: /downloads/transmission
             - name: GLOBAL_APPLY_PERMISSIONS
               value: "false"
-            - name: CREATE_TUN_DEVICE
-              value: "false"
             - name: PUID
               value: "1000"
             - name: PGID
@@ -79,6 +77,12 @@ spec:
             timeoutSeconds: 30
             periodSeconds: 30
             successThreshold: 1
+            httpGet:
+              path: /web/
+              port: http
+          startupProbe:
+            failureThreshold: 30
+            periodSeconds: 10
             httpGet:
               path: /web/
               port: http
@@ -110,8 +114,6 @@ spec:
             - mountPath: /downloads/transmission
               name: media-hdd
               subPath: downloads/transmission
-            - mountPath: /dev/net/tun
-              name: dev-tun
       dnsConfig:
         nameservers:
           - 8.8.8.8
