@@ -70,7 +70,7 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 
 1. ssh to master node
     - `ssh pi@kube-master`
-2. if you're not root, you'll want to enable to ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`. you'll also want to tell k3s not to deploy its default load balancer, servicelb, and proxy, traefik, since we'll install metalb as load balancer and nginx as proxy manually later on. finally we want to run the k3s installer
+2. if you're not root, you'll want to enable the ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`. you'll also want to tell k3s not to deploy its default load balancer, servicelb, and proxy, traefik, since we'll install metallb as load balancer and nginx as proxy manually later on. finally we want to run the k3s installer
     - `export K3S_KUBECONFIG_MODE="644"; export INSTALL_K3S_EXEC="--no-deploy servicelb --no-deploy traefik --kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80"; curl -sfL https://get.k3s.io | sh -`
 3. verify the master is up
     - `sudo systemctl status k3s`
@@ -83,8 +83,9 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 
 ## configure k3s worker nodes
 
-<sub>for my x86 node, the beelink, i had to install:
-`apt-get install apparmor apparmor-utils`</sub>
+<sub>for my x86 worker node, a beelink mini s with an n5095, i had to install:
+
+-   `apt-get install apparmor apparmor-utils`</sub>
 
 1. ssh to work node
     - `ssh pi@kube-worker1`
@@ -96,7 +97,7 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
     - `kubectl get pods -A -o wide`
 4. label the worker nodes
     - `kubectl label node <worker_name> node-role.kubernetes.io/node=""`
-5. if mixing architectures, make sure to include `nodeSelector` to ensure your workloads get deployed to their relevant node especially if your images aren't tagged specific to the arch (remember that the plex deployment is tagged specifically for an `x86` node):
+5. if mixing architectures, make sure to include `nodeSelector` or `nodeAffinity` to ensure your workloads get deployed to their relevant node (e.g. the plex deployment is tagged specifically for an `x86` node) especially if your images aren't tagged specific to the arch:
     - ```
       nodeSelector:
         kubernetes.io/arch: amd64
