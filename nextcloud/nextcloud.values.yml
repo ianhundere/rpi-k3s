@@ -28,11 +28,10 @@ persistence:
   size: 60Gi
 resources:
   limits:
+    memory: 2Gi
+  requests:
     cpu: 2
     memory: 1Gi
-  requests:
-    cpu: 1
-    memory: 512Mi
 livenessProbe:
   enabled: true
   initialDelaySeconds: 30
@@ -51,4 +50,6 @@ startupProbe:
   enabled: true
   failureThreshold: 30
   periodSeconds: 10
-
+nodeSelector:
+  kubernetes.io/arch: amd64
+  kubernetes.io/os: linux
