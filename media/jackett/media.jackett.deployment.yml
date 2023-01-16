@@ -46,12 +46,12 @@ spec:
             - name: LAN_NETWORK
               value: "${CIDR}"
             - name: CREATE_TUN_DEVICE
-              value: "true" # Needed for VPN
+              value: "true"
             - name: PUID
               value: "1000"
             - name: PGID
               value: "1000"
-          image: zfigz/docker-jackettvpn:v0.0.4
+          image: zfigz/docker-jackettvpn:v0.0.3
           imagePullPolicy: IfNotPresent
           name: jackett
           livenessProbe:
@@ -107,7 +107,7 @@ spec:
           persistentVolumeClaim:
             claimName: media-ssd
         - name: dev-tun
-          hostPath: # Needed for VPN
+          hostPath:
             path: /dev/net/tun
             type: ""
       nodeSelector:
