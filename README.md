@@ -32,6 +32,10 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 12. switch firewall to legacy config:
     - `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
     - `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`
+13. configure poe hat fan control via `/boot/config.txt`. `/opt/vc/bin/vcgencmd measure_temp` can be used to check temp:
+    - ```dtparam=poe_fan_temp0=65000,poe_fan_temp0_hyst=5000
+         dtparam=poe_fan_temp1=67000,poe_fan_temp1_hyst=2000
+      ```
 
 ## configure nfs storage
 
