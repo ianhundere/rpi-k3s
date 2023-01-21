@@ -18,15 +18,11 @@ spec:
     spec:
       containers:
         - env:
-            - name: MEM_LIMIT
-              value: "2048M"
-            - name: MEM_STARTUP
-              value: "2048M"
             - name: PGID
               value: "1000"
             - name: PUID
               value: "1000"
-          image: linuxserver/unifi-controller:7.2.95
+          image: linuxserver/unifi-controller:7.3.76
           imagePullPolicy: IfNotPresent
           name: unifi-controller
           ports:
@@ -44,10 +40,9 @@ spec:
               name: unifi-ssd
           resources:
             limits:
-              cpu: 1
               memory: 2Gi
             requests:
-              cpu: 500m
+              cpu: 1
               memory: 1Gi
       restartPolicy: Always
       volumes:
