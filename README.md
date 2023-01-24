@@ -300,54 +300,60 @@ EOF
     - `cd /mnt/ssd && sudo mkdir media`
 3. apply pv and pvc
     - `kubectl apply -f media.persistentvolume*.yml`
-4. create secret for vpn
+4. add the following to your openvpn file (e.g. `node-nl-01.protonvpn.net.udp.ovpn`) and then copy it into the folder `/mnt/ss/media/configs/jackett/openvpn` to avoid getting the `write UDP: Operation not permitted (code=1)` error
+    - ```
+        pull-filter ignore "dhcp-option DNS6"
+        pull-filter ignore "tun-ipv6"
+        pull-filter ignore "ifconfig-ipv6"
+      ```
+5. create secret for vpn
     - `kubectl create secret generic openvpn --from-literal='username=<VPN_USERNAME>' --from-literal='password=<VPN_PASSWORD>' -n media`
-5. apply transmission resources
+6. apply transmission resources
     - `envsubst < media/transmission/* | kubectl apply -f -`
-6. create the NFS directory on the master node
+7. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/jackett/openvpn/`
-7. create a file called `credentials.conf` in `/mnt/ssd/media/configs/jackett/openvpn/` with:
+8. create a file called `credentials.conf` in `/mnt/ssd/media/configs/jackett/openvpn/` with:
     - ```
         <VPN_USERNAME>
         <VPN_PASSWORD>
       ```
-8. create the NFS directory on the master node
+9. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/jackett/Jackett/`
-9. create a file called `ServerConfig.json` with:
+10. create a file called `ServerConfig.json` with:
     - ```
         {
             "BasePathOverride": "/jackett"
         }
       ```
-10. apply jackett resources
+11. apply jackett resources
     - `envsubst < media/jackett/* | kubectl apply -f -`
-11. create the NFS directory on the master node
+12. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/sonarr/`
-12. create a file called `config.xml` with:
+13. create a file called `config.xml` with:
     - ```
         <Config>
         <UrlBase>/sonarr</UrlBase>
         </Config>
       ```
-13. apply sonarr resources
+14. apply sonarr resources
     - `kubectl apply -f media/sonarr -n media`
-14. create the NFS directory on the master node
+15. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/radarr/`
-15. create a file called `config.xml` with:
+16. create a file called `config.xml` with:
     - ```
         <Config>
         <UrlBase>/sonarr</UrlBase>
         </Config>
       ```
-16. apply radarr resources
+17. apply radarr resources
     - `kubectl apply -f media/radarr -n media`
-17. get claim token by visiting [plex](plex.tv/claim).
-18. apply plex resources
+18. get claim token by visiting [plex](plex.tv/claim).
+19. apply plex resources
     - `envsubst < plex/* | kubectl apply -f -`
-19. configuring jackett
+20. configuring jackett
     - add indexers to jackett
     - keep notes of the category #s as those are used in radarr and sonarr
-20. configuring radarr and sonarr
+21. configuring radarr and sonarr
     - configure the connection to transmission in settings under `Download Client` > `+` (add transmission) using the hostname and port `transmission-transmission-openvpn.media:80`
     - add indexers in settings under `Indexers` > `+` (add indexer)
         - add the URL / `http://media.${METAL_LB_IP1}.nip.io/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
