@@ -7,6 +7,8 @@ metadata:
   namespace: media
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: transmission-openvpn
@@ -59,7 +61,7 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-          image: haugene/transmission-openvpn:4.2
+          image: haugene/transmission-openvpn:4.3.2
           imagePullPolicy: IfNotPresent
           name: transmission-openvpn
           livenessProbe:
