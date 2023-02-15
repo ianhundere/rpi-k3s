@@ -33,6 +33,8 @@ spec:
         - env:
             - name: VPN_ENABLED
               value: "yes"
+            - name: VPN_PROTOCOL
+              value: "tcp"
             - name: VPN_TYPE
               value: "openvpn"
             - name: VPN_USERNAME
