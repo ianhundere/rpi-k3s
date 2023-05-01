@@ -20,7 +20,7 @@ spec:
           - name: WEBDRIVER_URL
             value: http://selenium:4444/wd/hub
           name: changedetection
-          image: dgtlmoon/changedetection.io:0.39.15
+          image: dgtlmoon/changedetection.io:0.41
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: changedetection-volume
