@@ -55,7 +55,9 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-          image: zfigz/docker-jackettvpn:v0.0.3
+            - name: LEGACY_IPTABLES
+              value: "true"
+          image: zfigz/docker-jackettvpn:v0.0.4
           imagePullPolicy: IfNotPresent
           name: jackett
           livenessProbe:

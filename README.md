@@ -4,7 +4,7 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 
 ## initial setup
 
-1. download latest vers of buster-lite (e.g. https://downloads.raspberrypi.org/raspios_lite_armhf_latest)
+1. download latest vers of buster-lite (e.g. <https://downloads.raspberrypi.org/raspios_lite_armhf_latest>)
 2. flash sd card
 3. create empty ssh file under `/boot/`
     - `touch ssh`
@@ -20,19 +20,24 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 9. enable container features by adding the following to `/boot/cmdline.txt`:
     - `cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory`
 10. enable arm64 cpu architecture by adding the following to `/boot/config.txt` under `[pi4]`:
-    - ```
+
+    - ```bash
         arm_64bit=1
       ```
+
 11. edit `/etc/dhcpcd.conf`
+
     - ```interface eth0
          static ip_address=<pi_ip>/24
          static routers=<router_ip>
          static domain_name_servers=<router_ip>
       ```
+
 12. switch firewall to legacy config:
     - `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
     - `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`
 13. configure poe hat fan control via `/boot/config.txt`. `/opt/vc/bin/vcgencmd measure_temp` can be used to check temp:
+
     - ```dtparam=poe_fan_temp0=50000
          dtparam=poe_fan_temp1=60000
          dtparam=poe_fan_temp2=70000
@@ -77,7 +82,7 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 1. ssh to master node
     - `ssh pi@kube-master`
 2. if you're not root, you'll want to enable the ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`. you'll also want to tell k3s not to deploy its default load balancer, servicelb, and proxy, traefik, since we'll install metallb as load balancer and nginx as proxy manually later on. finally we want to run the k3s installer
-    - `export K3S_KUBECONFIG_MODE="644"; export INSTALL_K3S_EXEC="--no-deploy servicelb --no-deploy traefik --kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80"; curl -sfL https://get.k3s.io | sh -`
+    - `export K3S_KUBECONFIG_MODE="644"; export INSTALL_K3S_EXEC="--disable servicelb --disable traefik --kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80"; curl -sfL https://get.k3s.io | sh -`
 3. verify the master is up
     - `sudo systemctl status k3s`
     - `kubectl get nodes -o wide`
@@ -104,21 +109,23 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 4. label the worker nodes
     - `kubectl label node <worker_name> node-role.kubernetes.io/node=""`
 5. if mixing architectures, make sure to include `nodeSelector` or `nodeAffinity` to ensure your workloads get deployed to their relevant node (e.g. the plex deployment is tagged specifically for an `x86` node) especially if your images aren't tagged specific to the arch:
-    - ```
+
+    - ```yaml
       nodeSelector:
-        kubernetes.io/arch: amd64
-      ```
-    - ```
-      nodeSelector:
-        kubernetes.io/arch: arm64
+          kubernetes.io/arch: amd64
       ```
 
-###### uninstall
+    - ```yaml
+      nodeSelector:
+          kubernetes.io/arch: arm64
+      ```
+
+### uninstall
 
 1. master
-    - `sudo /usr/local/bin/k3s-agent-uninstall.sh`
+    - `sudo /usr/local/bin/k3s-uninstall.sh`
 2. workers
-    - `sudo rm -rf /var/lib/rancher`
+    - `sudo /usr/local/bin/k3s-agent-uninstall.sh`
 
 ## connect remotely to cluster
 
@@ -137,7 +144,7 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 2. create `.env`
     - `touch .env` / copy the below with the correct values:
 
-```
+```bash
 export NINJAM_HOST="blah"
 export NINJAM_USER="blah"
 export NINJAM_PASSWORD="blah"
@@ -155,9 +162,7 @@ export PLEX_CLAIM="blah"
 ```
 
 3. make sure to source `.env` when a k8s resource needs creds:
-
     - `source .env`
-
 4. example cmds:
     - `envsubst < media/jackett/media.jackett.deployment.yml | kubectl apply -f -`
     - `envsubst < nextcloud.values.yml | helm upgrade nextcloud nextcloud/nextcloud --values - -n nextcloud`
@@ -165,7 +170,7 @@ export PLEX_CLAIM="blah"
 ## install metallb - k8s load balancer
 
 1. apply the metallb manifest which includes the namespace, controller deployment, speaker daemonset and necessary service accounts for the controller and speaker, along with the RBAC permissions that everything need to function
-    - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml`
+    - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.9/config/manifests/metallb-native.yaml`
 2. apply the `CRDs` which will indicate what protocol (e.g. `layer2`) and IPs to use.
     - `envsubst < metallb/config.yml | kubectl apply -f -`
 
@@ -180,19 +185,18 @@ export PLEX_CLAIM="blah"
 
 ## install cert-manager
 
-1. create namespace
-    - `kubectl create ns cert-manager`
-2. add the cert-manager repo / update repo
+1. add the cert-manager repo / update repo
     - `helm repo add jetstack https://charts.jetstack.io; helm repo update`
-3. install cert-manager
-    - `helm install cert-manager jetstack/cert-manager --version <vers> --set installCRDs=true --set extraArgs[0]="--leader-elect=true --enable-certificate-owner-ref=true" -n cert-manager`
-4. configure the certificate issuers
+2. install cert-manager
+    - `helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.11.0 --set startupapicheck.timeout=5m --set installCRDs=true --set webhook.hostNetwork=true --set webhook.securePort=10260`
+3. configure the certificate issuers
+   <sub>be sure to forward port 80 for the cert challenge</sub>
 
-###### staging
+### staging
 
-```
+```bash
 $ cat <<EOF | kubectl apply -f -
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-staging
@@ -209,11 +213,11 @@ spec:
 EOF
 ```
 
-###### prod
+### prod
 
-```
+```bash
 $ cat <<EOF | kubectl apply -f -
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-prod
@@ -236,14 +240,21 @@ EOF
     - `kubectl create ns unifi`
 2. create the NFS directory on the master node
     - `cd /mnt/ssd && sudo mkdir unifi`
-3. apply yaml
-    - `envsubst < unifi/* | kubectl apply -f -`
-4. allow internal access by sshing to router
+3. apply pv and pvc
+    - `kubectl apply -f nextcloud.persistentvolume.yml`
+    - `kubectl apply -f nextcloud.persistentvolumeclaim.yml`
+4. apply yaml
+    - `kubectl apply -f unifi/unifi-controller-persistentvolume.yml`
+    - `kubectl apply -f unifi/unifi-controller-persistentvolumeclaim.yml`
+    - `envsubst < unifi/unifi-controller-service.yml | kubectl apply -f -`
+    - `kubectl apply -f unifi/unifi-controller-statefulset.yml`
+    - `envsubst < unifi/unifi-controller-ingress.yml | kubectl apply -f -`
+5. allow internal access by sshing to router (e.g. edgerouterx example below)
     - `configure`
     - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
     - `commit`
     - `save`
-5. allow external access by forwarding the following ports on router to LB (e.g. `${METAL_LB_IP1}`)
+6. allow external access by forwarding the following ports on router to LB (e.g. `${METAL_LB_IP1}`)
     - `3478` UDP / STUN
     - `10001` UDP / device discovery
     - `8080` TCP / device and controller communication
@@ -262,17 +273,20 @@ EOF
     - `kubectl apply -f nextcloud.persistentvolume.yml`
     - `kubectl apply -f nextcloud.persistentvolumeclaim.yml`
 4. update values in `nextcloud.values.yml`
+
     - ```nextcloud:
         host: "<sub-domain>"
         username: <changeme>
         password: <changeme>
       ```
+
     - ```persistence:
         enabled: true
         existingClaim: "nextcloud-ssd"
         accessMode: ReadWriteOnce
         size: "60Gi"
       ```
+
 5. add repo
     - `helm repo add nextcloud https://nextcloud.github.io/helm/`
 6. apply `nextcloud.values.yml`
@@ -292,64 +306,82 @@ EOF
     - `kubectl exec -it <nextcloud_pod_name> bash -n nextcloud`
     - `sudo -u www-data php /var/www/html/occ files:scan --path "<user_id/files>"`
 
-## install plex
+## install media apps
 
 1. create namespace
     - `kubectl create ns media`
 2. create the NFS directory on the master node
     - `cd /mnt/ssd && sudo mkdir media`
 3. apply pv and pvc
-    - `kubectl apply -f media.persistentvolume*.yml`
+    - `kubectl apply -f media/media.persistentvolume.yml`
+    - `kubectl apply -f media/media.persistentvolumeclaim.yml`
+    - `kubectl apply -f media/media.nfspersistentvolumeclaim.yml`
+    - `envsubst < media/media.ingress.yml | kubectl apply -`
 4. add the following to your openvpn file (e.g. `node-nl-01.protonvpn.net.udp.ovpn`) and then copy it into the folder `/mnt/ss/media/configs/jackett/openvpn` to avoid getting the `write UDP: Operation not permitted (code=1)` error
-    - ```
+
+    - ```bash
         pull-filter ignore "dhcp-option DNS6"
         pull-filter ignore "tun-ipv6"
         pull-filter ignore "ifconfig-ipv6"
       ```
+
 5. create secret for vpn
     - `kubectl create secret generic openvpn --from-literal='username=<VPN_USERNAME>' --from-literal='password=<VPN_PASSWORD>' -n media`
 6. apply transmission resources
-    - `envsubst < media/transmission/* | kubectl apply -f -`
+    - `kubectl apply -f media/transmission/media.transmission.service.yml`
+    - `envsubst < media/transmission/media.transmission.deployment.yml | kubectl apply -f -`
 7. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/jackett/openvpn/`
 8. create a file called `credentials.conf` in `/mnt/ssd/media/configs/jackett/openvpn/` with:
-    - ```
+
+    - ```bash
         <VPN_USERNAME>
         <VPN_PASSWORD>
       ```
+
 9. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/jackett/Jackett/`
 10. create a file called `ServerConfig.json` with:
-    - ```
+
+    - ```bash
         {
             "BasePathOverride": "/jackett"
         }
       ```
+
 11. apply jackett resources
-    - `envsubst < media/jackett/* | kubectl apply -f -`
+    - `kubectl apply -f media/jackett/media.jackett.service.yml`
+    - `envsubst < media/jackett/media.jackett.deployment.yml | kubectl apply -f -`
 12. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/sonarr/`
 13. create a file called `config.xml` with:
-    - ```
+
+    - ```bash
         <Config>
         <UrlBase>/sonarr</UrlBase>
         </Config>
       ```
+
 14. apply sonarr resources
-    - `kubectl apply -f media/sonarr -n media`
+    - `kubectl apply -f media/sonarr/media.sonarr.service.yml -n media`
+    - `kubectl apply -f media/sonarr/media.sonarr.deployment.yml -n media`
 15. create the NFS directory on the master node
     - `mkdir -p /mnt/ssd/media/configs/radarr/`
 16. create a file called `config.xml` with:
-    - ```
+
+    - ```bash
         <Config>
         <UrlBase>/sonarr</UrlBase>
         </Config>
       ```
+
 17. apply radarr resources
-    - `kubectl apply -f media/radarr -n media`
+    - `kubectl apply -f media/radarr/media.radarr.service.yml -n media`
+    - `kubectl apply -f media/radarr/media.radarr.deployment -n media`
 18. get claim token by visiting [plex](plex.tv/claim).
 19. apply plex resources
-    - `envsubst < plex/* | kubectl apply -f -`
+    - `envsubst < media/plex/media.plex.service.yml | kubectl apply -f -`
+    - `envsubst < media/plex/media.plex.deployment.yml | kubectl apply -f -`
 20. configuring jackett
     - add indexers to jackett
     - keep notes of the category #s as those are used in radarr and sonarr
@@ -364,8 +396,36 @@ EOF
 
 1. add the nfs-provisioner repo
     - `helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner`
-2. install nginx
-    - `helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --create-namespace --namespace nfs-provisioner --values values.yml`
+2. install nfs-provisioner
+    - `envsubst < values.yml | helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --create-namespace --namespace nfs-provisioner --values -`
+
+## install system-upgrade-controller
+
+<sub>more info [here](https://docs.k3s.io/upgrades/automated).</sub>
+
+1. apply system-upgrade-controller
+    - `kubectl apply -f system-upgrade/system-upgrade-controller.yml system-upgrade-controller.yml`
+
+## install ninjam-server
+
+1. apply system-upgrade-controller
+    - `kubectl apply -f ninjam-server/ninjam.persistentvolume.yml`
+    - `kubectl apply -f ninjam-server/ninjam.persistentvolumeclaim.yml`
+    - `envsubst < ninjam-server/ninjam.service.yml | kubectl apply -`
+    - `envsubst < ninjam-server/ninjam.ingress.yml | kubectl apply -`
+    - `envsubst < ninjam-server/ninjam.configmap.yml | kubectl apply -`
+    - `kubectl apply -f ninjam-server/ninjam.deployment.yml`
+    - `kubectl apply -f ninjam-server/ninjam.cronjob.yml`
+
+## install changedetection
+
+1. apply system-upgrade-controller
+    - `kubectl apply -f changedetection/change.persistentvolume.yml`
+    - `kubectl apply -f changedetection/change.persistentvolumeclaim.yml`
+    - `envsubst < changedetection/change.service.yml | kubectl apply -`
+    - `kubectl apply -f changedetection/selenium.service.yml`
+    - `kubectl apply -f changedetection/selenium.deployment.yml`
+    - `kubectl apply -f changedetection/change.deployment.yml`
 
 ## backups
 
