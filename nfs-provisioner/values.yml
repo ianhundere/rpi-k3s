@@ -6,6 +6,7 @@ nfs:
     - noatime
 storageClass:
   defaultClass: false
+  onDelete: retain
   pathPattern: "${.PVC.namespace}-${.PVC.name}"
 affinity:
   podAntiAffinity:
