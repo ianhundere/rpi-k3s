@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nextcloud-cronjob
+  namespace: nextcloud
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: nextcloud
+  name: nextcloud-cronjob
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/exec"]
+    verbs: ["get", "exec", "list", "watch", "create"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: nextcloud-cronjob
+  namespace: nextcloud
+subjects:
+  - kind: ServiceAccount
+    name: nextcloud-cronjob
+    namespace: nextcloud
+roleRef:
+  kind: Role
+  name: nextcloud-cronjob
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nextcloud-cronjob
+  namespace: nextcloud
+  labels:
+    app: nextcloud-cronjob
+spec:
+  schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  suspend: false
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          serviceAccountName: nextcloud-cronjob
+          initContainers:
+            - name: nextcloud-cronjob-init1
+              image: raspbernetes/kubectl:1.18.2
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                [
+                  "kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get update && kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get install -y sudo",
+                ]
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 32Mi
+                limits:
+                  cpu: 200m
+                  memory: 64Mi
+          containers:
+            - name: nextcloud-cronjob
+              image: raspbernetes/kubectl:1.18.2
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                - kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- sudo -u www-data PHP_MEMORY_LIMIT=512M php -f cron.php
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 32Mi
+                limits:
+                  cpu: 200m
+                  memory: 64Mi
+          restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/arch: arm64
+            kubernetes.io/os: linux
