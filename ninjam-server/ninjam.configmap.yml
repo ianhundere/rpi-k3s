@@ -30,7 +30,7 @@ data:
 
     #ACL list lets you specify in order a list, first match is used
     ACL 10.0.0.0/8 allow
-    ACL ${NINJAM_CIDR} reserve # reserve slots for local
+    ACL 10.42.0.0/16 reserve # reserve slots for local
     ACL 0.0.0.0/0 allow        # allow all
 
 
