@@ -48,7 +48,7 @@ spec:
                   key: password
                   name: openvpn
             - name: LAN_NETWORK
-              value: "${CIDR}"
+              value: "10.42.0.0/24"
             - name: CREATE_TUN_DEVICE
               value: "true"
             - name: PUID
@@ -61,25 +61,25 @@ spec:
           imagePullPolicy: IfNotPresent
           name: jackett
           livenessProbe:
-            failureThreshold: 6
+            failureThreshold: 12
             initialDelaySeconds: 5
-            periodSeconds: 15
+            timeoutSeconds: 10
+            periodSeconds: 1
             successThreshold: 1
             httpGet:
               path: /health
               port: http
-            timeoutSeconds: 10
           readinessProbe:
-            failureThreshold: 6
+            failureThreshold: 12
             initialDelaySeconds: 5
             timeoutSeconds: 10
-            periodSeconds: 15
+            periodSeconds: 1
             successThreshold: 1
             httpGet:
               path: /health
               port: http
           startupProbe:
-            failureThreshold: 6
+            failureThreshold: 12
             initialDelaySeconds: 30
             timeoutSeconds: 10
             periodSeconds: 10
@@ -93,11 +93,10 @@ spec:
               protocol: TCP
           resources:
             limits:
-              cpu: 800m
-              memory: 256Mi
+              memory: 512Mi
             requests:
-              cpu: 400m
-              memory: 128Mi
+              cpu: 1
+              memory: 256Mi
           securityContext:
             capabilities:
               add:
@@ -106,6 +105,10 @@ spec:
             - mountPath: /config
               name: media-ssd
               subPath: configs/jackett
+      dnsConfig:
+        nameservers:
+          - 8.8.8.8
+          - 8.8.4.4
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:

@@ -50,7 +50,7 @@ spec:
             - name: OPENVPN_OPTS
               value: "--mute-replay-warnings"
             - name: LOCAL_NETWORK
-              value: "${CIDR}"
+              value: "10.42.0.0/24"
             - name: TRANSMISSION_PEER_PORT
               value: "47444"
             - name: TRANSMISSION_DOWNLOAD_DIR
@@ -70,24 +70,33 @@ spec:
             timeoutSeconds: 30
             periodSeconds: 30
             successThreshold: 1
-            httpGet:
-              path: /web/
-              port: http
+            # httpGet:
+            #   path: /web/
+            #   port: http
+            exec:
+              command: ["ping", "-I", "tun0", "-c", "1", "google.com"]
           readinessProbe:
             failureThreshold: 12
             initialDelaySeconds: 15
             timeoutSeconds: 30
             periodSeconds: 30
             successThreshold: 1
-            httpGet:
-              path: /web/
-              port: http
+            # httpGet:
+            #   path: /web/
+            #   port: http
+            exec:
+              command: ["ping", "-I", "tun0", "-c", "1", "google.com"]
           startupProbe:
-            failureThreshold: 30
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            timeoutSeconds: 10
             periodSeconds: 10
-            httpGet:
-              path: /web/
-              port: http
+            successThreshold: 1
+            # httpGet:
+            #   path: /web/
+            #   port: http
+            exec:
+              command: ["ping", "-I", "tun0", "-c", "1", "google.com"]
           ports:
             - containerPort: 9091
               name: http

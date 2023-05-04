@@ -53,9 +53,7 @@ spec:
               imagePullPolicy: IfNotPresent
               command: ["/bin/sh", "-c"]
               args:
-                [
-                  "kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get update && kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get install -y sudo",
-                ]
+                - "kubectl exec -i $(kubectl get pods -l 'app.kubernetes.io/name=nextcloud' -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get update && kubectl exec -i $(kubectl get pods -l 'app.kubernetes.io/name=nextcloud' -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get install -y sudo"
               resources:
                 requests:
                   cpu: 100m
@@ -69,7 +67,7 @@ spec:
               imagePullPolicy: IfNotPresent
               command: ["/bin/sh", "-c"]
               args:
-                - kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- sudo -u www-data PHP_MEMORY_LIMIT=512M php -f cron.php
+                - kubectl exec -i $(kubectl get pods -l 'app.kubernetes.io/name=nextcloud' -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- sudo -u www-data PHP_MEMORY_LIMIT=512M php -f cron.php
               resources:
                 requests:
                   cpu: 100m
