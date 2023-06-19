@@ -8,7 +8,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate
+    type: RollingUpdate
   selector:
     matchLabels:
       app: jackett
@@ -93,10 +93,10 @@ spec:
               protocol: TCP
           resources:
             limits:
-              memory: 512Mi
+              memory: 1Gi
             requests:
               cpu: 1
-              memory: 256Mi
+              memory: 512Mi
           securityContext:
             capabilities:
               add:
