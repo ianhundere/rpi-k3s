@@ -139,6 +139,3 @@ spec:
             path: /dev/net/tun
             type: ""
           name: dev-tun
-      nodeSelector:
-        kubernetes.io/arch: arm64
-        kubernetes.io/os: linux
