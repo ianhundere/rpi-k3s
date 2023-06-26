@@ -445,3 +445,4 @@ make a copy of `/var/lib/rancher/k3s/server/`
     -   nextcloud (a variety of data like db dump etc)
 -   adjust resource request/limits
 -   add home assistant
+-   add soulseek using jackett or transmission network stack
