@@ -436,6 +436,12 @@ make a copy of `/var/lib/rancher/k3s/server/`
 
 ## todos
 
--   create `CronJob` to backup configs directory
--   create `CronJob` to backup k3s directory
+-   create `CronJob` to backup:
+    -   unifi backups
+    -   radarr backups
+    -   sonarr backups
+    -   jackett (config)
+    -   plex (`Preferences.xml`)
+    -   nextcloud (a variety of data like db dump etc)
+-   adjust resource request/limits
 -   add home assistant
