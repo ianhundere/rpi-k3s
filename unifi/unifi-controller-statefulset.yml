@@ -22,7 +22,7 @@ spec:
               value: "1000"
             - name: PUID
               value: "1000"
-          image: linuxserver/unifi-controller:7.3.76
+          image: linuxserver/unifi-controller:7.4.156
           imagePullPolicy: IfNotPresent
           name: unifi-controller
           ports:
