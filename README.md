@@ -314,7 +314,7 @@ EOF
     - `kubectl apply -f media/media.persistentvolume.yml`
     - `kubectl apply -f media/media.persistentvolumeclaim.yml`
     - `kubectl apply -f media/media.nfspersistentvolumeclaim.yml`
-    - `envsubst < media/media.ingress.yml | kubectl apply -`
+    - `envsubst < media/media.ingress.yml | kubectl apply -f -`
 4. add the following to your openvpn file (e.g. `node-nl-01.protonvpn.net.udp.ovpn`) and then copy it into the folder `/mnt/ss/media/configs/jackett/openvpn` to avoid getting the `write UDP: Operation not permitted (code=1)` error
 
     - ```bash
@@ -409,9 +409,9 @@ EOF
 1. apply system-upgrade-controller
     - `kubectl apply -f ninjam-server/ninjam.persistentvolume.yml`
     - `kubectl apply -f ninjam-server/ninjam.persistentvolumeclaim.yml`
-    - `envsubst < ninjam-server/ninjam.service.yml | kubectl apply -`
-    - `envsubst < ninjam-server/ninjam.ingress.yml | kubectl apply -`
-    - `envsubst < ninjam-server/ninjam.configmap.yml | kubectl apply -`
+    - `envsubst < ninjam-server/ninjam.service.yml | kubectl apply -f -`
+    - `envsubst < ninjam-server/ninjam.ingress.yml | kubectl apply -f -`
+    - `envsubst < ninjam-server/ninjam.configmap.yml | kubectl apply -f -`
     - `kubectl apply -f ninjam-server/ninjam.deployment.yml`
     - `kubectl apply -f ninjam-server/ninjam.cronjob.yml`
 
@@ -419,8 +419,9 @@ EOF
 
 1. apply system-upgrade-controller
     - `kubectl apply -f changedetection/change.persistentvolume.yml`
+    - `kubectl create namespace changedetection`
     - `kubectl apply -f changedetection/change.persistentvolumeclaim.yml`
-    - `envsubst < changedetection/change.service.yml | kubectl apply -`
+    - `envsubst < changedetection/change.service.yml | kubectl apply -f -`
     - `kubectl apply -f changedetection/selenium.service.yml`
     - `kubectl apply -f changedetection/selenium.deployment.yml`
     - `kubectl apply -f changedetection/change.deployment.yml`
