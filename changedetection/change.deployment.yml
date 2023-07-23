@@ -17,10 +17,10 @@ spec:
     spec:
       containers:
         - env:
-          - name: WEBDRIVER_URL
-            value: http://selenium:4444/wd/hub
+            - name: WEBDRIVER_URL
+              value: http://selenium:4444/wd/hub
           name: changedetection
-          image: dgtlmoon/changedetection.io:0.41
+          image: dgtlmoon/changedetection.io:0.43.2
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: changedetection-volume
