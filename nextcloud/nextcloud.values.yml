@@ -50,3 +50,6 @@ startupProbe:
   enabled: true
   failureThreshold: 30
   periodSeconds: 10
+nodeSelector:
+  kubernetes.io/arch: arm64
+  kubernetes.io/os: linux
