@@ -7,8 +7,6 @@ metadata:
   namespace: media
 spec:
   replicas: 1
-  strategy:
-    type: Recreate
   selector:
     matchLabels:
       app: jackett
@@ -28,6 +26,15 @@ spec:
                       operator: In
                       values:
                         - transmission-openvpn
+                topologyKey: kubernetes.io/hostname
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - jackett
                 topologyKey: kubernetes.io/hostname
       containers:
         - env:
