@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebrowser-scripts
+  namespace: filebrowser
+  labels:
+    app: filebrowser
+data:
+  init-filebrowser.sh: |
+    #!/usr/bin/env sh
+
+    # Update configs
+    /filebrowser config init
+    /filebrowser config set --branding.name "***REMOVED*** file sharing"
+    /filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin
+
+    exec /filebrowser --port 44301
