@@ -38,8 +38,7 @@ spec:
             requests:
               cpu: 1
               memory: 1Gi
-          command:
-            ["/bin/sh", "-c", "/scripts/init-filebrowser.sh"]
+          command: ["/bin/sh", "-c", "/scripts/init-filebrowser.sh"]
       nodeSelector:
         kubernetes.io/arch: arm64
         kubernetes.io/os: linux
@@ -50,4 +49,4 @@ spec:
         - name: filebrowser-scripts
           configMap:
             name: filebrowser-scripts
-            defaultMode: 0755 # Makes files in the volume executable
+            defaultMode: 0755
