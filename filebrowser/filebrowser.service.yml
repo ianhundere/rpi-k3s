@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: filebrowser
+  labels:
+    app: filebrowser
+  name: filebrowser
+spec:
+  ports:
+    - port: 44301
+      targetPort: 44301
+      protocol: TCP
+  selector:
+    app: filebrowser
+  externalIPs:
+    - "${METAL_LB_IP1}"
