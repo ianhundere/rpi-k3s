@@ -9,9 +9,6 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-body-size: 50m
     nginx.ingress.kubernetes.io/limit-connections: "10"
     nginx.ingress.kubernetes.io/limit-rps: "2"
-    nginx.ingress.kubernetes.io/proxy-buffers: "16 1024k"
-    nginx.ingress.kubernetes.io/proxy-busy-buffers-size: "2048k"
-    nginx.ingress.kubernetes.io/proxy-temp-file-write-size: "2048k"
 spec:
   tls:
     - hosts:

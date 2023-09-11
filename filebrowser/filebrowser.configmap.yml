@@ -14,7 +14,6 @@ data:
         --branding.name "${FILEBROWSER_HOST} file sharing" \
         --port 44301 \
         --address 0.0.0.0 \
-        --baseurl ${FILEBROWSER_HOST} \
         --root "/srv"
     /filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin
 
