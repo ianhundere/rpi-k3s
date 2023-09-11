@@ -9,9 +9,13 @@ data:
   init-filebrowser.sh: |
     #!/usr/bin/env sh
 
-    # Update configs
     /filebrowser config init
-    /filebrowser config set --branding.name "***REMOVED*** file sharing"
+    /filebrowser config set \
+        --branding.name "${FILEBROWSER_HOST} file sharing" \
+        --port 44301 \
+        --address 0.0.0.0 \
+        --baseurl ${FILEBROWSER_HOST} \
+        --root "/srv"
     /filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin
 
-    exec /filebrowser --port 44301
+    exec /filebrowser --port 44301 --disable-exec
