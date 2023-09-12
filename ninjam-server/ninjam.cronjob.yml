@@ -28,7 +28,7 @@ spec:
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: /mnt/ssd/nextcloud/data/***REMOVED***/files/jamz
+    path: /mnt/ssd/filebrowser/files/jamz
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -66,7 +66,7 @@ metadata:
   name: ninjam-server-cronjob
   namespace: ninjam
 ---
-kind: ClusterRole
+kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   namespace: ninjam
@@ -76,7 +76,7 @@ rules:
     resources: ["pods", "pods/exec"]
     verbs: ["get", "exec", "list", "watch", "create"]
 ---
-kind: ClusterRoleBinding
+kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: ninjam-server-cronjob
@@ -86,7 +86,7 @@ subjects:
     name: ninjam-server-cronjob
     namespace: ninjam
 roleRef:
-  kind: ClusterRole
+  kind: Role
   name: ninjam-server-cronjob
   apiGroup: rbac.authorization.k8s.io
 ---
@@ -102,14 +102,14 @@ spec:
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
-  suspend: true
+  suspend: false
   jobTemplate:
     spec:
       backoffLimit: 3
       template:
         spec:
           serviceAccountName: ninjam-server-cronjob
-          initContainers:
+          containers:
             - name: ninjam-server-cronjob-init1
               image: ubuntu
               imagePullPolicy: IfNotPresent
@@ -119,8 +119,6 @@ spec:
                 - name: jamz-volume
                   mountPath: jamz
               command: ["/bin/bash", "-c"]
-              # refactor; find all 30min old ninjam sessions, tar ninjam sessions, delete ninjam sessions, and chown (www-data) / mv tar file to nextcloud.
-              # example of find w/ multiple cmds; find . -name "*.txt" -exec echo {} \; -exec grep banana {} \; OR find . -name "*.txt" \( -exec echo {} \; -o -exec true \; \) -exec grep banana {} \;
               args:
                 [
                   "if find sessions -maxdepth 1 -name *.ninjam -type d -mmin +30 -print | grep ninjam; then echo 'moving 30min old jamz' && find sessions -maxdepth 1 -name *.ninjam -type d -mmin +30 -exec mv {} jamz \\;; fi; if find jamz -maxdepth 1 -name *.ninjam -type d -mtime +30 -print | grep ninjam; then echo 'deleting 30 day old jamz' && find jamz -maxdepth 1 -name *.ninjam -type d -mtime +30 -exec rm -r {} \\;; fi;",
@@ -132,35 +130,6 @@ spec:
                 limits:
                   cpu: 100m
                   memory: 16Mi
-            - name: ninjam-server-cronjob-init2
-              image: raspbernetes/kubectl:1.18.2
-              imagePullPolicy: IfNotPresent
-              command: ["/bin/sh", "-c"]
-              args:
-                [
-                  "kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get update && kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- apt-get install -y sudo",
-                ]
-              resources:
-                requests:
-                  cpu: 100m
-                  memory: 32Mi
-                limits:
-                  cpu: 200m
-                  memory: 64Mi
-          containers:
-            - name: ninjam-server-cronjob
-              image: raspbernetes/kubectl:1.18.2
-              imagePullPolicy: IfNotPresent
-              command: ["/bin/sh", "-c"]
-              args:
-                - kubectl exec -i $(kubectl get pods -o custom-columns=:metadata.name -n nextcloud) -n nextcloud -- sudo -u www-data PHP_MEMORY_LIMIT=512M php occ files:scan --path=/***REMOVED***/files/jamz
-              resources:
-                requests:
-                  cpu: 100m
-                  memory: 32Mi
-                limits:
-                  cpu: 200m
-                  memory: 64Mi
           restartPolicy: OnFailure
           volumes:
             - name: session-volume
