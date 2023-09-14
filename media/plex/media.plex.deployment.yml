@@ -31,10 +31,6 @@ spec:
               value: "${PLEX_CLAIM}"
             - name: PMS_INTERNAL_ADDRESS
               value: http://plex:32400
-            - name: DATA_PVC
-              value: plex-data
-            - name: CONFIG_PVC
-              value: plex-config
           name: plex
           image: linuxserver/plex:1.32.5
           imagePullPolicy: IfNotPresent
