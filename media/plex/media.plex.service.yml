@@ -3,7 +3,7 @@ kind: Service
 metadata:
   labels:
     app: kube-plex
-  name: plex-kube-plex
+  name: kube-plex
   namespace: media
 spec:
   externalTrafficPolicy: Cluster

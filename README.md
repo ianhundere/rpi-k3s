@@ -438,12 +438,16 @@ make a copy of `/var/lib/rancher/k3s/server/`
 ## todos
 
 -   create `CronJob` to backup:
-    -   unifi backups
-    -   radarr backups
-    -   sonarr backups
+    -   unifi (scheduled backups)
+    -   radarr (scheduled backups)
+    -   sonarr (scheduled backups)
+    -   changedetection (manual backups)
     -   jackett (config)
     -   plex (`Preferences.xml`)
-    -   nextcloud (a variety of data like db dump etc)
+    -   filebrowser (database.db)
 -   adjust resource request/limits
 -   add home assistant
--   add soulseek using jackett or transmission network stack
+-   add soulseek
+-   consolidate vpn connections to a single network stack
+-   replace nextcloud steps w/ filebrowser
+-   add geoip2 database(s) to nginx via pv/pvc to exclude country specific ips
