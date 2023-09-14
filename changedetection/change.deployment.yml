@@ -20,12 +20,11 @@ spec:
             - name: WEBDRIVER_URL
               value: http://selenium:4444/wd/hub
           name: changedetection
-          image: dgtlmoon/changedetection.io:0.43.2
+          image: dgtlmoon/changedetection.io:0.45.1
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: changedetection-volume
               mountPath: /datastore
-              subPath: changedetection/
           ports:
             - containerPort: 5000
               protocol: TCP

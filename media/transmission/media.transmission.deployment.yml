@@ -70,9 +70,6 @@ spec:
             timeoutSeconds: 30
             periodSeconds: 30
             successThreshold: 1
-            # httpGet:
-            #   path: /web/
-            #   port: http
             exec:
               command: ["ping", "-I", "tun0", "-c", "1", "google.com"]
           readinessProbe:
@@ -81,9 +78,6 @@ spec:
             timeoutSeconds: 30
             periodSeconds: 30
             successThreshold: 1
-            # httpGet:
-            #   path: /web/
-            #   port: http
             exec:
               command: ["ping", "-I", "tun0", "-c", "1", "google.com"]
           startupProbe:
@@ -92,9 +86,6 @@ spec:
             timeoutSeconds: 10
             periodSeconds: 10
             successThreshold: 1
-            # httpGet:
-            #   path: /web/
-            #   port: http
             exec:
               command: ["ping", "-I", "tun0", "-c", "1", "google.com"]
           ports:
