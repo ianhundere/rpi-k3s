@@ -2,8 +2,8 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: kube-plex
-  name: kube-plex
+    app: plex
+  name: plex
   namespace: media
 spec:
   externalTrafficPolicy: Cluster
@@ -24,7 +24,7 @@ spec:
       protocol: TCP
       targetPort: 32443
   selector:
-    app: kube-plex
+    app: plex
   type: LoadBalancer
 status:
   loadBalancer:
