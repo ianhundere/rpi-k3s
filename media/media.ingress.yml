@@ -40,7 +40,7 @@ spec:
           pathType: Prefix
         - backend:
             service:
-              name: "kube-plex"
+              name: "plex"
               port:
                 number: 32400
           path: "/"
