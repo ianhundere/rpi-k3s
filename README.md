@@ -36,13 +36,9 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 12. switch firewall to legacy config:
     - `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
     - `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`
-13. configure poe hat fan control via `/boot/config.txt`. `/opt/vc/bin/vcgencmd measure_temp` can be used to check temp:
+13. configure poe hat fan control via `/boot/config.txt` and use `/opt/vc/bin/vcgencmd measure_temp` to check temp (the config may be diff depending on poe hat used):
 
-    - ```dtparam=poe_fan_temp0=50000
-         dtparam=poe_fan_temp1=60000
-         dtparam=poe_fan_temp2=70000
-         dtparam=poe_fan_temp3=80000
-      ```
+    - `dtoverlay=i2c-fan,emc2301`
 
 ## configure nfs storage
 
@@ -148,9 +144,6 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 export NINJAM_HOST="blah"
 export NINJAM_USER="blah"
 export NINJAM_PASSWORD="blah"
-export NEXTCLOUD_HOST="blah"
-export NEXTCLOUD_USER="blah"
-export NEXTCLOUD_PASSWORD="blah"
 export UNIFI_HOST="blah"
 export METAL_LB_IP1="blah"
 export METAL_LB_IP2="blah"
@@ -163,12 +156,11 @@ export PLEX_CLAIM="blah"
     - `source .env`
 4. example cmds:
     - `envsubst < media/jackett/media.jackett.deployment.yml | kubectl apply -f -`
-    - `envsubst < nextcloud.values.yml | helm upgrade nextcloud nextcloud/nextcloud --values - -n nextcloud`
 
 ## install metallb - k8s load balancer
 
 1. apply the metallb manifest which includes the namespace, controller deployment, speaker daemonset and necessary service accounts for the controller and speaker, along with the RBAC permissions that everything need to function
-    - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.9/config/manifests/metallb-native.yaml`
+    - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v<latest_vers>/config/manifests/metallb-native.yaml`
 2. apply the `CRDs` which will indicate what protocol (e.g. `layer2`) and IPs to use.
     - `envsubst < metallb/config.yml | kubectl apply -f -`
 
@@ -186,7 +178,7 @@ export PLEX_CLAIM="blah"
 1. add the cert-manager repo / update repo
     - `helm repo add jetstack https://charts.jetstack.io; helm repo update`
 2. install cert-manager
-    - `helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.11.0 --set startupapicheck.timeout=5m --set installCRDs=true --set webhook.hostNetwork=true --set webhook.securePort=10260`
+    - `helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version <latest_vers> --set startupapicheck.timeout=5m --set installCRDs=true --set webhook.hostNetwork=true --set webhook.securePort=10260`
 3. configure the certificate issuers
    <sub>be sure to forward port 80 for the cert challenge</sub>
 
@@ -239,70 +231,38 @@ EOF
 2. create the NFS directory on the master node
     - `cd /mnt/ssd && sudo mkdir unifi`
 3. apply pv and pvc
-    - `kubectl apply -f nextcloud.persistentvolume.yml`
-    - `kubectl apply -f nextcloud.persistentvolumeclaim.yml`
-4. apply yaml
-    - `kubectl apply -f unifi/unifi-controller-persistentvolume.yml`
-    - `kubectl apply -f unifi/unifi-controller-persistentvolumeclaim.yml`
-    - `envsubst < unifi/unifi-controller-service.yml | kubectl apply -f -`
-    - `kubectl apply -f unifi/unifi-controller-statefulset.yml`
-    - `envsubst < unifi/unifi-controller-ingress.yml | kubectl apply -f -`
+    - `kubectl apply -f unifi/unifi.pv.yml`
+    - `kubectl apply -f unifi/unifi.pvc.yml`
+4. apply service, statefulset and ingress resources
+    - `envsubst < unifi/unifi.service.yml | kubectl apply -f -`
+    - `kubectl apply -f unifi/unifi.statefulset.yml`
+    - `envsubst < unifi/unifi.ingress.yml | kubectl apply -f -`
 5. allow internal access by sshing to router (e.g. edgerouterx example below)
     - `configure`
     - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
     - `commit`
     - `save`
-6. allow external access by forwarding the following ports on router to LB (e.g. `${METAL_LB_IP1}`)
-    - `3478` UDP / STUN
-    - `10001` UDP / device discovery
-    - `8080` TCP / device and controller communication
-    - `8443` TCP / controller GUI/API
-    - `8843` TCP / HTTPS portal redirection
-    - `8880` TCP / HTTP GUI portal redirection
-    - `6789` TCP / throughput test
+6. allow external access by forwarding `443` for nginx on router
+    - TCP `443` / GUI
 
-## install nextcloud
+## install filebrowser
 
 1. create namespace
-    - `kubectl create ns nextcloud`
+    - `kubectl create ns filebrowser`
 2. create the NFS directory on the master node
-    - `cd /mnt/ssd && sudo mkdir nextcloud`
+    - `cd /mnt/ssd && sudo mkdir filebrowser`
 3. apply pv and pvc
-    - `kubectl apply -f nextcloud.persistentvolume.yml`
-    - `kubectl apply -f nextcloud.persistentvolumeclaim.yml`
-4. update values in `nextcloud.values.yml`
-
-    - ```nextcloud:
-        host: "<sub-domain>"
-        username: <changeme>
-        password: <changeme>
-      ```
-
-    - ```persistence:
-        enabled: true
-        existingClaim: "nextcloud-ssd"
-        accessMode: ReadWriteOnce
-        size: "60Gi"
-      ```
-
-5. add repo
-    - `helm repo add nextcloud https://nextcloud.github.io/helm/`
-6. apply `nextcloud.values.yml`
-    - `envsubst < nextcloud.values.yml | helm install nextcloud nextcloud/nextcloud --values - -n nextcloud`
-7. allow internal access by sshing to router
+    - `kubectl apply -f filebrowser.pv.yml`
+    - `kubectl apply -f filebrowser.pvc.yml`
+4. apply service, deployment and ingress resources
+    - `envsubst < filebrowser/filebrowser.service.yml | kubectl apply -f -`
+    - `kubectl apply -f filebrowser/filebrowser.deployment.yml`
+    - `envsubst < filebrowser/filebrowser.ingress.yml | kubectl apply -f -`
+5. allow internal access by sshing to router
     - `configure`
     - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
     - `commit`
     - `save`
-8. allow external access by forwarding the following ports on router
-    - TCP `443` / GUI
-    - TCP `80` / GUI
-9. apply ingress
-    - `envsubst < nextcloud/nextcloud.ingress.yml | kubectl apply -f -`
-10. add files manually via scp / run `occ` to add them to the db:
-    - `scp -r <files> pi@kube-master:~`
-    - `kubectl exec -it <nextcloud_pod_name> bash -n nextcloud`
-    - `sudo -u www-data php /var/www/html/occ files:scan --path "<user_id/files>"`
 
 ## install media apps
 
@@ -311,9 +271,9 @@ EOF
 2. create the NFS directory on the master node
     - `cd /mnt/ssd && sudo mkdir media`
 3. apply pv and pvc
-    - `kubectl apply -f media/media.persistentvolume.yml`
-    - `kubectl apply -f media/media.persistentvolumeclaim.yml`
-    - `kubectl apply -f media/media.nfspersistentvolumeclaim.yml`
+    - `kubectl apply -f media/media.pv.yml`
+    - `kubectl apply -f media/media.pvc.yml`
+    - `kubectl apply -f media/media.nfspvc.yml`
     - `envsubst < media/media.ingress.yml | kubectl apply -f -`
 4. add the following to your openvpn file (e.g. `node-nl-01.protonvpn.net.udp.ovpn`) and then copy it into the folder `/mnt/ss/media/configs/jackett/openvpn` to avoid getting the `write UDP: Operation not permitted (code=1)` error
 
@@ -407,8 +367,8 @@ EOF
 ## install ninjam-server
 
 1. apply system-upgrade-controller
-    - `kubectl apply -f ninjam-server/ninjam.persistentvolume.yml`
-    - `kubectl apply -f ninjam-server/ninjam.persistentvolumeclaim.yml`
+    - `kubectl apply -f ninjam-server/ninjam.pv.yml`
+    - `kubectl apply -f ninjam-server/ninjam.pvc.yml`
     - `envsubst < ninjam-server/ninjam.service.yml | kubectl apply -f -`
     - `envsubst < ninjam-server/ninjam.ingress.yml | kubectl apply -f -`
     - `envsubst < ninjam-server/ninjam.configmap.yml | kubectl apply -f -`
@@ -418,9 +378,9 @@ EOF
 ## install changedetection
 
 1. apply system-upgrade-controller
-    - `kubectl apply -f changedetection/change.persistentvolume.yml`
+    - `kubectl apply -f changedetection/change.pv.yml`
     - `kubectl create namespace changedetection`
-    - `kubectl apply -f changedetection/change.persistentvolumeclaim.yml`
+    - `kubectl apply -f changedetection/change.pvc.yml`
     - `envsubst < changedetection/change.service.yml | kubectl apply -f -`
     - `kubectl apply -f changedetection/selenium.service.yml`
     - `kubectl apply -f changedetection/selenium.deployment.yml`
@@ -449,5 +409,3 @@ make a copy of `/var/lib/rancher/k3s/server/`
 -   add home assistant
 -   add soulseek
 -   consolidate vpn connections to a single network stack
--   replace nextcloud steps w/ filebrowser
--   add geoip2 database(s) to nginx via pv/pvc to exclude country specific ips
