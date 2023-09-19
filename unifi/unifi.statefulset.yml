@@ -49,6 +49,4 @@ spec:
         - name: unifi-ssd
           persistentVolumeClaim:
             claimName: unifi-ssd
-      nodeSelector:
-        kubernetes.io/arch: arm64
-        kubernetes.io/os: linux
+

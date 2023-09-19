@@ -71,6 +71,3 @@ spec:
           name: shared
       dnsPolicy: ClusterFirst
       hostname: plex
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux

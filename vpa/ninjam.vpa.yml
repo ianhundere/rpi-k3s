@@ -1,0 +1,13 @@
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: ninjam-server
+  namespace: ninjam
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: Deployment
+    name: ninjam-server
+  updatePolicy:
+    updateMode: "Recreate"
+    minReplicas: 1

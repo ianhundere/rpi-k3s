@@ -61,7 +61,7 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-          image: haugene/transmission-openvpn:4.3.2
+          image: haugene/transmission-openvpn:5.2
           imagePullPolicy: IfNotPresent
           name: transmission-openvpn
           livenessProbe:

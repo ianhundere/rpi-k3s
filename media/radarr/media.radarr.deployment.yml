@@ -22,7 +22,7 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-          image: linuxserver/radarr:4.5.2
+          image: linuxserver/radarr:4.7.5
           imagePullPolicy: IfNotPresent
           name: radarr
           ports:
@@ -71,6 +71,3 @@ spec:
         - name: media-hdd
           persistentVolumeClaim:
             claimName: hdd
-      nodeSelector:
-        kubernetes.io/arch: arm64
-        kubernetes.io/os: linux
