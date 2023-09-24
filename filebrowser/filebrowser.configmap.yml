@@ -15,7 +15,7 @@ data:
         --address 0.0.0.0 \
         --baseurl "/" \
         --root "/srv" \
-        --branding.name "🗁" \
+        --branding.name "hi, welcome." \
         --branding.disableExternal
     /filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin
     exec /filebrowser --port 44301 --disable-exec

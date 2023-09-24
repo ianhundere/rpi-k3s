@@ -30,9 +30,6 @@ spec:
             - containerPort: 2050
               protocol: TCP
           resources:
-            limits:
-              cpu: 2
-              memory: 2Gi
             requests:
               cpu: 1
               memory: 1Gi
@@ -43,3 +40,5 @@ spec:
         - name: session-volume
           persistentVolumeClaim:
             claimName: ninjam-server-ssd
+      nodeSelector:
+        kubernetes.io/arch: arm64
