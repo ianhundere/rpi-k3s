@@ -39,14 +39,11 @@ spec:
             - mountPath: /config
               name: unifi-ssd
           resources:
-            limits:
-              memory: 2Gi
             requests:
               cpu: 1
-              memory: 1Gi
+              memory: 1.5Gi
       restartPolicy: Always
       volumes:
         - name: unifi-ssd
           persistentVolumeClaim:
             claimName: unifi-ssd
-

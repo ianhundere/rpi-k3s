@@ -8,6 +8,8 @@ metadata:
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: radarr
@@ -30,9 +32,6 @@ spec:
               name: http
               protocol: TCP
           resources:
-            limits:
-              cpu: 1000m
-              memory: 512Mi
             requests:
               cpu: 500m
               memory: 256Mi

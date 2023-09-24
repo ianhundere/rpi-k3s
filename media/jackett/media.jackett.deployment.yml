@@ -101,8 +101,6 @@ spec:
               name: http
               protocol: TCP
           resources:
-            limits:
-              memory: 1Gi
             requests:
               cpu: 1
               memory: 512Mi
@@ -128,3 +126,5 @@ spec:
           hostPath:
             path: /dev/net/tun
             type: ""
+      nodeSelector:
+        kubernetes.io/arch: arm64
