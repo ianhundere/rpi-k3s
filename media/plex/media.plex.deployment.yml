@@ -19,10 +19,6 @@ spec:
         app: plex
     spec:
       restartPolicy: Always
-      tolerations:
-        - key: "node-role.kubernetes.io/master"
-          operator: "Exists"
-          effect: "NoSchedule"
       containers:
         - env:
             - name: PUID
@@ -51,9 +47,6 @@ spec:
           resources:
             requests:
               cpu: 2
-              memory: 2.5Gi
-            limits:
-              cpu: 3.5
               memory: 2Gi
           volumeMounts:
             - mountPath: /library

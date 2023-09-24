@@ -12,12 +12,10 @@ spec:
   selector:
     matchLabels:
       app: transmission-openvpn
-      release: transmission
   template:
     metadata:
       labels:
         app: transmission-openvpn
-        release: transmission
     spec:
       affinity:
         podAntiAffinity:
@@ -48,7 +46,7 @@ spec:
             - name: OPENVPN_CONFIG
               value: ch.protonvpn.net.tcp,nl.protonvpn.net.tcp
             - name: OPENVPN_OPTS
-              value: "--mute-replay-warnings"
+              value: "--mute-replay-warnings --inactive 3600 --ping 10 --ping-exit 60"
             - name: LOCAL_NETWORK
               value: "10.42.0.0/24"
             - name: TRANSMISSION_PEER_PORT
