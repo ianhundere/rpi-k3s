@@ -22,7 +22,9 @@ spec:
               value: "1000"
             - name: PUID
               value: "1000"
-          image: linuxserver/unifi-controller:7.4.156
+          # migrate to new image soon
+          # https://info.linuxserver.io/issues/2023-09-06-unifi-controller/
+          image: linuxserver/unifi-controller:7.5.176
           imagePullPolicy: IfNotPresent
           name: unifi-controller
           ports:
