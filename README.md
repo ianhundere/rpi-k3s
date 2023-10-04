@@ -409,3 +409,4 @@ make a copy of `/var/lib/rancher/k3s/server/`
 -   add home assistant
 -   add soulseek
 -   consolidate vpn connections to a single network stack
+-   look into https://github.com/robusta-dev/krr to maybe implement
