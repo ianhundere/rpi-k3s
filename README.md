@@ -37,10 +37,24 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
     - `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
     - `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`
 13. configure poe hat fan control via `/boot/config.txt` and use `/opt/vc/bin/vcgencmd measure_temp` to check temp (the config may be diff depending on poe hat used):
-
     - `dtoverlay=i2c-fan,emc2301`
 
 ## configure nfs storage
+
+no matter what, the `nfs-common` package must be installed on all nodes unless a node acts as the primary, otherwise the `nfs-kernel-server` package must be installed.
+
+### recommended
+
+#### synology nas
+
+1. enable the folowing on the synology nas:
+    - (nfs service)[https://kb.synology.com/en-us/DSM/tutorial/How_to_access_files_on_Synology_NAS_within_the_local_network_NFS#7MrLJcRf6d]
+    - (nfs file permissions)[https://kb.synology.com/en-us/DSM/tutorial/How_to_access_files_on_Synology_NAS_within_the_local_network_NFS#sZtk71ItBX]
+2. follow the [nfs-subdir-external-provisioner](#install-nfs-provisioner) steps below for automated provisioning
+
+### not recommended
+
+#### nodes
 
 1. list all connected devices and find the correct drive:
     - `sudo fdisk -l`
@@ -144,11 +158,14 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 export NINJAM_HOST="blah"
 export NINJAM_USER="blah"
 export NINJAM_PASSWORD="blah"
+export FILEBROWSER_HOST="blah"
+export FILEBROWSER_USER="blah"
+export FILEBROWSER_PW="blah"
 export UNIFI_HOST="blah"
 export METAL_LB_IP1="blah"
 export METAL_LB_IP2="blah"
 export METAL_LB_IP11="blah"
-export MASTER_IP="blah"
+export NFS_IP="blah"
 export PLEX_CLAIM="blah"
 ```
 
@@ -228,37 +245,32 @@ EOF
 
 1. create namespace
     - `kubectl create ns unifi`
-2. create the NFS directory on the master node
-    - `cd /mnt/ssd && sudo mkdir unifi`
-3. apply pv and pvc
+2. apply pv and pvc
     - `kubectl apply -f unifi/unifi.pv.yml`
     - `kubectl apply -f unifi/unifi.pvc.yml`
-4. apply service, statefulset and ingress resources
+3. apply service, statefulset and ingress resources
     - `envsubst < unifi/unifi.service.yml | kubectl apply -f -`
     - `kubectl apply -f unifi/unifi.statefulset.yml`
     - `envsubst < unifi/unifi.ingress.yml | kubectl apply -f -`
-5. allow internal access by sshing to router (e.g. edgerouterx example below)
+4. allow internal access by sshing to router (e.g. edgerouterx example below)
     - `configure`
     - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
     - `commit`
     - `save`
-6. allow external access by forwarding `443` for nginx on router
+5. allow external access by forwarding `443` for nginx on router
     - TCP `443` / GUI
 
 ## install filebrowser
 
 1. create namespace
     - `kubectl create ns filebrowser`
-2. create the NFS directory on the master node
-    - `cd /mnt/ssd && sudo mkdir filebrowser`
-3. apply pv and pvc
-    - `kubectl apply -f filebrowser.pv.yml`
+2. apply pvc
     - `kubectl apply -f filebrowser.pvc.yml`
-4. apply service, deployment and ingress resources
+3. apply service, deployment and ingress resources
     - `envsubst < filebrowser/filebrowser.service.yml | kubectl apply -f -`
     - `kubectl apply -f filebrowser/filebrowser.deployment.yml`
     - `envsubst < filebrowser/filebrowser.ingress.yml | kubectl apply -f -`
-5. allow internal access by sshing to router
+4. allow internal access by sshing to router
     - `configure`
     - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
     - `commit`
@@ -268,12 +280,10 @@ EOF
 
 1. create namespace
     - `kubectl create ns media`
-2. create the NFS directory on the master node
-    - `cd /mnt/ssd && sudo mkdir media`
-3. apply pv and pvc
-    - `kubectl apply -f media/media.pv.yml`
-    - `kubectl apply -f media/media.pvc.yml`
-    - `kubectl apply -f media/media.nfspvc.yml`
+2. apply pvc(s)
+    - `kubectl apply -f media/media-config.pvc.yml`
+    - `kubectl apply -f media/media-data.pvc.yml`
+3. apply ingress
     - `envsubst < media/media.ingress.yml | kubectl apply -f -`
 4. add the following to your openvpn file (e.g. `node-nl-01.protonvpn.net.udp.ovpn`) and then copy it into the folder `/mnt/ss/media/configs/jackett/openvpn` to avoid getting the `write UDP: Operation not permitted (code=1)` error
 
@@ -288,18 +298,14 @@ EOF
 6. apply transmission resources
     - `kubectl apply -f media/transmission/media.transmission.service.yml`
     - `envsubst < media/transmission/media.transmission.deployment.yml | kubectl apply -f -`
-7. create the NFS directory on the master node
-    - `mkdir -p /mnt/ssd/media/configs/jackett/openvpn/`
-8. create a file called `credentials.conf` in `/mnt/ssd/media/configs/jackett/openvpn/` with:
+7. create a file called `credentials.conf` in `/mnt/ssd/media/configs/jackett/openvpn/` with:
 
     - ```bash
         <VPN_USERNAME>
         <VPN_PASSWORD>
       ```
 
-9. create the NFS directory on the master node
-    - `mkdir -p /mnt/ssd/media/configs/jackett/Jackett/`
-10. create a file called `ServerConfig.json` with:
+8. create a file called `ServerConfig.json` with:
 
     - ```bash
         {
@@ -307,12 +313,12 @@ EOF
         }
       ```
 
-11. apply jackett resources
+9. apply jackett resources
+
     - `kubectl apply -f media/jackett/media.jackett.service.yml`
     - `envsubst < media/jackett/media.jackett.deployment.yml | kubectl apply -f -`
-12. create the NFS directory on the master node
-    - `mkdir -p /mnt/ssd/media/configs/sonarr/`
-13. create a file called `config.xml` with:
+
+10. create a file called `config.xml` with:
 
     - ```bash
         <Config>
@@ -320,12 +326,12 @@ EOF
         </Config>
       ```
 
-14. apply sonarr resources
+11. apply sonarr resources
+
     - `kubectl apply -f media/sonarr/media.sonarr.service.yml -n media`
     - `kubectl apply -f media/sonarr/media.sonarr.deployment.yml -n media`
-15. create the NFS directory on the master node
-    - `mkdir -p /mnt/ssd/media/configs/radarr/`
-16. create a file called `config.xml` with:
+
+12. create a file called `config.xml` with:
 
     - ```bash
         <Config>
@@ -333,29 +339,32 @@ EOF
         </Config>
       ```
 
-17. apply radarr resources
+13. apply radarr resources
     - `kubectl apply -f media/radarr/media.radarr.service.yml -n media`
     - `kubectl apply -f media/radarr/media.radarr.deployment -n media`
-18. get claim token by visiting [plex](plex.tv/claim).
-19. apply plex resources
+14. get claim token by visiting [plex](plex.tv/claim).
+15. apply plex resources
     - `envsubst < media/plex/media.plex.service.yml | kubectl apply -f -`
     - `envsubst < media/plex/media.plex.deployment.yml | kubectl apply -f -`
-20. configuring jackett
+16. configuring jackett
     - add indexers to jackett
     - keep notes of the category #s as those are used in radarr and sonarr
-21. configuring radarr and sonarr
+17. configuring radarr and sonarr
     - configure the connection to transmission in settings under `Download Client` > `+` (add transmission) using the hostname and port `transmission-transmission-openvpn.media:80`
     - add indexers in settings under `Indexers` > `+` (add indexer)
         - add the URL / `http://media.${METAL_LB_IP1}.nip.io/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
 
 ## install nfs-provisioner
 
-<sub>this is an optional step if you'd like the creation of persistent volume claims to be automated. i currently only use it for my hdd mount for media.</sub>
+<sub>this is an optional step if you'd like the creation of persistent volume claims to be automated.</sub>
 
 1. add the nfs-provisioner repo
     - `helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner`
-2. install nfs-provisioner
-    - `envsubst < values.yml | helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --create-namespace --namespace nfs-provisioner --values -`
+2. ensure the correct values are present in the `nfs-provisioner/*.values.yml` file(s)
+3. install nfs-provisioner for each respective nfs path:
+    - `envsubst < nfs-provisioner/media.storage.values.yml | helm install nfs-subdir-external-provisioner-media nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --namespace nfs-provisioner --values -`
+    - `nfs-provisioner/rpik3s-config.storage.values.yml | helm install nfs-subdir-external-provisioner-rpik3s nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --namespace nfs-provisioner --values -`
+4. finally, apply pvcs w/ the appropriate `storageClass` (e.g. `nfs-rpik3s` / `nfs-media`) and watch them provision automatically
 
 ## install system-upgrade-controller
 
@@ -397,16 +406,10 @@ make a copy of `/var/lib/rancher/k3s/server/`
 
 ## todos
 
--   create `CronJob` to backup:
-    -   unifi (scheduled backups)
-    -   radarr (scheduled backups)
-    -   sonarr (scheduled backups)
-    -   changedetection (manual backups)
-    -   jackett (config)
-    -   plex (`Preferences.xml`)
-    -   filebrowser (database.db)
--   adjust resource request/limits
--   add home assistant
--   add soulseek
 -   consolidate vpn connections to a single network stack
--   look into https://github.com/robusta-dev/krr to maybe implement
+-   review/adjust resource request/limits
+-   implement the following:
+    -   [flux](https://fluxcd.io/)/[argocd](https://argoproj.github.io/cd/)
+    -   [home assistant](https://www.home-assistant.io/)
+    -   [soulseek](https://github.com/realies/soulseek-docker)
+    -   [krr](https://github.com/robusta-dev/krr)

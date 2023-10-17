@@ -20,10 +20,10 @@ spec:
           image: filebrowser/filebrowser:v2.24.2
           imagePullPolicy: IfNotPresent
           volumeMounts:
-            - name: filebrowser-ssd
+            - name: filebrowser
               mountPath: /srv
               subPath: files
-            - name: filebrowser-ssd
+            - name: filebrowser
               mountPath: /database.db
               subPath: database.db
             - name: filebrowser-scripts
@@ -37,9 +37,9 @@ spec:
               memory: 1Gi
           command: ["/bin/sh", "-c", "/scripts/init-filebrowser.sh"]
       volumes:
-        - name: filebrowser-ssd
+        - name: filebrowser
           persistentVolumeClaim:
-            claimName: filebrowser-ssd
+            claimName: filebrowser
         - name: filebrowser-scripts
           configMap:
             name: filebrowser-scripts

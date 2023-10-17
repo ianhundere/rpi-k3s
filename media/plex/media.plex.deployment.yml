@@ -50,20 +50,20 @@ spec:
               memory: 2Gi
           volumeMounts:
             - mountPath: /library
-              name: media-hdd
+              name: media-data
               subPath: library
             - mountPath: /config
-              name: media-ssd
+              name: media-config
               subPath: plex/config
             - mountPath: /shared
               name: shared
       volumes:
-        - name: media-ssd
+        - name: media-config
           persistentVolumeClaim:
-            claimName: media-ssd
-        - name: media-hdd
+            claimName: media-config
+        - name: media-data
           persistentVolumeClaim:
-            claimName: hdd
+            claimName: media-data
         - emptyDir: {}
           name: shared
       dnsPolicy: ClusterFirst

@@ -1,12 +1,13 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: ninjam-server-ssd
+  name: ninjam-server
   namespace: ninjam
   labels:
     app: ninjam-server
+    storage.k8s.io/name: nfs
 spec:
-  storageClassName: manual
+  storageClassName: nfs-rpik3s
   accessModes:
     - ReadWriteMany
   resources:

@@ -110,7 +110,7 @@ spec:
                 - NET_ADMIN
           volumeMounts:
             - mountPath: /config
-              name: media-ssd
+              name: media-config
               subPath: configs/jackett
       dnsConfig:
         nameservers:
@@ -119,9 +119,9 @@ spec:
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:
-        - name: media-ssd
+        - name: media-config
           persistentVolumeClaim:
-            claimName: media-ssd
+            claimName: media-config
         - name: dev-tun
           hostPath:
             path: /dev/net/tun

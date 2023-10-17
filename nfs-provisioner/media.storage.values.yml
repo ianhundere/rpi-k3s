@@ -1,13 +1,15 @@
 replicaCount: 2
 nfs:
-  server: "${MASTER_IP}"
-  path: "/mnt/hdd"
+  server: "${NFS_IP}"
+  path: "/volume1/media"
   mountOptions:
     - noatime
+  reclaimPolicy: Retain
 storageClass:
   defaultClass: false
   onDelete: retain
-  pathPattern: "${.PVC.namespace}-${.PVC.name}"
+  pathPattern: "${.PVC.namespace}"
+  name: nfs-media
 affinity:
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
@@ -18,5 +20,5 @@ affinity:
               - key: app
                 operator: In
                 values:
-                  - nfs-subdir-external-provisioner
+                  - nfs-subdir-external-provisioner-media
           topologyKey: kubernetes.io/hostname
