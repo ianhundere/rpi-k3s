@@ -100,16 +100,16 @@ spec:
                 - NET_ADMIN
           volumeMounts:
             - mountPath: /config/transmission-home
-              name: media-ssd
+              name: media-config
               subPath: configs/transmission-data/transmission-home
             - mountPath: /data/watch
-              name: media-ssd
+              name: media-config
               subPath: configs/transmission-data/watch
             - mountPath: /data/incomplete
-              name: media-hdd
+              name: media-data
               subPath: incomplete
             - mountPath: /downloads/transmission
-              name: media-hdd
+              name: media-data
               subPath: downloads/transmission
       dnsConfig:
         nameservers:
@@ -118,12 +118,12 @@ spec:
       dnsPolicy: None
       restartPolicy: Always
       volumes:
-        - name: media-ssd
+        - name: media-config
           persistentVolumeClaim:
-            claimName: media-ssd
-        - name: media-hdd
+            claimName: media-config
+        - name: media-data
           persistentVolumeClaim:
-            claimName: hdd
+            claimName: media-data
         - hostPath:
             path: /dev/net/tun
             type: ""

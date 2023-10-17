@@ -2,11 +2,13 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   namespace: media
-  name: media-ssd
+  name: media-config
+  labels:
+    storage.k8s.io/name: nfs
 spec:
-  storageClassName: manual
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
+  storageClassName: nfs-rpik3s
   resources:
     requests:
       storage: 400Gi
