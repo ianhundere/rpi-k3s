@@ -8,7 +8,7 @@ nfs:
 storageClass:
   defaultClass: false
   onDelete: retain
-  pathPattern: "${.PVC.namespace}"
+  pathPattern: "./"
   name: nfs-media
 affinity:
   podAntiAffinity:
