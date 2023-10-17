@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: filebrowser-ssd
+  name: filebrowser
   namespace: filebrowser
   labels:
     app: filebrowser
 spec:
-  storageClassName: manual
+  storageClassName: nfs-rpik3s
   accessModes:
     - ReadWriteMany
   resources:

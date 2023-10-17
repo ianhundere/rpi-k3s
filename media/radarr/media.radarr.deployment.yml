@@ -37,13 +37,13 @@ spec:
               memory: 256Mi
           volumeMounts:
             - mountPath: /config
-              name: media-ssd
+              name: media-config
               subPath: configs/radarr
             - mountPath: /downloads/transmission
-              name: media-hdd
+              name: media-data
               subPath: downloads/transmission
             - mountPath: /movies
-              name: media-hdd
+              name: media-data
               subPath: library/movies
           livenessProbe:
             failureThreshold: 5
@@ -64,9 +64,9 @@ spec:
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:
-        - name: media-ssd
+        - name: media-config
           persistentVolumeClaim:
-            claimName: media-ssd
-        - name: media-hdd
+            claimName: media-config
+        - name: media-data
           persistentVolumeClaim:
-            claimName: hdd
+            claimName: media-data

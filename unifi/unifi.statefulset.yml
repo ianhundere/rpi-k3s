@@ -39,13 +39,13 @@ spec:
             - containerPort: 6789
           volumeMounts:
             - mountPath: /config
-              name: unifi-ssd
+              name: unifi
           resources:
             requests:
               cpu: 1
               memory: 1.5Gi
       restartPolicy: Always
       volumes:
-        - name: unifi-ssd
+        - name: unifi
           persistentVolumeClaim:
-            claimName: unifi-ssd
+            claimName: unifi

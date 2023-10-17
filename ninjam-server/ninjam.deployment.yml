@@ -39,6 +39,6 @@ spec:
             name: ninjam-server
         - name: session-volume
           persistentVolumeClaim:
-            claimName: ninjam-server-ssd
+            claimName: ninjam-server
       nodeSelector:
         kubernetes.io/arch: arm64

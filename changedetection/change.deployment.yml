@@ -23,7 +23,7 @@ spec:
           image: dgtlmoon/changedetection.io:0.45.1
           imagePullPolicy: IfNotPresent
           volumeMounts:
-            - name: changedetection-volume
+            - name: changedetection
               mountPath: /datastore
           ports:
             - containerPort: 5000
@@ -36,6 +36,6 @@ spec:
               cpu: 250m
               memory: 256Mi
       volumes:
-        - name: changedetection-volume
+        - name: changedetection
           persistentVolumeClaim:
-            claimName: changedetection-ssd
+            claimName: changedetection
