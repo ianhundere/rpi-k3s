@@ -407,9 +407,7 @@ make a copy of `/var/lib/rancher/k3s/server/`
 ## todos
 
 -   consolidate vpn connections to a single network stack
--   review/adjust resource request/limits
 -   implement the following:
-    -   [flux](https://fluxcd.io/)/[argocd](https://argoproj.github.io/cd/)
+    -   [flux](https://fluxcd.io/) / [argocd](https://argoproj.github.io/cd/)
     -   [home assistant](https://www.home-assistant.io/)
     -   [soulseek](https://github.com/realies/soulseek-docker)
-    -   [krr](https://github.com/robusta-dev/krr)
