@@ -101,10 +101,10 @@ spec:
           volumeMounts:
             - mountPath: /config/transmission-home
               name: media-config
-              subPath: configs/transmission-data/transmission-home
+              subPath: transmission-data/transmission-home
             - mountPath: /data/watch
               name: media-config
-              subPath: configs/transmission-data/watch
+              subPath: transmission-data/watch
             - mountPath: /data/incomplete
               name: media-data
               subPath: incomplete

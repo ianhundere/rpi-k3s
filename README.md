@@ -61,31 +61,31 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
 2. create partition
     - `sudo mkfs.ext4 /dev/sda1`
 3. mount the disk manually
-    - `sudo mkdir /mnt/ssd`
-    - `sudo chown -R pi:pi /mnt/ssd/`
-    - `sudo mount /dev/sda1 /mnt/ssd`
+    - `sudo mkdir <nfs_path>`
+    - `sudo chown -R pi:pi <nfs_path>/`
+    - `sudo mount /dev/sda1 <nfs_path>`
 4. configure disk to automatically mount
     - find the uuid of your mounted drive
         - `sudo blkid`
     - add the following with the correct uuid to `/etc/fstab`
-        - `UUID=23e4863c-6568-4dd1-abde-0b128a81b0ba /mnt/ssd ext4 defaults 0 0`
+        - `UUID=23e4863c-6568-4dd1-abde-0b128a81b0ba <nfs_path> ext4 defaults 0 0`
     - reboot and make sure the drive has mount
         - `df -ha /dev/sda1`
 5. configure nfs
     - install nfs on master
         - `sudo apt-get install nfs-kernel-server -y`
     - add the following to `/etc/exports`
-        - `/mnt/ssd *(rw,no_root_squash,insecure,async,no_subtree_check,anonuid=1000,anongid=1000)`
+        - `<nfs_path> *(rw,no_root_squash,insecure,async,no_subtree_check,anonuid=1000,anongid=1000)`
     - start the nfs server
         - `sudo exportfs -ra`
     - install nfs on workers
         - `sudo apt-get install nfs-common -y`
     - create directory to mount nfs share
-        - `sudo mkdir /mnt/ssd`
-        - `sudo chown -R pi:pi /mnt/ssd/`
+        - `sudo mkdir <nfs_path>`
+        - `sudo chown -R pi:pi <nfs_path>/`
     - configure disk to automatically mount by adding the master's ip etc to `/etc/fstab`
         - `sudo vi /etc/fstab`
-        - `<master_ip>:/mnt/ssd /mnt/ssd nfs rw 0 0`
+        - `<master_ip>:<nfs_path> <nfs_path> nfs rw 0 0`
 
 ## configure k3s master node
 
@@ -285,7 +285,7 @@ EOF
     - `kubectl apply -f media/media-data.pvc.yml`
 3. apply ingress
     - `envsubst < media/media.ingress.yml | kubectl apply -f -`
-4. add the following to your openvpn file (e.g. `node-nl-01.protonvpn.net.udp.ovpn`) and then copy it into the folder `/mnt/ss/media/configs/jackett/openvpn` to avoid getting the `write UDP: Operation not permitted (code=1)` error
+4. add the following to your openvpn file (e.g. `node-nl-01.protonvpn.net.udp.ovpn`) and then copy it into the folder `<nfs_path>/media/jackett/openvpn` to avoid getting the `write UDP: Operation not permitted (code=1)` error
 
     - ```bash
         pull-filter ignore "dhcp-option DNS6"
@@ -298,14 +298,7 @@ EOF
 6. apply transmission resources
     - `kubectl apply -f media/transmission/media.transmission.service.yml`
     - `envsubst < media/transmission/media.transmission.deployment.yml | kubectl apply -f -`
-7. create a file called `credentials.conf` in `/mnt/ssd/media/configs/jackett/openvpn/` with:
-
-    - ```bash
-        <VPN_USERNAME>
-        <VPN_PASSWORD>
-      ```
-
-8. create a file called `ServerConfig.json` with:
+7. create a file called `ServerConfig.json` with the following in `<nfs_path>/jackett/Jackett`:
 
     - ```bash
         {
@@ -313,12 +306,12 @@ EOF
         }
       ```
 
-9. apply jackett resources
+8. apply jackett resources
 
     - `kubectl apply -f media/jackett/media.jackett.service.yml`
     - `envsubst < media/jackett/media.jackett.deployment.yml | kubectl apply -f -`
 
-10. create a file called `config.xml` with:
+9. create a file called `config.xml` with the following in `<nfs_path>/sonarr/`:
 
     - ```bash
         <Config>
@@ -326,30 +319,30 @@ EOF
         </Config>
       ```
 
-11. apply sonarr resources
+10. apply sonarr resources
 
     - `kubectl apply -f media/sonarr/media.sonarr.service.yml -n media`
     - `kubectl apply -f media/sonarr/media.sonarr.deployment.yml -n media`
 
-12. create a file called `config.xml` with:
+11. create a file called `config.xml` with the following in `<nfs_path>/radarr/`:
 
     - ```bash
         <Config>
-        <UrlBase>/sonarr</UrlBase>
+        <UrlBase>/radarr</UrlBase>
         </Config>
       ```
 
-13. apply radarr resources
+12. apply radarr resources
     - `kubectl apply -f media/radarr/media.radarr.service.yml -n media`
     - `kubectl apply -f media/radarr/media.radarr.deployment -n media`
-14. get claim token by visiting [plex](plex.tv/claim).
-15. apply plex resources
+13. get claim token by visiting [plex](plex.tv/claim).
+14. apply plex resources
     - `envsubst < media/plex/media.plex.service.yml | kubectl apply -f -`
     - `envsubst < media/plex/media.plex.deployment.yml | kubectl apply -f -`
-16. configuring jackett
+15. configuring jackett
     - add indexers to jackett
     - keep notes of the category #s as those are used in radarr and sonarr
-17. configuring radarr and sonarr
+16. configuring radarr and sonarr
     - configure the connection to transmission in settings under `Download Client` > `+` (add transmission) using the hostname and port `transmission-transmission-openvpn.media:80`
     - add indexers in settings under `Indexers` > `+` (add indexer)
         - add the URL / `http://media.${METAL_LB_IP1}.nip.io/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
@@ -366,16 +359,25 @@ EOF
     - `nfs-provisioner/rpik3s-config.storage.values.yml | helm install nfs-subdir-external-provisioner-rpik3s nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --namespace nfs-provisioner --values -`
 4. finally, apply pvcs w/ the appropriate `storageClass` (e.g. `nfs-rpik3s` / `nfs-media`) and watch them provision automatically
 
-## install system-upgrade-controller
-
-<sub>more info [here](https://docs.k3s.io/upgrades/automated).</sub>
+## install [system-upgrade-controller](https://docs.k3s.io/upgrades/automated)
 
 1. apply system-upgrade-controller
-    - `kubectl apply -f system-upgrade/system-upgrade-controller.yml system-upgrade-controller.yml`
+
+-   `kubectl apply -f system-upgrade/system-upgrade-controller.yml`
+
+2. taint the master node to allow the controller to run:
+
+-   `kubectl taint node kube-master CriticalAddonsOnly=true:NoExecute`
+
+3. confirm taint(s): - `kubectl get node kube-master -o=jsonpath='{.spec.taints}'`
+
+4. when ready to update the images used in the `system-upgrade/config.yml` file and then apply:
+
+-   `kubectl apply -f system-upgrade/config.yml`
 
 ## install ninjam-server
 
-1. apply system-upgrade-controller
+1. apply ninjam-server
     - `kubectl apply -f ninjam-server/ninjam.pv.yml`
     - `kubectl apply -f ninjam-server/ninjam.pvc.yml`
     - `envsubst < ninjam-server/ninjam.service.yml | kubectl apply -f -`
@@ -384,9 +386,17 @@ EOF
     - `kubectl apply -f ninjam-server/ninjam.deployment.yml`
     - `kubectl apply -f ninjam-server/ninjam.cronjob.yml`
 
+## install soulseek
+
+1. apply soulseek
+    - `kubectl apply -f soulseek/soulseek-config.pvc.yml`
+    - `kubectl apply -f soulseek/soulseek-data.pvc.yml`
+    - `envsubst < soulseek/soulseek.service.yml | kubectl apply -f -`
+    - `kubectl apply -f soulseek/soulseek.deployment.yml`
+
 ## install changedetection
 
-1. apply system-upgrade-controller
+1. apply changedetection
     - `kubectl apply -f changedetection/change.pv.yml`
     - `kubectl create namespace changedetection`
     - `kubectl apply -f changedetection/change.pvc.yml`
@@ -406,8 +416,6 @@ make a copy of `/var/lib/rancher/k3s/server/`
 
 ## todos
 
--   consolidate vpn connections to a single network stack
--   implement the following:
+-   implement:
     -   [flux](https://fluxcd.io/) / [argocd](https://argoproj.github.io/cd/)
     -   [home assistant](https://www.home-assistant.io/)
-    -   [soulseek](https://github.com/realies/soulseek-docker)
