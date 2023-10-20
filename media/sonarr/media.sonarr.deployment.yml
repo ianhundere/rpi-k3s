@@ -17,6 +17,16 @@ spec:
       labels:
         app: sonarr
     spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - arm64
       containers:
         - env:
             - name: PUID
@@ -37,7 +47,7 @@ spec:
           volumeMounts:
             - mountPath: /config
               name: media-config
-              subPath: configs/sonarr
+              subPath: sonarr
             - mountPath: /downloads/transmission
               name: media-data
               subPath: downloads/transmission

@@ -7,41 +7,41 @@ metadata:
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-  - host: "media.${METAL_LB_IP1}.nip.io"
-    http:
-      paths:
-        - backend:
-            service:
-              name: "transmission-openvpn"
-              port: 
-                number: 80
-          path: "/transmission"
-          pathType: Prefix
-        - backend:
-            service:
-              name: "sonarr"
-              port:
-                number: 80
-          path: "/sonarr"
-          pathType: Prefix
-        - backend:
-            service:
-              name: "jackett"
-              port:
-                number: 80
-          path: "/jackett"
-          pathType: Prefix
-        - backend:
-            service:
-              name: "radarr"
-              port:
-                number: 80
-          path: "/radarr"
-          pathType: Prefix
-        - backend:
-            service:
-              name: "plex"
-              port:
-                number: 32400
-          path: "/"
-          pathType: Prefix
+    - host: "media.${METAL_LB_IP1}.nip.io"
+      http:
+        paths:
+          - backend:
+              service:
+                name: "transmission-openvpn"
+                port:
+                  number: 80
+            path: "/transmission"
+            pathType: Prefix
+          - backend:
+              service:
+                name: "sonarr"
+                port:
+                  number: 80
+            path: "/sonarr"
+            pathType: Prefix
+          - backend:
+              service:
+                name: "jackett"
+                port:
+                  number: 80
+            path: "/jackett"
+            pathType: Prefix
+          - backend:
+              service:
+                name: "radarr"
+                port:
+                  number: 80
+            path: "/radarr"
+            pathType: Prefix
+          - backend:
+              service:
+                name: "plex"
+                port:
+                  number: 32400
+            path: "/"
+            pathType: Prefix
