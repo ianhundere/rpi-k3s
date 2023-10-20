@@ -19,16 +19,6 @@ spec:
         app: plex
     spec:
       restartPolicy: Always
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 1
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - amd64
       containers:
         - env:
             - name: PUID
@@ -48,11 +38,11 @@ spec:
             - containerPort: 32400
               name: pms
               protocol: TCP
-            - containerPort: 32400
-              name: http
-              protocol: TCP
             - containerPort: 32443
               name: https
+              protocol: TCP
+            - containerPort: 80
+              name: http
               protocol: TCP
           resources:
             requests:

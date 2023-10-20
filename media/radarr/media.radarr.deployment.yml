@@ -18,13 +18,23 @@ spec:
       labels:
         app: radarr
     spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - arm64
       containers:
         - env:
             - name: PUID
               value: "1000"
             - name: PGID
               value: "1000"
-          image: linuxserver/radarr:4.7.5
+          image: linuxserver/radarr:5.0.3
           imagePullPolicy: IfNotPresent
           name: radarr
           ports:
@@ -38,7 +48,7 @@ spec:
           volumeMounts:
             - mountPath: /config
               name: media-config
-              subPath: configs/radarr
+              subPath: radarr
             - mountPath: /downloads/transmission
               name: media-data
               subPath: downloads/transmission

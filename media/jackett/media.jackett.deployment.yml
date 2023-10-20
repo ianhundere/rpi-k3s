@@ -18,6 +18,15 @@ spec:
         app: jackett
     spec:
       affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - arm64
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
@@ -111,7 +120,7 @@ spec:
           volumeMounts:
             - mountPath: /config
               name: media-config
-              subPath: configs/jackett
+              subPath: jackett
       dnsConfig:
         nameservers:
           - 8.8.8.8
