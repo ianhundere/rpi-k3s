@@ -107,7 +107,7 @@ spec:
               subPath: transmission-data/watch
             - mountPath: /data/incomplete
               name: media-data
-              subPath: incomplete
+              subPath: incomplete/transmission
             - mountPath: /downloads/transmission
               name: media-data
               subPath: downloads/transmission
