@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: soulseek-data
+  namespace: media
+  labels:
+    app: soulseek
+    storage.k8s.io/name: nfs
+spec:
+  storageClassName: nfs-media
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
