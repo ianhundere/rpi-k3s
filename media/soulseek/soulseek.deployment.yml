@@ -71,7 +71,7 @@ spec:
               subPath: downloads/soulseek
             - name: soulseek-data
               mountPath: /data/Soulseek Shared Folder
-              subPath: library/music
+              subPath: library/
       dnsPolicy: "None"
       dnsConfig:
         nameservers: ["1.1.1.1", "1.0.0.1"]
