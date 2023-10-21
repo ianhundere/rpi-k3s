@@ -22,3 +22,7 @@ affinity:
                 values:
                   - nfs-subdir-external-provisioner-rpik3s
           topologyKey: kubernetes.io/hostname
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
