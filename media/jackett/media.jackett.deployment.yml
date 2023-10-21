@@ -112,7 +112,7 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 256Mi
+              memory: 320Mi
           securityContext:
             capabilities:
               add:
@@ -125,7 +125,7 @@ spec:
         nameservers:
           - 8.8.8.8
           - 8.8.4.4
-      dnsPolicy: ClusterFirst
+      dnsPolicy: None
       restartPolicy: Always
       volumes:
         - name: media-config
