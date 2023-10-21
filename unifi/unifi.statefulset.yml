@@ -52,8 +52,11 @@ spec:
               name: unifi
           resources:
             requests:
-              cpu: 1
+              cpu: 2
               memory: 1.5Gi
+            limits:
+              cpu: 4
+              memory: 3Gi
       restartPolicy: Always
       volumes:
         - name: unifi

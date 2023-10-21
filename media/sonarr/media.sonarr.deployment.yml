@@ -43,7 +43,7 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 256Mi
+              memory: 512Mi
           volumeMounts:
             - mountPath: /config
               name: media-config

@@ -48,6 +48,8 @@ spec:
             requests:
               cpu: 1.5
               memory: 2Gi
+            limits:
+              memory: 3Gi
           volumeMounts:
             - mountPath: /library
               name: media-data
