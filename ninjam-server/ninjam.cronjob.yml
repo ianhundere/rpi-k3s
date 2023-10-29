@@ -1,59 +1,30 @@
-apiVersion: v1
-kind: PersistentVolume
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
 metadata:
-  name: ninjam-server-cronjob-sessions-ssd
+  annotations:
   labels:
-    app: ninjam-server-cronjob
-    type: local
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 10Gi
-  accessModes:
-    - ReadWriteMany
-  hostPath:
-    path: /mnt/ssd/ninjam/sessions
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: ninjam-server-cronjob-jamz-ssd
-  labels:
-    app: ninjam-server-cronjob
-    type: local
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 10Gi
-  accessModes:
-    - ReadWriteMany
-  hostPath:
-    path: /mnt/ssd/filebrowser/files/jamz
+    app: nfs-subdir-external-provisioner
+  name: nfs-ninjam-cronjob
+provisioner: cluster.local/nfs-subdir-external-provisioner-rpik3s
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+mountOptions:
+  - noatime
+parameters:
+  archiveOnDelete: "true"
+  onDelete: retain
+  pathPattern: filebrowser/files/jamz
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: ninjam-server-cronjob-sessions-ssd
+  name: ninjam-server-cronjob
   namespace: ninjam
   labels:
     app: ninjam-server-cronjob
 spec:
-  storageClassName: manual
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 10Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: ninjam-server-cronjob-jamz-ssd
-  namespace: ninjam
-  labels:
-    app: ninjam-server-cronjob
-spec:
-  storageClassName: manual
+  storageClassName: nfs-ninjam-cronjob
   accessModes:
     - ReadWriteMany
   resources:
@@ -73,8 +44,8 @@ metadata:
   name: ninjam-server-cronjob
 rules:
   - apiGroups: [""]
-    resources: ["pods", "pods/exec"]
-    verbs: ["get", "exec", "list", "watch", "create"]
+    resources: ["pods"]
+    verbs: ["create"]
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -110,11 +81,11 @@ spec:
         spec:
           serviceAccountName: ninjam-server-cronjob
           containers:
-            - name: ninjam-server-cronjob-init1
+            - name: ninjam-server-cronjob
               image: ubuntu
               imagePullPolicy: IfNotPresent
               volumeMounts:
-                - name: session-volume
+                - name: sessions-volume
                   mountPath: sessions
                 - name: jamz-volume
                   mountPath: jamz
@@ -132,12 +103,9 @@ spec:
                   memory: 16Mi
           restartPolicy: OnFailure
           volumes:
-            - name: session-volume
+            - name: sessions-volume
               persistentVolumeClaim:
-                claimName: ninjam-server-cronjob-sessions-ssd
+                claimName: ninjam-server
             - name: jamz-volume
               persistentVolumeClaim:
-                claimName: ninjam-server-cronjob-jamz-ssd
-          nodeSelector:
-            kubernetes.io/arch: arm64
-            kubernetes.io/os: linux
+                claimName: ninjam-server-cronjob
