@@ -68,27 +68,27 @@ spec:
               cpu: 500m
               memory: 1.5Gi
           volumeMounts:
-            - name: soulseek-config
+            - name: media-config
               mountPath: /data/.SoulseekQt
               subPath: soulseek/data
-            - name: soulseek-config
+            - name: media-config
               mountPath: /data/Soulseek Chat Logs
               subPath: soulseek/chat_logs
-            - name: soulseek-data
+            - name: media-data
               mountPath: /data/Soulseek Downloads
               subPath: downloads/soulseek
-            - name: soulseek-data
+            - name: media-data
               mountPath: /data/Soulseek Shared Folder
               subPath: library/
       dnsPolicy: None
       dnsConfig:
         nameservers: ["1.1.1.1", "1.0.0.1"]
       volumes:
-        - name: soulseek-config
+        - name: media-config
           persistentVolumeClaim:
-            claimName: soulseek-config
-        - name: soulseek-data
+            claimName: media-config
+        - name: media-data
           persistentVolumeClaim:
-            claimName: soulseek-data
+            claimName: media-data
       nodeSelector:
         kubernetes.io/arch: amd64
