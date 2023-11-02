@@ -1,7 +1,7 @@
 replicaCount: 2
 nfs:
   server: "${NFS_IP}"
-  path: "/volume2/rpi-k3s"
+  path: "/volume5/rpi-k3s"
   mountOptions:
     - noatime
   reclaimPolicy: Retain
