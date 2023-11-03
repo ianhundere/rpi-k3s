@@ -75,7 +75,7 @@ spec:
             - name: PGID
               value: "1000"
             - name: PUID
-              value: "1000"
+              value: "999"
             - name: TZ
               value: "Etc/UTC"
             - name: MONGO_USER
