@@ -256,7 +256,6 @@ EOF
 1. create namespace
     - `kubectl create ns unifi`
 2. apply pv and pvc
-    - `kubectl apply -f unifi/unifi.pv.yml`
     - `kubectl apply -f unifi/unifi.pvc.yml`
 3. apply service, statefulset and ingress resources
     - `envsubst < unifi/unifi.service.yml | kubectl apply -f -`
@@ -380,7 +379,6 @@ EOF
 ## install ninjam-server
 
 1. apply ninjam-server
-    - `kubectl apply -f ninjam-server/ninjam.pv.yml`
     - `kubectl apply -f ninjam-server/ninjam.pvc.yml`
     - `envsubst < ninjam-server/ninjam.service.yml | kubectl apply -f -`
     - `envsubst < ninjam-server/ninjam.ingress.yml | kubectl apply -f -`
@@ -391,16 +389,13 @@ EOF
 ## install soulseek
 
 1. apply soulseek
-    - `kubectl apply -f soulseek/soulseek-config.pvc.yml`
-    - `kubectl apply -f soulseek/soulseek-data.pvc.yml`
     - `envsubst < soulseek/soulseek.service.yml | kubectl apply -f -`
     - `kubectl apply -f soulseek/soulseek.deployment.yml`
 
 ## install changedetection
 
 1. apply changedetection
-    - `kubectl apply -f changedetection/change.pv.yml`
-    - `kubectl create namespace changedetection`
+    - `kubectl create ns changedetection`
     - `kubectl apply -f changedetection/change.pvc.yml`
     - `envsubst < changedetection/change.service.yml | kubectl apply -f -`
     - `kubectl apply -f changedetection/selenium.service.yml`
