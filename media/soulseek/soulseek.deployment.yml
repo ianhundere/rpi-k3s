@@ -42,7 +42,7 @@ spec:
             - name: KILL_SWITCH
               value: "1"
             - name: IPCHECK_URL
-              value: "https://checkip.amazonaws.com/"
+              value: "https://protonwire-api.vercel.app/api/client/exp/clientip"
           securityContext:
             capabilities:
               add:
