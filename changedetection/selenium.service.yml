@@ -6,9 +6,8 @@ metadata:
     app: selenium
   name: selenium
 spec:
+  selector:
+    app: selenium
   ports:
     - port: 4444
       protocol: TCP
-  selector:
-    app: selenium
-

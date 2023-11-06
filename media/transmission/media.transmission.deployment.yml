@@ -2,8 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: transmission-openvpn
-  name: transmission-openvpn
+    app: transmission
+  name: transmission
   namespace: media
 spec:
   replicas: 1
@@ -11,46 +11,53 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app: transmission-openvpn
+      app: transmission
   template:
     metadata:
       labels:
-        app: transmission-openvpn
+        app: transmission
     spec:
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                labelSelector:
-                  matchExpressions:
-                    - key: app
-                      operator: In
-                      values:
-                        - jackett
-                topologyKey: kubernetes.io/hostname
+      hostname: transmission
+      initContainers:
+        - name: sysctl-setup
+          image: busybox
+          command:
+            [
+              "sh",
+              "-c",
+              "sysctl -w net.ipv4.conf.all.rp_filter=2 && sysctl -w net.ipv6.conf.all.disable_ipv6=1",
+            ]
+          securityContext:
+            privileged: true
+        - name: protonwire
+          image: ghcr.io/tprasadtp/protonwire:latest
+          restartPolicy: Always
+          env:
+            - name: WIREGUARD_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openvpn
+                  key: key
+            - name: PROTONVPN_SERVER
+              value: "IS-NL#1"
+            - name: DEBUG
+              value: "0"
+            - name: KILL_SWITCH
+              value: "1"
+            - name: IPCHECK_URL
+              value: "https://checkip.amazonaws.com/"
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
       containers:
         - env:
-            - name: OPENVPN_PROVIDER
-              value: PROTONVPN
-            - name: OPENVPN_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  key: username
-                  name: openvpn
-            - name: OPENVPN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: password
-                  name: openvpn
-            - name: OPENVPN_CONFIG
-              value: ch.protonvpn.net.tcp,nl.protonvpn.net.tcp
-            - name: OPENVPN_OPTS
-              value: "--mute-replay-warnings --inactive 3600 --ping 10 --ping-exit 60"
-            - name: LOCAL_NETWORK
-              value: "10.42.0.0/24"
-            - name: TRANSMISSION_PEER_PORT
-              value: "47444"
             - name: TRANSMISSION_DOWNLOAD_DIR
               value: /downloads/transmission
             - name: GLOBAL_APPLY_PERMISSIONS
@@ -59,33 +66,25 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-          image: haugene/transmission-openvpn:5.2
+          image: linuxserver/transmission:4.0.4
           imagePullPolicy: IfNotPresent
-          name: transmission-openvpn
+          name: transmission
           livenessProbe:
-            failureThreshold: 12
-            initialDelaySeconds: 10
-            timeoutSeconds: 30
-            periodSeconds: 30
-            successThreshold: 1
-            exec:
-              command: ["ping", "-I", "tun0", "-c", "1", "google.com"]
-          readinessProbe:
-            failureThreshold: 12
-            initialDelaySeconds: 15
-            timeoutSeconds: 30
-            periodSeconds: 30
-            successThreshold: 1
-            exec:
-              command: ["ping", "-I", "tun0", "-c", "1", "google.com"]
-          startupProbe:
-            failureThreshold: 6
-            initialDelaySeconds: 30
-            timeoutSeconds: 10
+            failureThreshold: 5
+            initialDelaySeconds: 60
             periodSeconds: 10
             successThreshold: 1
-            exec:
-              command: ["ping", "-I", "tun0", "-c", "1", "google.com"]
+            timeoutSeconds: 10
+            tcpSocket:
+              port: http
+          readinessProbe:
+            failureThreshold: 5
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+            tcpSocket:
+              port: http
           ports:
             - containerPort: 9091
               name: http
@@ -94,10 +93,6 @@ spec:
             requests:
               cpu: 500m
               memory: 320Mi
-          securityContext:
-            capabilities:
-              add:
-                - NET_ADMIN
           volumeMounts:
             - mountPath: /config/transmission-home
               name: media-config
@@ -111,11 +106,9 @@ spec:
             - mountPath: /downloads/transmission
               name: media-data
               subPath: downloads/transmission
-      dnsConfig:
-        nameservers:
-          - 8.8.8.8
-          - 8.8.4.4
       dnsPolicy: None
+      dnsConfig:
+        nameservers: ["1.1.1.1", "1.0.0.1"]
       restartPolicy: Always
       volumes:
         - name: media-config
@@ -124,7 +117,3 @@ spec:
         - name: media-data
           persistentVolumeClaim:
             claimName: media-data
-        - hostPath:
-            path: /dev/net/tun
-            type: ""
-          name: dev-tun
