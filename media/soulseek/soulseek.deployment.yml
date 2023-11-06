@@ -25,9 +25,9 @@ spec:
               "sysctl -w net.ipv4.conf.all.rp_filter=2 && sysctl -w net.ipv6.conf.all.disable_ipv6=1",
             ]
           securityContext:
-            privileged: true # Allow the init container to run with additional privileges
+            privileged: true
         - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:latest
+          image: ghcr.io/tprasadtp/protonwire:7.2.5
           restartPolicy: Always
           env:
             - name: WIREGUARD_PRIVATE_KEY
