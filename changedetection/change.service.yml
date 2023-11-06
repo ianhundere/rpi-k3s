@@ -6,11 +6,11 @@ metadata:
     app: changedetection
   name: changedetection
 spec:
+  selector:
+    app: changedetection
   ports:
     - port: 5000
       targetPort: 5000
       protocol: TCP
-  selector:
-    app: changedetection
   externalIPs:
     - "${METAL_LB_IP1}"

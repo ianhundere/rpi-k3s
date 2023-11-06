@@ -13,6 +13,5 @@ spec:
     - protocol: TCP
       port: 6080
       targetPort: 6080
-  type: LoadBalancer
   externalIPs:
     - "${METAL_LB_IP1}"
