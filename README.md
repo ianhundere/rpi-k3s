@@ -155,24 +155,34 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
     - `touch .env` / copy the below with the correct values:
 
 ```bash
-export NINJAM_HOST="blah"
-export NINJAM_USER="blah"
-export NINJAM_PASSWORD="blah"
-export FILEBROWSER_HOST="blah"
-export FILEBROWSER_USER="blah"
-export FILEBROWSER_PW="blah"
+# hosts
+NINJAM_HOST="blah"
 export UNIFI_HOST="blah"
+export FILEBROWSER_HOST="blah"
+export SOULSEEK_HOST="blah"
+
+# internal ips
 export METAL_LB_IP1="blah"
 export METAL_LB_IP2="blah"
 export METAL_LB_IP11="blah"
 export NFS_IP="blah"
+
+# secrets
+export NINJAM_USER="blah"
+export NINJAM_PASSWORD="blah"
+export FILEBROWSER_USER="blah"
+export FILEBROWSER_PW="blah"
 export PLEX_CLAIM="blah"
+export VPN_USERNAME=$(echo -n "blah" | base64)
+export VPN_PASSWORD=$(echo -n "blah" | base64)
+export VPN_KEY=$(echo -n "blah" | base64)
+export MONGO_PASS="blah"
 ```
 
 3. make sure to source `.env` when a k8s resource needs creds:
     - `source .env`
 4. example cmds:
-    - `envsubst < media/jackett/media.jackett.deployment.yml | kubectl apply -f -`
+    - `envsubst < media/unifi/unifi.statefulset.yml | kubectl apply -f -`
 
 ## install metallb - k8s load balancer
 
@@ -285,20 +295,12 @@ EOF
     - `kubectl apply -f media/media-data.pvc.yml`
 3. apply ingress
     - `envsubst < media/media.ingress.yml | kubectl apply -f -`
-4. add the following to your openvpn file (e.g. `node-nl-01.protonvpn.net.udp.ovpn`) and then copy it into the folder `<nfs_path>/media/jackett/openvpn` to avoid getting the `write UDP: Operation not permitted (code=1)` error
-
-    - ```bash
-        pull-filter ignore "dhcp-option DNS6"
-        pull-filter ignore "tun-ipv6"
-        pull-filter ignore "ifconfig-ipv6"
-      ```
-
-5. create secret for vpn
-    - `kubectl create secret generic openvpn --from-literal='username=<VPN_USERNAME>' --from-literal='password=<VPN_PASSWORD>' -n media`
-6. apply transmission resources
+4. create secret for vpn
+    - `envsubst < media/vpn_secret.yml | kubectl apply -f -`
+5. apply transmission resources
     - `kubectl apply -f media/transmission/media.transmission.service.yml`
-    - `envsubst < media/transmission/media.transmission.deployment.yml | kubectl apply -f -`
-7. create a file called `ServerConfig.json` with the following in `<nfs_path>/jackett/Jackett`:
+    - `kubectl apply -f media/transmission/media.transmission.deployment.yml`
+6. create a file called `ServerConfig.json` with the following in `<nfs_path>/jackett/Jackett`:
 
     - ```bash
         {
@@ -306,12 +308,12 @@ EOF
         }
       ```
 
-8. apply jackett resources
+7. apply jackett resources
 
     - `kubectl apply -f media/jackett/media.jackett.service.yml`
     - `envsubst < media/jackett/media.jackett.deployment.yml | kubectl apply -f -`
 
-9. create a file called `config.xml` with the following in `<nfs_path>/sonarr/`:
+8. create a file called `config.xml` with the following in `<nfs_path>/sonarr/`:
 
     - ```bash
         <Config>
@@ -319,12 +321,12 @@ EOF
         </Config>
       ```
 
-10. apply sonarr resources
+9. apply sonarr resources
 
     - `kubectl apply -f media/sonarr/media.sonarr.service.yml -n media`
     - `kubectl apply -f media/sonarr/media.sonarr.deployment.yml -n media`
 
-11. create a file called `config.xml` with the following in `<nfs_path>/radarr/`:
+10. create a file called `config.xml` with the following in `<nfs_path>/radarr/`:
 
     - ```bash
         <Config>
@@ -332,18 +334,18 @@ EOF
         </Config>
       ```
 
-12. apply radarr resources
+11. apply radarr resources
     - `kubectl apply -f media/radarr/media.radarr.service.yml -n media`
     - `kubectl apply -f media/radarr/media.radarr.deployment -n media`
-13. get claim token by visiting [plex](plex.tv/claim).
-14. apply plex resources
+12. get claim token by visiting [plex](plex.tv/claim).
+13. apply plex resources
     - `envsubst < media/plex/media.plex.service.yml | kubectl apply -f -`
     - `envsubst < media/plex/media.plex.deployment.yml | kubectl apply -f -`
-15. configuring jackett
+14. configuring jackett
     - add indexers to jackett
     - keep notes of the category #s as those are used in radarr and sonarr
-16. configuring radarr and sonarr
-    - configure the connection to transmission in settings under `Download Client` > `+` (add transmission) using the hostname and port `transmission-transmission-openvpn.media:80`
+15. configuring radarr and sonarr
+    - configure the connection to transmission in settings under `Download Client` > `+` (add transmission) using the hostname and port `transmission.media:80`
     - add indexers in settings under `Indexers` > `+` (add indexer)
         - add the URL / `http://media.${METAL_LB_IP1}.nip.io/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
 

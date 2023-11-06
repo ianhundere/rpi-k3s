@@ -17,91 +17,69 @@ spec:
       labels:
         app: jackett
     spec:
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 1
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - arm64
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                labelSelector:
-                  matchExpressions:
-                    - key: app
-                      operator: In
-                      values:
-                        - transmission-openvpn
-                topologyKey: kubernetes.io/hostname
-            - weight: 100
-              podAffinityTerm:
-                labelSelector:
-                  matchExpressions:
-                    - key: app
-                      operator: In
-                      values:
-                        - jackett
-                topologyKey: kubernetes.io/hostname
+      hostname: jackett
+      initContainers:
+        - name: sysctl-setup
+          image: busybox
+          command:
+            [
+              "sh",
+              "-c",
+              "sysctl -w net.ipv4.conf.all.rp_filter=2 && sysctl -w net.ipv6.conf.all.disable_ipv6=1",
+            ]
+          securityContext:
+            privileged: true
+        - name: protonwire
+          image: ghcr.io/tprasadtp/protonwire:latest
+          restartPolicy: Always
+          env:
+            - name: WIREGUARD_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openvpn
+                  key: key
+            - name: PROTONVPN_SERVER
+              value: "IS-NL#1"
+            - name: DEBUG
+              value: "0"
+            - name: KILL_SWITCH
+              value: "1"
+            - name: IPCHECK_URL
+              value: "https://checkip.amazonaws.com/"
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
       containers:
         - env:
-            - name: VPN_ENABLED
-              value: "yes"
-            - name: VPN_PROTOCOL
-              value: "tcp"
-            - name: VPN_TYPE
-              value: "openvpn"
-            - name: VPN_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  key: username
-                  name: openvpn
-            - name: VPN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: password
-                  name: openvpn
-            - name: LAN_NETWORK
-              value: "10.42.0.0/24"
-            - name: CREATE_TUN_DEVICE
-              value: "true"
             - name: PUID
               value: "1000"
             - name: PGID
               value: "1000"
-            - name: LEGACY_IPTABLES
-              value: "true"
-          image: zfigz/docker-jackettvpn:v0.0.5
+          image: linuxserver/jackett:0.21.1145
           imagePullPolicy: IfNotPresent
           name: jackett
           livenessProbe:
-            failureThreshold: 12
+            failureThreshold: 5
             initialDelaySeconds: 60
-            timeoutSeconds: 10
-            periodSeconds: 30
+            periodSeconds: 10
             successThreshold: 1
+            timeoutSeconds: 10
             httpGet:
               path: /health
               port: http
           readinessProbe:
-            failureThreshold: 12
-            initialDelaySeconds: 5
-            timeoutSeconds: 10
-            periodSeconds: 1
-            successThreshold: 1
-            httpGet:
-              path: /health
-              port: http
-          startupProbe:
-            failureThreshold: 12
-            initialDelaySeconds: 30
-            timeoutSeconds: 10
+            failureThreshold: 5
+            initialDelaySeconds: 60
             periodSeconds: 10
             successThreshold: 1
+            timeoutSeconds: 10
             httpGet:
               path: /health
               port: http
@@ -113,27 +91,15 @@ spec:
             requests:
               cpu: 500m
               memory: 320Mi
-          securityContext:
-            capabilities:
-              add:
-                - NET_ADMIN
           volumeMounts:
             - mountPath: /config
               name: media-config
               subPath: jackett
-      dnsConfig:
-        nameservers:
-          - 8.8.8.8
-          - 8.8.4.4
       dnsPolicy: None
+      dnsConfig:
+        nameservers: ["1.1.1.1", "1.0.0.1"]
       restartPolicy: Always
       volumes:
         - name: media-config
           persistentVolumeClaim:
             claimName: media-config
-        - name: dev-tun
-          hostPath:
-            path: /dev/net/tun
-            type: ""
-      nodeSelector:
-        kubernetes.io/arch: arm64

@@ -5,8 +5,15 @@ metadata:
     app: plex
   name: plex
   namespace: media
+status:
+  loadBalancer:
+    ingress:
+      - ip: "${METAL_LB_IP2}"
 spec:
+  selector:
+    app: plex
   externalTrafficPolicy: Cluster
+  type: LoadBalancer
   ports:
     - name: pms
       nodePort: 32081
@@ -23,10 +30,3 @@ spec:
       port: 443
       protocol: TCP
       targetPort: 32443
-  selector:
-    app: plex
-  type: LoadBalancer
-status:
-  loadBalancer:
-    ingress:
-      - ip: "${METAL_LB_IP2}"
