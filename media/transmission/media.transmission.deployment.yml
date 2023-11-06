@@ -30,7 +30,7 @@ spec:
           securityContext:
             privileged: true
         - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:latest
+          image: ghcr.io/tprasadtp/protonwire:7.2.5
           restartPolicy: Always
           env:
             - name: WIREGUARD_PRIVATE_KEY
@@ -69,22 +69,6 @@ spec:
           image: linuxserver/transmission:4.0.4
           imagePullPolicy: IfNotPresent
           name: transmission
-          livenessProbe:
-            failureThreshold: 5
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 10
-            tcpSocket:
-              port: http
-          readinessProbe:
-            failureThreshold: 5
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 10
-            tcpSocket:
-              port: http
           ports:
             - containerPort: 9091
               name: http
