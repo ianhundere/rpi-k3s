@@ -42,6 +42,8 @@ spec:
               value: "IS-NL#1"
             - name: DEBUG
               value: "0"
+            - name: SKIP_DNS_CONFIG
+              value: "1"
             - name: KILL_SWITCH
               value: "1"
             - name: IPCHECK_URL
