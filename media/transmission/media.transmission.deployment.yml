@@ -36,18 +36,16 @@ spec:
             - name: WIREGUARD_PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: openvpn
+                  name: transmission
                   key: key
             - name: PROTONVPN_SERVER
-              value: "IS-NL#1"
+              value: "CH#52"
             - name: DEBUG
               value: "0"
-            - name: SKIP_DNS_CONFIG
-              value: "1"
             - name: KILL_SWITCH
               value: "1"
             - name: IPCHECK_URL
-              value: "https://protonwire-api.vercel.app/api/client/exp/clientip"
+              value: "https://checkip.amazonaws.com/"
           securityContext:
             capabilities:
               add:
