@@ -173,9 +173,9 @@ export NINJAM_PASSWORD="blah"
 export FILEBROWSER_USER="blah"
 export FILEBROWSER_PW="blah"
 export PLEX_CLAIM="blah"
-export VPN_USERNAME=$(echo -n "blah" | base64)
-export VPN_PASSWORD=$(echo -n "blah" | base64)
-export VPN_KEY=$(echo -n "blah" | base64)
+export SOULSEEK_VPN_KEY=$(echo -n "blah" | base64)
+export TRANSMISSION_VPN_KEY=$(echo -n "blah" | base64)
+export JACKETT_VPN_KEY=$(echo -n "blah" | base64)
 export MONGO_PASS="blah"
 ```
 
