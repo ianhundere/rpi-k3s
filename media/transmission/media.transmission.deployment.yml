@@ -39,7 +39,7 @@ spec:
                   name: transmission
                   key: key
             - name: PROTONVPN_SERVER
-              value: "CH-NL#1"
+              value: "IS-NO#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
@@ -65,8 +65,6 @@ spec:
         - env:
             - name: PUID
               value: "1000"
-            - name: PUID
-              value: "1000"
             - name: PGID
               value: "1000"
           image: linuxserver/transmission:4.0.4
@@ -81,16 +79,13 @@ spec:
               cpu: 500m
               memory: 320Mi
           volumeMounts:
-            - mountPath: /config/transmission-home
+            - mountPath: /config
               name: media-config
-              subPath: transmission-data/transmission-home
-            - mountPath: /data/watch
-              name: media-config
-              subPath: transmission-data/watch
-            - mountPath: /data/incomplete
+              subPath: transmission
+            - mountPath: /downloads/incomplete
               name: media-data
               subPath: incomplete/transmission
-            - mountPath: /downloads/transmission
+            - mountPath: /downloads/complete
               name: media-data
               subPath: downloads/transmission
       dnsPolicy: None
