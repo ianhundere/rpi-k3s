@@ -10,8 +10,17 @@ spec:
   selector:
     app: soulseek
   ports:
-    - protocol: TCP
+    - name: "6080"
+      protocol: TCP
       port: 6080
       targetPort: 6080
+    - name: "62213"
+      protocol: TCP
+      port: 62213
+      targetPort: 62213
+    - name: "62214"
+      protocol: TCP
+      port: 62214
+      targetPort: 62214
   externalIPs:
     - "${METAL_LB_IP1}"
