@@ -254,7 +254,7 @@ EOF
 ## install unifi-controller
 
 1. create namespace
-    - `kubectl create ns unifi`
+    - `kubectl apply -f unifi/unifi.ns.yml`
 2. apply pv and pvc
     - `kubectl apply -f unifi/unifi.pvc.yml`
 3. apply service, statefulset and ingress resources
@@ -272,7 +272,7 @@ EOF
 ## install filebrowser
 
 1. create namespace
-    - `kubectl create ns filebrowser`
+    - `kubectl apply -f filebrowser/filebrowser.ns.yml`
 2. apply pvc
     - `kubectl apply -f filebrowser.pvc.yml`
 3. apply service, deployment and ingress resources
@@ -288,7 +288,7 @@ EOF
 ## install media apps
 
 1. create namespace
-    - `kubectl create ns media`
+    - `kubectl apply -f media/media.ns.yml`
 2. apply pvc(s)
     - `kubectl apply -f media/media-config.pvc.yml`
     - `kubectl apply -f media/media-data.pvc.yml`
@@ -395,7 +395,6 @@ EOF
 ## install changedetection
 
 1. apply changedetection
-    - `kubectl create ns changedetection`
     - `kubectl apply -f changedetection/change.ns.yml`
     - `kubectl apply -f changedetection/change.pvc.yml`
     - `envsubst < changedetection/change.service.yml | kubectl apply -f -`
