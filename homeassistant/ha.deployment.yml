@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ha
+  namespace: ha
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ha
+  template:
+    metadata:
+      labels:
+        app: ha
+    spec:
+      dnsPolicy: ClusterFirst
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #         - matchExpressions:
+      #             - key: kubernetes.io/arch
+      #               operator: In
+      #               values:
+      #                 - arm64
+      #             - key: usb
+      #               operator: In
+      #               values:
+      #                 - z-wave
+      containers:
+        - name: ha
+          image: ghcr.io/home-assistant/home-assistant:stable
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+          resources:
+            limits:
+              cpu: 750m
+              memory: 512Mi
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: America/NewYork
+            - name: VERSION
+              value: docker
+          ports:
+            - containerPort: 8123
+              hostPort: 8123
+              protocol: TCP
+          volumeMounts:
+            - name: ha
+              mountPath: /config
+            # - name: zwave
+            #   mountPath: /dev/ttyUSB0
+      volumes:
+        - name: ha
+          persistentVolumeClaim:
+            claimName: ha
+        # - name: zwave
+        #   hostPath:
+        #     path: /dev/ttyUSB0

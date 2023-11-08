@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zwave
+  namespace: ha
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zwave
+  template:
+    metadata:
+      labels:
+        app: zwave
+    spec:
+      hostNetwork: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - arm64
+                  - key: usb
+                    operator: In
+                    values:
+                      - z-wave
+      containers:
+        - name: zwave
+          image: zwavejs/zwave-js-ui:latest
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: true
+            privileged: true
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+            requests:
+              cpu: "1"
+              memory: 400Mi
+          env:
+            - name: TZ
+              value: America/NewYork
+            - name: SESSION_SECRET
+              value: ""
+          ports:
+            - containerPort: 8091
+              name: http
+              protocol: TCP
+            - containerPort: 3000
+              name: websockets
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /dev/zwave
+              name: ttyacm
+            - mountPath: /usr/src/app/store
+              name: data
+      volumes:
+        - name: ttyacm
+          hostPath:
+            path: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_0240fbeeabe5ea11840a84d5994a5d01-if00-port0
+        - name: data
+          hostPath:
+            path: /zwave/data
