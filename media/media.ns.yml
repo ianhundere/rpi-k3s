@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: media
+    name: media
+  name: media
+spec:
+  finalizers:
+    - kubernetes
