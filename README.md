@@ -396,6 +396,7 @@ EOF
 
 1. apply changedetection
     - `kubectl create ns changedetection`
+    - `kubectl apply -f changedetection/change.ns.yml`
     - `kubectl apply -f changedetection/change.pvc.yml`
     - `envsubst < changedetection/change.service.yml | kubectl apply -f -`
     - `kubectl apply -f changedetection/selenium.service.yml`
@@ -414,5 +415,4 @@ make a copy of `/var/lib/rancher/k3s/server/`
 ## todos
 
 -   implement:
-    -   [flux](https://fluxcd.io/) / [argocd](https://argoproj.github.io/cd/)
-    -   [home assistant](https://www.home-assistant.io/)
+    -   [flux](https://fluxcd.io/)
