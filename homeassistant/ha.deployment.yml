@@ -5,6 +5,8 @@ metadata:
   namespace: ha
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: ha
@@ -14,32 +16,20 @@ spec:
         app: ha
     spec:
       dnsPolicy: ClusterFirst
-      # affinity:
-      #   nodeAffinity:
-      #     requiredDuringSchedulingIgnoredDuringExecution:
-      #       nodeSelectorTerms:
-      #         - matchExpressions:
-      #             - key: kubernetes.io/arch
-      #               operator: In
-      #               values:
-      #                 - arm64
-      #             - key: usb
-      #               operator: In
-      #               values:
-      #                 - z-wave
       containers:
         - name: ha
-          image: ghcr.io/home-assistant/home-assistant:stable
+          image: ghcr.io/home-assistant/home-assistant:2023.11.2
           imagePullPolicy: Always
           securityContext:
             privileged: true
           resources:
-            limits:
-              cpu: 750m
-              memory: 512Mi
             requests:
               cpu: 250m
               memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 512Mi
+              rpi-k3s/zwave: 1
           env:
             - name: PUID
               value: "1000"
@@ -56,12 +46,12 @@ spec:
           volumeMounts:
             - name: ha
               mountPath: /config
-            # - name: zwave
-            #   mountPath: /dev/ttyUSB0
+            - mountPath: /dev/zwave
+              name: zwavestick
       volumes:
         - name: ha
           persistentVolumeClaim:
             claimName: ha
-        # - name: zwave
-        #   hostPath:
-        #     path: /dev/ttyUSB0
+        - name: zwavestick
+          hostPath:
+            path: /dev/serial/by-id/usb-Zooz_800_Z-Wave_Stick_533D004242-if00

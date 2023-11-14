@@ -5,6 +5,8 @@ metadata:
   namespace: ha
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: zwave
@@ -13,39 +15,28 @@ spec:
       labels:
         app: zwave
     spec:
-      hostNetwork: true
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - arm64
-                  - key: usb
-                    operator: In
-                    values:
-                      - z-wave
       containers:
         - name: zwave
-          image: zwavejs/zwave-js-ui:latest
+          image: zwavejs/zwave-js-ui:9.3.2
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: true
             privileged: true
           resources:
-            limits:
-              cpu: "1"
-              memory: 512Mi
             requests:
-              cpu: "1"
-              memory: 400Mi
+              cpu: 500m
+              memory: 256Mi
+            limits:
+              cpu: 1
+              memory: 512Mi
+              rpi-k3s/zwave: 1
           env:
             - name: TZ
               value: America/NewYork
             - name: SESSION_SECRET
-              value: ""
+              value: "A59E88FBDD4A10D7E1925C755F3237B1"
+            - name: ZWAVEJS_EXTERNAL_CONFIG
+              value: /usr/src/app/store/.config-db
           ports:
             - containerPort: 8091
               name: http
@@ -54,14 +45,17 @@ spec:
               name: websockets
               protocol: TCP
           volumeMounts:
-            - mountPath: /dev/zwave
-              name: ttyacm
             - mountPath: /usr/src/app/store
-              name: data
+              subPath: .config-db
+              name: zwave
+            - mountPath: /dev/zwave
+              name: zwavestick
       volumes:
-        - name: ttyacm
+        - name: zwave
+          persistentVolumeClaim:
+            claimName: ha
+        - name: zwavestick
           hostPath:
-            path: /dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_0240fbeeabe5ea11840a84d5994a5d01-if00-port0
-        - name: data
-          hostPath:
-            path: /zwave/data
+            path: /dev/serial/by-id/usb-Zooz_800_Z-Wave_Stick_533D004242-if00
+      nodeSelector:
+        kubernetes.io/hostname: kube-worker3
