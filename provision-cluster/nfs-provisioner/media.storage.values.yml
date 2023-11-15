@@ -1,0 +1,28 @@
+replicaCount: 2
+nfs:
+  server: "${NFS_IP}"
+  path: "/volume1/media"
+  mountOptions:
+    - noatime
+  reclaimPolicy: Retain
+storageClass:
+  defaultClass: false
+  onDelete: retain
+  pathPattern: "./"
+  name: nfs-media
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - nfs-subdir-external-provisioner-media
+          topologyKey: kubernetes.io/hostname
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
