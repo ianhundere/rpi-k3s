@@ -5,8 +5,6 @@ metadata:
   namespace: ha
 spec:
   replicas: 1
-  strategy:
-    type: Recreate
   selector:
     matchLabels:
       app: ha
@@ -16,6 +14,42 @@ spec:
         app: ha
     spec:
       dnsPolicy: ClusterFirst
+      initContainers:
+        - name: zwave
+          restartPolicy: Always
+          image: zwavejs/zwave-js-ui:9.3.2
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: true
+            privileged: true
+          resources:
+            requests:
+              cpu: 500m
+              memory: 256Mi
+            limits:
+              cpu: 1
+              memory: 512Mi
+              # rpi-k3s/zwave: 1
+          env:
+            - name: TZ
+              value: America/NewYork
+            - name: SESSION_SECRET
+              value: "A59E88FBDD4A10D7E1925C755F3237B1"
+            - name: ZWAVEJS_EXTERNAL_CONFIG
+              value: /usr/src/app/store/.config-db
+          ports:
+            - containerPort: 8091
+              name: http
+              protocol: TCP
+            - containerPort: 3000
+              name: websockets
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /usr/src/app/store
+              subPath: zwave
+              name: ha
+            - mountPath: /dev/zwave
+              name: zwavestick
       containers:
         - name: ha
           image: ghcr.io/home-assistant/home-assistant:2023.11.2
@@ -29,7 +63,7 @@ spec:
             limits:
               cpu: 750m
               memory: 512Mi
-              rpi-k3s/zwave: 1
+              # rpi-k3s/zwave: 1
           env:
             - name: PUID
               value: "1000"
