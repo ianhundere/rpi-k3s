@@ -1,9 +1,0 @@
-# server config
-kubelet-arg:
-  - "container-log-max-files=5"
-  - "container-log-max-size=50Mi"
-  - "image-gc-high-threshold=85"
-  - "image-gc-low-threshold=80"
-  - "feature-gates=SidecarContainers=true"
-
-write-kubeconfig-mode: "644"
