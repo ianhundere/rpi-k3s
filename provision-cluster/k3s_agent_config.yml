@@ -5,3 +5,5 @@ kubelet-arg:
   - "image-gc-high-threshold=85"
   - "image-gc-low-threshold=80"
   - "feature-gates=SidecarContainers=true"
+
+write-kubeconfig-mode: "644"

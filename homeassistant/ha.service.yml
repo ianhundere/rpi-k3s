@@ -9,13 +9,8 @@ spec:
     app: ha
   ports:
     - name: ha
+      protocol: TCP
       port: 8123
       targetPort: 8123
-    - name: zwave-http
-      port: 8091
-      targetPort: 8091
-    - name: zwave-websockets
-      port: 3000
-      targetPort: 3000
   externalIPs:
     - "${METAL_LB_IP1}"
