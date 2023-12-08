@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ha
+  name: zwave
   namespace: ha
 spec:
   replicas: 1
@@ -9,47 +9,49 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app: ha
+      app: zwave
   template:
     metadata:
       labels:
-        app: ha
+        app: zwave
     spec:
-      dnsPolicy: ClusterFirst
       containers:
-        - name: ha
-          image: ghcr.io/home-assistant/home-assistant:stable
-          imagePullPolicy: IfNotPresent
+        - name: zwave
+          image: zwavejs/zwave-js-ui:9.3.2
+          imagePullPolicy: Always
           securityContext:
+            allowPrivilegeEscalation: true
             privileged: true
           resources:
             requests:
-              cpu: 250m
+              cpu: 500m
               memory: 256Mi
             limits:
-              cpu: 750m
+              cpu: 1
               memory: 512Mi
               rpi-k3s/zwave: 1
           env:
-            - name: PUID
-              value: "1000"
-            - name: PGID
-              value: "1000"
             - name: TZ
               value: America/NewYork
-            - name: VERSION
-              value: docker
+            - name: SESSION_SECRET
+              value: "A59E88FBDD4A10D7E1925C755F3237B1"
+            - name: ZWAVEJS_EXTERNAL_CONFIG
+              value: /usr/src/app/store/.config-db
           ports:
-            - containerPort: 8123
-              hostPort: 8123
+            - containerPort: 8091
+              name: http
+              protocol: TCP
+            - containerPort: 3000
+              name: websockets
               protocol: TCP
           volumeMounts:
-            - name: ha
-              mountPath: /config
+            - mountPath: /usr/src/app/store
+              subPath: .config-db
+              name: zwave
             - mountPath: /dev/zwave
               name: zwavestick
       volumes:
-        - name: ha
+        - name: zwave
           persistentVolumeClaim:
             claimName: ha
         - name: zwavestick
