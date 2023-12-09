@@ -18,7 +18,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
         - name: ha
-          image: ghcr.io/home-assistant/home-assistant:stable
+          image: ghcr.io/home-assistant/home-assistant:2023.12
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
@@ -29,7 +29,6 @@ spec:
             limits:
               cpu: 750m
               memory: 512Mi
-              rpi-k3s/zwave: 1
           env:
             - name: PUID
               value: "1000"
@@ -46,12 +45,7 @@ spec:
           volumeMounts:
             - name: ha
               mountPath: /config
-            - mountPath: /dev/zwave
-              name: zwavestick
       volumes:
         - name: ha
           persistentVolumeClaim:
             claimName: ha
-        - name: zwavestick
-          hostPath:
-            path: /dev/serial/by-id/usb-Zooz_800_Z-Wave_Stick_533D004242-if00
