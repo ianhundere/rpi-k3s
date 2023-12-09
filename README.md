@@ -120,16 +120,6 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
     - `kubectl label node <worker_name> node-role.kubernetes.io/node=""`
 5. if mixing architectures, make sure to include `nodeSelector` or `nodeAffinity` to ensure your workloads get deployed to their relevant node (e.g. the plex deployment is tagged specifically for an `x86` node) especially if your images aren't tagged specific to the arch:
 
-    - ```yaml
-      nodeSelector:
-          kubernetes.io/arch: amd64
-      ```
-
-    - ```yaml
-      nodeSelector:
-          kubernetes.io/arch: arm64
-      ```
-
 ### uninstall
 
 1. master
