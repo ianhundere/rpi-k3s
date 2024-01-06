@@ -70,7 +70,7 @@ spec:
               memory: 2Gi
       containers:
         - name: unifi-network-application
-          image: lscr.io/linuxserver/unifi-network-application:7.5.187
+          image: lscr.io/linuxserver/unifi-network-application:8.0.26
           env:
             - name: PGID
               value: "1000"
