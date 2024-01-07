@@ -147,26 +147,26 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
 ```bash
 # hosts
 NINJAM_HOST="blah"
-export UNIFI_HOST="blah"
-export FILEBROWSER_HOST="blah"
-export SOULSEEK_HOST="blah"
+UNIFI_HOST="blah"
+FILEBROWSER_HOST="blah"
+SOULSEEK_HOST="blah"
 
 # internal ips
-export METAL_LB_IP1="blah"
-export METAL_LB_IP2="blah"
-export METAL_LB_IP11="blah"
-export NFS_IP="blah"
+METAL_LB_IP1="blah"
+METAL_LB_IP2="blah"
+METAL_LB_IP11="blah"
+NFS_IP="blah"
 
 # secrets
-export NINJAM_USER="blah"
-export NINJAM_PASSWORD="blah"
-export FILEBROWSER_USER="blah"
-export FILEBROWSER_PW="blah"
-export PLEX_CLAIM="blah"
-export SOULSEEK_VPN_KEY=$(echo -n "blah" | base64)
-export TRANSMISSION_VPN_KEY=$(echo -n "blah" | base64)
-export JACKETT_VPN_KEY=$(echo -n "blah" | base64)
-export MONGO_PASS="blah"
+NINJAM_USER="blah"
+NINJAM_PASSWORD="blah"
+FILEBROWSER_USER="blah"
+FILEBROWSER_PW="blah"
+PLEX_CLAIM="blah"
+SOULSEEK_VPN_KEY=$(echo -n "blah" | base64)
+TRANSMISSION_VPN_KEY=$(echo -n "blah" | base64)
+JACKETT_VPN_KEY=$(echo -n "blah" | base64)
+MONGO_PASS="blah"
 ```
 
 3. make sure to source `.env` when a k8s resource needs creds:
@@ -183,12 +183,11 @@ export MONGO_PASS="blah"
 
 ## install nginx - web proxy
 
-1. install helm
-    - `brew install helm`
+1. [install helm](https://helm.sh/docs/intro/install/)
 2. add the nginx repo / update repo
     - `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx; helm repo update`
 3. install nginx
-    - `helm install nginx-ingress ingress-nginx/ingress-nginx --set defaultBackend.enabled=false -n kube-system`
+    - `helm install ingress-nginx ingress-nginx/ingress-nginx --set defaultBackend.enabled=false --namespace ingress-nginx --create-namespace`
 
 ## install cert-manager
 
@@ -400,8 +399,3 @@ make a copy of `/var/lib/rancher/k3s/server/`
 
 -   `journalctl -u k3s.service -e` last logs of the server
 -   `journalctl -u k3s-agent.service -e` last logs of the agent
-
-## todos
-
--   implement:
-    -   [flux](https://fluxcd.io/)
