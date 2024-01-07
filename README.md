@@ -146,27 +146,27 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
 
 ```bash
 # hosts
-NINJAM_HOST="blah"
-UNIFI_HOST="blah"
-FILEBROWSER_HOST="blah"
-SOULSEEK_HOST="blah"
+export NINJAM_HOST="blah"
+export UNIFI_HOST="blah"
+export FILEBROWSER_HOST="blah"
+export SOULSEEK_HOST="blah"
 
 # internal ips
-METAL_LB_IP1="blah"
-METAL_LB_IP2="blah"
-METAL_LB_IP11="blah"
-NFS_IP="blah"
+export METAL_LB_IP1="blah"
+export METAL_LB_IP2="blah"
+export METAL_LB_IP11="blah"
+export NFS_IP="blah"
 
 # secrets
-NINJAM_USER="blah"
-NINJAM_PASSWORD="blah"
-FILEBROWSER_USER="blah"
-FILEBROWSER_PW="blah"
-PLEX_CLAIM="blah"
-SOULSEEK_VPN_KEY=$(echo -n "blah" | base64)
-TRANSMISSION_VPN_KEY=$(echo -n "blah" | base64)
-JACKETT_VPN_KEY=$(echo -n "blah" | base64)
-MONGO_PASS="blah"
+export NINJAM_USER="blah"
+export NINJAM_PASSWORD="blah"
+export FILEBROWSER_USER="blah"
+export FILEBROWSER_PW="blah"
+export PLEX_CLAIM="blah"
+export VPN_USERNAME=$(echo -n "blah" | base64)
+export VPN_PASSWORD=$(echo -n "blah" | base64)
+export VPN_KEY=$(echo -n "blah" | base64)
+export MONGO_PASS="blah"
 ```
 
 3. make sure to source `.env` when a k8s resource needs creds:
