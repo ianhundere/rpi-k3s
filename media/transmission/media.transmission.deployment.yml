@@ -30,7 +30,7 @@ spec:
           securityContext:
             privileged: true
         - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:7.3.0-alpha2
+          image: ghcr.io/tprasadtp/protonwire:7.3.0-beta1
           restartPolicy: Always
           env:
             - name: WIREGUARD_PRIVATE_KEY
