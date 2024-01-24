@@ -1,3 +1,25 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebrowser-scripts
+  namespace: filebrowser
+  labels:
+    app: filebrowser
+data:
+  init-filebrowser.sh: |
+    #!/usr/bin/env sh
+    /filebrowser config init
+    /filebrowser config set \
+        --port 44301 \
+        --address 0.0.0.0 \
+        --baseurl "/" \
+        --root "/srv" \
+        --branding.name "hi, welcome." \
+        --branding.disableExternal
+    /filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin
+    exec /filebrowser --port 44301 --disable-exec
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,7 +29,8 @@ metadata:
     app: filebrowser
 spec:
   replicas: 1
-  StrategyType: RollingUpdate
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: filebrowser
@@ -34,8 +57,8 @@ spec:
               protocol: TCP
           resources:
             requests:
-              cpu: 1
-              memory: 1Gi
+              cpu: 500m
+              memory: 512Mi
           command: ["/bin/sh", "-c", "/scripts/init-filebrowser.sh"]
       volumes:
         - name: filebrowser
