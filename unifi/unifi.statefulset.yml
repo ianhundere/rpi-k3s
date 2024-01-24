@@ -35,13 +35,13 @@ spec:
       affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 1
+            - weight: 80
               preference:
                 matchExpressions:
                   - key: kubernetes.io/arch
                     operator: In
                     values:
-                      - arm64
+                      - amd64
       volumes:
         - name: unifi
           persistentVolumeClaim:
