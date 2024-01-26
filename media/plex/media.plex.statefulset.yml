@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   labels:
     app: plex
@@ -11,8 +11,6 @@ spec:
   selector:
     matchLabels:
       app: plex
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:

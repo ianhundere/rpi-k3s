@@ -39,6 +39,16 @@ spec:
       labels:
         app: filebrowser
     spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - arm64
       containers:
         - name: filebrowser
           image: filebrowser/filebrowser:v2.26.0

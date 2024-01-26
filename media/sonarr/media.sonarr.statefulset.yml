@@ -1,22 +1,19 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   labels:
-    app: radarr
-  name: radarr
+    app: sonarr
+  name: sonarr
   namespace: media
 spec:
-  progressDeadlineSeconds: 600
   replicas: 1
-  strategy:
-    type: Recreate
   selector:
     matchLabels:
-      app: radarr
+      app: sonarr
   template:
     metadata:
       labels:
-        app: radarr
+        app: sonarr
     spec:
       affinity:
         nodeAffinity:
@@ -34,11 +31,11 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-          image: linuxserver/radarr:5.0.3
+          image: linuxserver/sonarr:3.0.10
           imagePullPolicy: IfNotPresent
-          name: radarr
+          name: sonarr
           ports:
-            - containerPort: 7878
+            - containerPort: 8989
               name: http
               protocol: TCP
           resources:
@@ -48,13 +45,13 @@ spec:
           volumeMounts:
             - mountPath: /config
               name: media-config
-              subPath: radarr
+              subPath: sonarr
             - mountPath: /downloads/complete
               name: media-data
               subPath: downloads/transmission
-            - mountPath: /movies
+            - mountPath: /tv
               name: media-data
-              subPath: library/movies
+              subPath: library/tv
           livenessProbe:
             failureThreshold: 5
             initialDelaySeconds: 60
