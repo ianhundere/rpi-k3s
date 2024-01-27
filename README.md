@@ -286,8 +286,8 @@ EOF
 4. create secret for vpn
     - `envsubst < media/vpn_secret.yml | kubectl apply -f -`
 5. apply transmission resources
-    - `kubectl apply -f media/transmission/media.transmission.service.yml`
-    - `kubectl apply -f media/transmission/media.transmission.deployment.yml`
+    - `kubectl apply -f media/transmission/transmission.service.yml`
+    - `kubectl apply -f media/transmission/transmission.deployment.yml`
 6. create a file called `ServerConfig.json` with the following in `<nfs_path>/jackett/Jackett`:
 
     - ```bash
@@ -298,8 +298,8 @@ EOF
 
 7. apply jackett resources
 
-    - `kubectl apply -f media/jackett/media.jackett.service.yml`
-    - `envsubst < media/jackett/media.jackett.deployment.yml | kubectl apply -f -`
+    - `kubectl apply -f media/jackett/jackett.service.yml`
+    - `envsubst < media/jackett/jackett.deployment.yml | kubectl apply -f -`
 
 8. create a file called `config.xml` with the following in `<nfs_path>/sonarr/`:
 
@@ -311,8 +311,8 @@ EOF
 
 9. apply sonarr resources
 
-    - `kubectl apply -f media/sonarr/media.sonarr.service.yml -n media`
-    - `kubectl apply -f media/sonarr/media.sonarr.deployment.yml -n media`
+    - `kubectl apply -f media/sonarr/sonarr.service.yml -n media`
+    - `kubectl apply -f media/sonarr/sonarr.deployment.yml -n media`
 
 10. create a file called `config.xml` with the following in `<nfs_path>/radarr/`:
 
@@ -323,12 +323,12 @@ EOF
       ```
 
 11. apply radarr resources
-    - `kubectl apply -f media/radarr/media.radarr.service.yml -n media`
-    - `kubectl apply -f media/radarr/media.radarr.deployment -n media`
+    - `kubectl apply -f media/radarr/radarr.service.yml -n media`
+    - `kubectl apply -f media/radarr/radarr.deployment -n media`
 12. get claim token by visiting [plex](plex.tv/claim).
 13. apply plex resources
-    - `envsubst < media/plex/media.plex.service.yml | kubectl apply -f -`
-    - `envsubst < media/plex/media.plex.deployment.yml | kubectl apply -f -`
+    - `envsubst < media/plex/plex.service.yml | kubectl apply -f -`
+    - `envsubst < media/plex/plex.deployment.yml | kubectl apply -f -`
 14. configuring jackett
     - add indexers to jackett
     - keep notes of the category #s as those are used in radarr and sonarr
