@@ -35,13 +35,13 @@ spec:
                   name: soulseek
                   key: key
             - name: PROTONVPN_SERVER
-              value: "IS#8"
+              value: "CH#71"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
               value: "1"
-            - name: IPCHECK_URL
-              value: "https://checkip.amazonaws.com/"
+            # - name: IPCHECK_URL
+            #   value: "https://checkip.amazonaws.com/"
           securityContext:
             capabilities:
               add:
