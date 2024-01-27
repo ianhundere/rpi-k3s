@@ -1,10 +1,13 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: soulseek
   namespace: media
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: soulseek
@@ -13,6 +16,16 @@ spec:
       labels:
         app: soulseek
     spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
       hostname: soulseek
       initContainers:
         - name: sysctl-setup
@@ -40,8 +53,6 @@ spec:
               value: "0"
             - name: KILL_SWITCH
               value: "1"
-            # - name: IPCHECK_URL
-            #   value: "https://checkip.amazonaws.com/"
           securityContext:
             capabilities:
               add:

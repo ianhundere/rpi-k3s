@@ -9,6 +9,7 @@ spec:
   replicas: 1
   strategy:
     type: RollingUpdate
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: transmission
@@ -54,8 +55,6 @@ spec:
               value: "0"
             - name: KILL_SWITCH
               value: "1"
-            - name: IPCHECK_URL
-              value: "https://checkip.amazonaws.com/"
           securityContext:
             capabilities:
               add:

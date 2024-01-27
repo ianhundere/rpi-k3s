@@ -9,6 +9,7 @@ spec:
   replicas: 1
   strategy:
     type: RollingUpdate
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: ninjam-server
@@ -20,7 +21,7 @@ spec:
       affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 1
+            - weight: 100
               preference:
                 matchExpressions:
                   - key: kubernetes.io/arch

@@ -23,6 +23,7 @@ metadata:
   name: unifi-controller
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   serviceName: unifi-controller
   selector:
     matchLabels:
