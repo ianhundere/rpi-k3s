@@ -48,7 +48,7 @@ spec:
                   name: soulseek
                   key: key
             - name: PROTONVPN_SERVER
-              value: "NL#315"
+              value: "CH-NO#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH

@@ -50,7 +50,7 @@ spec:
                   name: transmission
                   key: key
             - name: PROTONVPN_SERVER
-              value: "IS-NO#1"
+              value: "IS-NL#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
