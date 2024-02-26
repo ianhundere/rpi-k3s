@@ -50,7 +50,7 @@ spec:
                   name: jackett
                   key: key
             - name: PROTONVPN_SERVER
-              value: "CH-NL#1"
+              value: "SE-FI#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
