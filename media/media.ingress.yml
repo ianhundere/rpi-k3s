@@ -3,9 +3,8 @@ kind: Ingress
 metadata:
   namespace: media
   name: media-ingress
-  annotations:
-    kubernetes.io/ingress.class: nginx
 spec:
+  ingressClassName: nginx
   rules:
     - host: "media.${METAL_LB_IP1}.nip.io"
       http:
