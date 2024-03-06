@@ -1,0 +1,3 @@
+oauth:
+  clientId: "${TS_CLIENT_ID}"
+  clientSecret: "${TS_CLIENT_SECRET}"
