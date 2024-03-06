@@ -163,10 +163,13 @@ export NINJAM_PASSWORD="blah"
 export FILEBROWSER_USER="blah"
 export FILEBROWSER_PW="blah"
 export PLEX_CLAIM="blah"
-export VPN_USERNAME=$(echo -n "blah" | base64)
-export VPN_PASSWORD=$(echo -n "blah" | base64)
-export VPN_KEY=$(echo -n "blah" | base64)
 export MONGO_PASS="blah"
+export SOULSEEK_VPN_KEY=$(echo -n "blah" | base64)
+export TRANSMISSION_VPN_KEY=$(echo -n "blah" | base64)
+export JACKETT_VPN_KEY=$(echo -n "blah" | base64)
+export TS_CLIENT_ID="blah"
+export TS_CLIENT_SECRET="blah"
+
 ```
 
 3. make sure to source `.env` when a k8s resource needs creds:
@@ -187,7 +190,7 @@ export MONGO_PASS="blah"
 2. add the nginx repo / update repo
     - `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx; helm repo update`
 3. install nginx
-    - `helm install ingress-nginx ingress-nginx/ingress-nginx --set defaultBackend.enabled=false --namespace ingress-nginx --create-namespace`
+    - `helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace`
 
 ## install cert-manager
 
@@ -236,7 +239,7 @@ spec:
     solvers:
     - http01:
         ingress:
-          class: nginx
+          ingressClassName:: nginx
 EOF
 ```
 
@@ -390,6 +393,13 @@ EOF
     - `kubectl apply -f changedetection/selenium.service.yml`
     - `kubectl apply -f changedetection/selenium.deployment.yml`
     - `kubectl apply -f changedetection/change.deployment.yml`
+
+## install tailscale
+
+1. add repo / update
+    - `helm repo add tailscale https://pkgs.tailscale.com/helmcharts; helm repo update`
+1. install tailscale
+    - `envsubst < provision-cluster/tailscale/tailscale.values.yml | helm upgrade tailscale-operator tailscale/tailscale-operator -n tailscale --values -`
 
 ## backups
 

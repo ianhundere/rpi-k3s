@@ -22,7 +22,7 @@ data:
     #anonymoususers yes or no, or multi (to allow multiple users of the same name from the same IP)
     AnonymousUsers yes
     AnonymousUsersCanChat yes
-    AnonymousMaskIP yes  # shows just the nn.nn.nn.x instead of full IP. 
+    AnonymousMaskIP no  # shows just the nn.nn.nn.x instead of full IP. 
 
 
     AllowHiddenUsers no   # set to yes to allow people without channels to not appear in the user list
