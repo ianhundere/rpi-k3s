@@ -41,7 +41,7 @@ spec:
           securityContext:
             privileged: true
         - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:7.3.0-beta2
+          image: ghcr.io/tprasadtp/protonwire:7.3.0-beta3
           restartPolicy: Always
           env:
             - name: WIREGUARD_PRIVATE_KEY
@@ -50,7 +50,7 @@ spec:
                   name: transmission
                   key: key
             - name: PROTONVPN_SERVER
-              value: "IS-NL#1"
+              value: "CH-NL#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
