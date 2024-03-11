@@ -7,9 +7,9 @@ metadata:
   namespace: media
 spec:
   replicas: 1
-  revisionHistoryLimit: 3
   strategy:
     type: RollingUpdate
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: jackett
@@ -41,7 +41,7 @@ spec:
           securityContext:
             privileged: true
         - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:7.3.0-beta2
+          image: ghcr.io/tprasadtp/protonwire:7.3.0-beta3
           restartPolicy: Always
           env:
             - name: WIREGUARD_PRIVATE_KEY
@@ -50,7 +50,7 @@ spec:
                   name: jackett
                   key: key
             - name: PROTONVPN_SERVER
-              value: "SE-FI#1"
+              value: "CH-LV#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
