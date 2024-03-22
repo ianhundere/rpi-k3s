@@ -50,7 +50,7 @@ spec:
                   name: jackett
                   key: key
             - name: PROTONVPN_SERVER
-              value: "CH-LV#1"
+              value: "IS-EC#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
@@ -64,6 +64,8 @@ spec:
           resources:
             requests:
               cpu: 100m
+              memory: 128Mi
+            limits:
               memory: 128Mi
       containers:
         - env:
@@ -81,6 +83,8 @@ spec:
           resources:
             requests:
               cpu: 500m
+              memory: 320Mi
+            limits:
               memory: 320Mi
           volumeMounts:
             - mountPath: /config

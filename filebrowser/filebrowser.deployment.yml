@@ -70,6 +70,8 @@ spec:
             requests:
               cpu: 500m
               memory: 512Mi
+            limits:
+              memory: 512Mi
           command: ["/bin/sh", "-c", "/scripts/init-filebrowser.sh"]
       volumes:
         - name: filebrowser

@@ -33,10 +33,9 @@ spec:
               protocol: TCP
           resources:
             limits:
-              cpu: 500m
-              memory: 512Mi
+              memory: 256Mi
             requests:
-              cpu: 250m
+              cpu: 500m
               memory: 256Mi
       volumes:
       - name: dshm

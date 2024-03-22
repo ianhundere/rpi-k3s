@@ -55,14 +55,16 @@ spec:
               protocol: TCP
           resources:
             requests:
-              cpu: 3
-              memory: 2Gi
+              cpu: 2
+              memory: 3Gi
             limits:
               memory: 3Gi
           volumeMounts:
             - mountPath: /library
               name: media-data
               subPath: library
+            - mountPath: /library/music
+              name: music-data
             - mountPath: /config
               name: media-config
               subPath: plex/config
@@ -75,6 +77,9 @@ spec:
         - name: media-data
           persistentVolumeClaim:
             claimName: media-data
+        - name: music-data
+          persistentVolumeClaim:
+            claimName: music-data
         - emptyDir: {}
           name: shared
       dnsPolicy: ClusterFirst

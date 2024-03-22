@@ -96,10 +96,9 @@ spec:
                 ]
               resources:
                 requests:
-                  cpu: 50m
-                  memory: 8Mi
-                limits:
                   cpu: 100m
+                  memory: 16Mi
+                limits:
                   memory: 16Mi
           restartPolicy: OnFailure
           volumes:

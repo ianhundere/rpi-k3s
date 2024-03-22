@@ -7,7 +7,7 @@ leaderElection:
   enabled: false
 nfs:
   server: "${NFS_IP}"
-  path: "/volume1/media"
+  path: "/volume2/music"
   mountOptions:
     - nfsvers=4.1
     - hard
@@ -23,7 +23,7 @@ storageClass:
   defaultClass: false
   onDelete: retain
   pathPattern: "./"
-  name: nfs-media
+  name: nfs-music
 affinity:
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
@@ -34,7 +34,7 @@ affinity:
               - key: app
                 operator: In
                 values:
-                  - nfs-subdir-external-provisioner-media
+                  - nfs-subdir-external-provisioner-music
           topologyKey: kubernetes.io/hostname
 resources:
   requests:
