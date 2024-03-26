@@ -8,8 +8,6 @@ metadata:
     cert-manager.io/issue-temporary-certificate: "true"
     nginx.ingress.kubernetes.io/backend-protocol: HTTPS
     nginx.ingress.kubernetes.io/limit-connections: "10"
-    nginx.ingress.kubernetes.io/limit-rps: "2"
-    nginx.ingress.kubernetes.io/limit-rpm: "300"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
