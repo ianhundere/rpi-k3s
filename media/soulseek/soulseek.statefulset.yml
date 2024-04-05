@@ -1,34 +1,22 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   labels:
-    app: transmission
-  name: transmission
+    app: soulseek
+  name: soulseek
   namespace: media
 spec:
   replicas: 1
-  strategy:
-    type: RollingUpdate
   revisionHistoryLimit: 3
   selector:
     matchLabels:
-      app: transmission
+      app: soulseek
   template:
     metadata:
       labels:
-        app: transmission
+        app: soulseek
     spec:
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - arm64
-      hostname: transmission
+      hostname: soulseek
       initContainers:
         - name: sysctl-setup
           image: busybox
@@ -41,16 +29,16 @@ spec:
           securityContext:
             privileged: true
         - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:7.5.0-beta1
+          image: ghcr.io/tprasadtp/protonwire:7.5.1
           restartPolicy: Always
           env:
             - name: WIREGUARD_PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: transmission
+                  name: soulseek
                   key: key
             - name: PROTONVPN_SERVER
-              value: "CH-NL#1"
+              value: "CH-FI#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
@@ -73,38 +61,39 @@ spec:
             limits:
               memory: 128Mi
       containers:
-        - env:
-            - name: PUID
-              value: "1000"
+        - name: soulseek
+          image: realies/soulseek:latest
+          env:
             - name: PGID
               value: "1000"
-          image: linuxserver/transmission:4.0.4
-          imagePullPolicy: IfNotPresent
-          name: transmission
+            - name: PUID
+              value: "1000"
           ports:
-            - name: http
-              containerPort: 9091
-              protocol: TCP
+            - containerPort: 6080
           resources:
             requests:
-              cpu: 500m
-              memory: 320Mi
+              cpu: 750m
+              memory: .5Gi
             limits:
-              memory: 320Mi
+              memory: .5Gi
           volumeMounts:
-            - mountPath: /config
-              name: media-config
-              subPath: transmission
-            - mountPath: /downloads/incomplete
-              name: media-data
-              subPath: incomplete/transmission
-            - mountPath: /downloads/complete
-              name: media-data
-              subPath: downloads/transmission
+            - name: media-config
+              mountPath: /data/.SoulseekQt
+              subPath: soulseek/data
+            - name: media-config
+              mountPath: /data/Soulseek Chat Logs
+              subPath: soulseek/chat_logs
+            - name: media-data
+              mountPath: /data/Soulseek Downloads
+              subPath: downloads/soulseek
+            - name: media-data
+              mountPath: /data/Soulseek Shared Folder
+              subPath: library/
+            - name: music-data
+              mountPath: /data/Soulseek Shared Folder/music
       dnsPolicy: None
       dnsConfig:
         nameservers: ["1.1.1.1", "1.0.0.1"]
-      restartPolicy: Always
       volumes:
         - name: media-config
           persistentVolumeClaim:
@@ -112,3 +101,8 @@ spec:
         - name: media-data
           persistentVolumeClaim:
             claimName: media-data
+        - name: music-data
+          persistentVolumeClaim:
+            claimName: music-data
+      nodeSelector:
+        kubernetes.io/arch: amd64

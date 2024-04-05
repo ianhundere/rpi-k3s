@@ -32,5 +32,3 @@ spec:
       targetPort: 6789
   selector:
     app: unifi-controller
-  externalIPs:
-    - "${METAL_LB_IP1}"

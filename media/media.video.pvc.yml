@@ -8,7 +8,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: nfs-media
+  storageClassName: nfs-video
   resources:
     requests:
       storage: 6.5Ti

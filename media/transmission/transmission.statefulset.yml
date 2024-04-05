@@ -1,24 +1,22 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   labels:
-    app: soulseek
-  name: soulseek
+    app: transmission
+  name: transmission
   namespace: media
 spec:
   replicas: 1
-  strategy:
-    type: RollingUpdate
   revisionHistoryLimit: 3
   selector:
     matchLabels:
-      app: soulseek
+      app: transmission
   template:
     metadata:
       labels:
-        app: soulseek
+        app: transmission
     spec:
-      hostname: soulseek
+      hostname: transmission
       initContainers:
         - name: sysctl-setup
           image: busybox
@@ -31,16 +29,16 @@ spec:
           securityContext:
             privileged: true
         - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:7.5.0-beta1
+          image: ghcr.io/tprasadtp/protonwire:7.5.1
           restartPolicy: Always
           env:
             - name: WIREGUARD_PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: soulseek
+                  name: transmission
                   key: key
             - name: PROTONVPN_SERVER
-              value: "CH-FI#1"
+              value: "IS#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
@@ -63,15 +61,18 @@ spec:
             limits:
               memory: 128Mi
       containers:
-        - name: soulseek
-          image: realies/soulseek:latest
-          env:
-            - name: PGID
-              value: "1000"
+        - env:
             - name: PUID
               value: "1000"
+            - name: PGID
+              value: "1000"
+          image: linuxserver/transmission:4.0.5
+          imagePullPolicy: IfNotPresent
+          name: transmission
           ports:
-            - containerPort: 6080
+            - name: http
+              containerPort: 9091
+              protocol: TCP
           resources:
             requests:
               cpu: 1
@@ -79,23 +80,19 @@ spec:
             limits:
               memory: 1Gi
           volumeMounts:
-            - name: media-config
-              mountPath: /data/.SoulseekQt
-              subPath: soulseek/data
-            - name: media-config
-              mountPath: /data/Soulseek Chat Logs
-              subPath: soulseek/chat_logs
-            - name: media-data
-              mountPath: /data/Soulseek Downloads
-              subPath: downloads/soulseek
-            - name: media-data
-              mountPath: /data/Soulseek Shared Folder
-              subPath: library/
-            - name: music-data
-              mountPath: /data/Soulseek Shared Folder/music
+            - mountPath: /config
+              name: media-config
+              subPath: transmission
+            - mountPath: /downloads/incomplete
+              name: media-data
+              subPath: incomplete/transmission
+            - mountPath: /downloads/complete
+              name: media-data
+              subPath: downloads/transmission
       dnsPolicy: None
       dnsConfig:
         nameservers: ["1.1.1.1", "1.0.0.1"]
+      restartPolicy: Always
       volumes:
         - name: media-config
           persistentVolumeClaim:
@@ -103,8 +100,3 @@ spec:
         - name: media-data
           persistentVolumeClaim:
             claimName: media-data
-        - name: music-data
-          persistentVolumeClaim:
-            claimName: music-data
-      nodeSelector:
-        kubernetes.io/arch: amd64

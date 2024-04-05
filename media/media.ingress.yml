@@ -6,41 +6,41 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: "media.${METAL_LB_IP1}.nip.io"
+    - host: "media.tools"
       http:
         paths:
-          - backend:
+          - path: /transmission
+            pathType: Prefix
+            backend:
               service:
-                name: "transmission"
+                name: transmission
                 port:
                   number: 80
-            path: "/transmission"
+          - path: /sonarr
             pathType: Prefix
-          - backend:
+            backend:
               service:
                 name: "sonarr"
                 port:
                   number: 80
-            path: "/sonarr"
+          - path: /jackett
             pathType: Prefix
-          - backend:
+            backend:
               service:
                 name: "jackett"
                 port:
                   number: 80
-            path: "/jackett"
+          - path: /radarr
             pathType: Prefix
-          - backend:
+            backend:
               service:
                 name: "radarr"
                 port:
                   number: 80
-            path: "/radarr"
+          - path: /
             pathType: Prefix
-          - backend:
+            backend:
               service:
-                name: "plex"
+                name: "soulseek"
                 port:
-                  number: 32400
-            path: "/"
-            pathType: Prefix
+                  number: 80

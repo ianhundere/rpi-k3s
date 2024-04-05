@@ -7,7 +7,7 @@ leaderElection:
   enabled: false
 nfs:
   server: "${NFS_IP}"
-  path: "/volume2/rpi-k3s"
+  path: "/volume3/rpi-k3s"
   mountOptions:
     - nfsvers=4.1
     - hard
