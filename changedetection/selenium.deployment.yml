@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
         - env:
-          - name: FETCH_WORKERS
-            value: "2"
+            - name: FETCH_WORKERS
+              value: "2"
           name: selenium
           image: seleniarm/standalone-chromium:4.0.0-20211213
           imagePullPolicy: IfNotPresent
@@ -38,6 +38,6 @@ spec:
               cpu: 500m
               memory: 256Mi
       volumes:
-      - name: dshm
-        emptyDir:
-          medium: Memory
+        - name: dshm
+          emptyDir:
+            medium: Memory

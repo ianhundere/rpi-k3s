@@ -7,8 +7,9 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-  - ${METAL_LB_IP1}-${METAL_LB_IP11}
-status: {}
+    - ${METAL_LB_IP1}-${METAL_LB_IP11}
+  autoAssign: true
+  avoidBuggyIPs: false
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
@@ -18,6 +19,4 @@ metadata:
   namespace: metallb-system
 spec:
   ipAddressPools:
-  - default
-status: {}
----
+    - default

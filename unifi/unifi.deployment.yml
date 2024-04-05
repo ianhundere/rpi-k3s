@@ -15,7 +15,7 @@ data:
     });
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   namespace: unifi
   labels:
@@ -24,7 +24,6 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: 3
-  serviceName: unifi-controller
   selector:
     matchLabels:
       app: unifi-controller
@@ -33,16 +32,6 @@ spec:
       labels:
         app: unifi-controller
     spec:
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - arm64
       volumes:
         - name: unifi
           persistentVolumeClaim:
@@ -71,7 +60,7 @@ spec:
               memory: 1Gi
       containers:
         - name: unifi-network-application
-          image: lscr.io/linuxserver/unifi-network-application:8.0.26
+          image: lscr.io/linuxserver/unifi-network-application:8.1.113
           env:
             - name: PGID
               value: "1000"

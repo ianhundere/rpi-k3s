@@ -12,5 +12,3 @@ spec:
       protocol: TCP
   selector:
     app: filebrowser
-  externalIPs:
-    - "${METAL_LB_IP1}"

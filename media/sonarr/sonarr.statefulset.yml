@@ -17,23 +17,13 @@ spec:
       labels:
         app: sonarr
     spec:
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - arm64
       containers:
         - env:
             - name: PUID
               value: "1000"
             - name: PGID
               value: "1000"
-          image: linuxserver/sonarr:3.0.10
+          image: linuxserver/sonarr:4.0.3
           imagePullPolicy: IfNotPresent
           name: sonarr
           ports:

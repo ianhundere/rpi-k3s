@@ -23,7 +23,7 @@ storageClass:
   defaultClass: false
   onDelete: retain
   pathPattern: "./"
-  name: nfs-media
+  name: nfs-video
 affinity:
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
@@ -34,7 +34,7 @@ affinity:
               - key: app
                 operator: In
                 values:
-                  - nfs-subdir-external-provisioner-media
+                  - nfs-subdir-external-provisioner-video
           topologyKey: kubernetes.io/hostname
 resources:
   requests:

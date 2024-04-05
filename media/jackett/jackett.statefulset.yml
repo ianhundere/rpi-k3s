@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   labels:
     app: jackett
@@ -7,8 +7,6 @@ metadata:
   namespace: media
 spec:
   replicas: 1
-  strategy:
-    type: RollingUpdate
   revisionHistoryLimit: 3
   selector:
     matchLabels:
@@ -18,16 +16,6 @@ spec:
       labels:
         app: jackett
     spec:
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - arm64
       hostname: jackett
       initContainers:
         - name: sysctl-setup
@@ -41,7 +29,7 @@ spec:
           securityContext:
             privileged: true
         - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:7.5.0-beta1
+          image: ghcr.io/tprasadtp/protonwire:7.5.1
           restartPolicy: Always
           env:
             - name: WIREGUARD_PRIVATE_KEY
@@ -50,7 +38,7 @@ spec:
                   name: jackett
                   key: key
             - name: PROTONVPN_SERVER
-              value: "IS-EC#1"
+              value: "CH-EE#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
@@ -73,7 +61,7 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-          image: linuxserver/jackett:0.21.1835
+          image: linuxserver/jackett:0.21.2428
           imagePullPolicy: IfNotPresent
           name: jackett
           ports:
@@ -83,9 +71,9 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 320Mi
+              memory: .5Gi
             limits:
-              memory: 320Mi
+              memory: .5Gi
           volumeMounts:
             - mountPath: /config
               name: media-config

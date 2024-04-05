@@ -1,17 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app: soulseek
   name: soulseek
   namespace: media
+  labels:
+    app: soulseek
 spec:
   selector:
     app: soulseek
   ports:
-    - name: "6080"
+    - name: http
       protocol: TCP
-      port: 6080
+      port: 80
       targetPort: 6080
-  externalIPs:
-    - "${METAL_LB_IP1}"

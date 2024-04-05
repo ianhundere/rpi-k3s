@@ -1,6 +1,6 @@
 # rpi-k3s
 
-These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mini S with a N5095 CPU and 8GB RAM (dedicated to Plex).
+These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mini S with a N5095 CPU and 8GB RAM.
 
 ## initial setup
 
@@ -146,14 +146,12 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
 
 ```bash
 # hosts
-export NINJAM_HOST="blah"
 export UNIFI_HOST="blah"
 export FILEBROWSER_HOST="blah"
-export SOULSEEK_HOST="blah"
+export PLEX_HOST="blah"
 
 # internal ips
 export METAL_LB_IP1="blah"
-export METAL_LB_IP2="blah"
 export METAL_LB_IP11="blah"
 export NFS_IP="blah"
 
@@ -162,7 +160,6 @@ export NINJAM_USER="blah"
 export NINJAM_PASSWORD="blah"
 export FILEBROWSER_USER="blah"
 export FILEBROWSER_PW="blah"
-export PLEX_CLAIM="blah"
 export MONGO_PASS="blah"
 export SOULSEEK_VPN_KEY=$(echo -n "blah" | base64)
 export TRANSMISSION_VPN_KEY=$(echo -n "blah" | base64)
@@ -247,7 +244,7 @@ EOF
 
 1. create namespace
     - `kubectl apply -f unifi/unifi.ns.yml`
-2. apply pv and pvc
+2. apply pvc
     - `kubectl apply -f unifi/unifi.pvc.yml`
 3. apply service, statefulset and ingress resources
     - `envsubst < unifi/unifi.service.yml | kubectl apply -f -`
@@ -277,7 +274,7 @@ EOF
     - `commit`
     - `save`
 
-## install media apps
+## install media apps (ps i have since moved plex to my nas)
 
 1. create namespace
     - `kubectl apply -f media/media.ns.yml`
@@ -328,17 +325,13 @@ EOF
 11. apply radarr resources
     - `kubectl apply -f media/radarr/radarr.service.yml -n media`
     - `kubectl apply -f media/radarr/radarr.deployment -n media`
-12. get claim token by visiting [plex](plex.tv/claim).
-13. apply plex resources
-    - `envsubst < media/plex/plex.service.yml | kubectl apply -f -`
-    - `envsubst < media/plex/plex.deployment.yml | kubectl apply -f -`
-14. configuring jackett
+12. configuring jackett
     - add indexers to jackett
     - keep notes of the category #s as those are used in radarr and sonarr
-15. configuring radarr and sonarr
+13. configuring radarr and sonarr
     - configure the connection to transmission in settings under `Download Client` > `+` (add transmission) using the hostname and port `transmission.media:80`
     - add indexers in settings under `Indexers` > `+` (add indexer)
-        - add the URL / `http://media.${METAL_LB_IP1}.nip.io/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
+        - add the URL / `http://media.tools/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
 
 ## install nfs-provisioner
 
@@ -348,9 +341,10 @@ EOF
     - `helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner`
 2. ensure the correct values are present in the `nfs-provisioner/*.values.yml` file(s)
 3. install nfs-provisioner for each respective nfs path:
-    - `envsubst < nfs-provisioner/media.storage.values.yml | helm install nfs-subdir-external-provisioner-media nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --namespace nfs-provisioner --values -`
+    - `envsubst < nfs-provisioner/video.storage.values.yml | helm install nfs-subdir-external-provisioner-video nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --namespace nfs-provisioner --values -`
     - `nfs-provisioner/rpik3s-config.storage.values.yml | helm install nfs-subdir-external-provisioner-rpik3s nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --namespace nfs-provisioner --values -`
-4. finally, apply pvcs w/ the appropriate `storageClass` (e.g. `nfs-rpik3s` / `nfs-media`) and watch them provision automatically
+    - `nfs-provisioner/music.storage.values.yml | helm install nfs-subdir-external-provisioner-music nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --namespace nfs-provisioner --values -`
+4. finally, apply pvcs w/ the appropriate `storageClass` (e.g. `nfs-rpik3s` / `nfs-video` / `nfs-music`) and watch them provision automatically
 
 ## install [system-upgrade-controller](https://docs.k3s.io/upgrades/automated)
 
