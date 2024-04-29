@@ -12,5 +12,3 @@ spec:
     - port: 5000
       targetPort: 5000
       protocol: TCP
-  externalIPs:
-    - "${METAL_LB_IP1}"

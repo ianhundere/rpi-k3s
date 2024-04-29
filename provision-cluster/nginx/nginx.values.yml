@@ -1,3 +1,2 @@
 controller:
-  config:
-    allow-snippet-annotations: "true"
+  allowSnippetAnnotations: true
