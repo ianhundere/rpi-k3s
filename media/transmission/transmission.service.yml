@@ -5,6 +5,9 @@ metadata:
     app: transmission
   name: transmission
   namespace: media
+  annotations:
+    tailscale.com/hostname: "transmission"
+    tailscale.com/expose: "true"
 spec:
   ports:
     - name: http

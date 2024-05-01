@@ -1,22 +1,24 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   labels:
-    app: jackett
-  name: jackett
+    app: transmission
+  name: transmission
   namespace: media
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   revisionHistoryLimit: 3
   selector:
     matchLabels:
-      app: jackett
+      app: transmission
   template:
     metadata:
       labels:
-        app: jackett
+        app: transmission
     spec:
-      hostname: jackett
+      hostname: transmission
       initContainers:
         - name: sysctl-setup
           image: busybox
@@ -35,10 +37,10 @@ spec:
             - name: WIREGUARD_PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: jackett
+                  name: transmission
                   key: key
             - name: PROTONVPN_SERVER
-              value: "CH-EE#1"
+              value: "IS#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
@@ -47,6 +49,11 @@ spec:
             capabilities:
               add:
                 - NET_ADMIN
+          command: ["/bin/bash", "-c"]
+          args:
+            [
+              "/usr/bin/protonwire connect --container & sleep 10; natpmpc -a 1 0 udp 60 -g 10.2.0.1; natpmpc -a 1 0 tcp 60 -g 10.2.0.1 | grep -oP 'public\\ port\\ \\K\\w+' > /config/protonvpn-port; echo \"Port written to protonvpn-port file\"; cat /config/protonvpn-port; while true; do date; natpmpc -a 1 0 udp 60 -g 10.2.0.1 && natpmpc -a 1 0 tcp 60 -g 10.2.0.1 || { echo -e \"ERROR with natpmpc command \\a\"; break; }; sleep 45; done",
+            ]
           ports:
             - containerPort: 8000
           resources:
@@ -61,23 +68,29 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-          image: linuxserver/jackett:0.21.2428
+          image: linuxserver/transmission:4.0.5
           imagePullPolicy: IfNotPresent
-          name: jackett
+          name: transmission
           ports:
-            - containerPort: 9117
-              name: http
+            - name: http
+              containerPort: 9091
               protocol: TCP
           resources:
             requests:
-              cpu: 500m
-              memory: .5Gi
+              cpu: 1
+              memory: 1Gi
             limits:
-              memory: .5Gi
+              memory: 1Gi
           volumeMounts:
             - mountPath: /config
               name: media-config
-              subPath: jackett
+              subPath: transmission
+            - mountPath: /downloads/incomplete
+              name: media-data
+              subPath: incomplete/transmission
+            - mountPath: /downloads/complete
+              name: media-data
+              subPath: downloads/transmission
       dnsPolicy: None
       dnsConfig:
         nameservers: ["1.1.1.1", "1.0.0.1"]
@@ -86,3 +99,6 @@ spec:
         - name: media-config
           persistentVolumeClaim:
             claimName: media-config
+        - name: media-data
+          persistentVolumeClaim:
+            claimName: media-data

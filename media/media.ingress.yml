@@ -3,6 +3,9 @@ kind: Ingress
 metadata:
   namespace: media
   name: media-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      rewrite ^/soulseek / break;
 spec:
   ingressClassName: nginx
   rules:

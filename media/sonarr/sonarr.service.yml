@@ -5,6 +5,9 @@ metadata:
     app: sonarr
   name: sonarr
   namespace: media
+  annotations:
+    tailscale.com/hostname: "sonarr"
+    tailscale.com/expose: "true"
 spec:
   ports:
     - name: http

@@ -5,6 +5,9 @@ metadata:
   namespace: media
   labels:
     app: soulseek
+  annotations:
+    tailscale.com/hostname: "soulseek"
+    tailscale.com/expose: "true"
 spec:
   selector:
     app: soulseek

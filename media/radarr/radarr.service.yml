@@ -5,6 +5,9 @@ metadata:
     app: radarr
   name: radarr
   namespace: media
+  annotations:
+    tailscale.com/hostname: "radarr"
+    tailscale.com/expose: "true"
 spec:
   type: ClusterIP
   selector:
