@@ -5,6 +5,9 @@ metadata:
     app: jackett
   name: jackett
   namespace: media
+  annotations:
+    tailscale.com/hostname: "jackett"
+    tailscale.com/expose: "true"
 spec:
   ports:
     - name: http

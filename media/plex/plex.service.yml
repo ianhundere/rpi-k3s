@@ -7,8 +7,8 @@ metadata:
     app: plex
 spec:
   ports:
-    - name: https
-      port: 32400
+    - name: http
+      port: 80
       targetPort: 32400
 ---
 apiVersion: discovery.k8s.io/v1
