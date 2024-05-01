@@ -48,8 +48,8 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
 #### synology nas
 
 1. enable the folowing on the synology nas:
-    - (nfs service)[https://kb.synology.com/en-us/DSM/tutorial/How_to_access_files_on_Synology_NAS_within_the_local_network_NFS#7MrLJcRf6d]
-    - (nfs file permissions)[https://kb.synology.com/en-us/DSM/tutorial/How_to_access_files_on_Synology_NAS_within_the_local_network_NFS#sZtk71ItBX]
+    - [nfs service](https://kb.synology.com/en-us/DSM/tutorial/How_to_access_files_on_Synology_NAS_within_the_local_network_NFS#7MrLJcRf6d)
+    - [nfs file permissions](https://kb.synology.com/en-us/DSM/tutorial/How_to_access_files_on_Synology_NAS_within_the_local_network_NFS#sZtk71ItBX)
 2. follow the [nfs-subdir-external-provisioner](#install-nfs-provisioner) steps below for automated provisioning
 
 ### not recommended
@@ -119,13 +119,6 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
 4. label the worker nodes
     - `kubectl label node <worker_name> node-role.kubernetes.io/node=""`
 5. if mixing cpu architectures, include `nodeSelector` or `nodeAffinity` to ensure workloads get deployed to the relevant node.
-
-### uninstall
-
-1. master
-    - `sudo /usr/local/bin/k3s-uninstall.sh`
-2. workers
-    - `sudo /usr/local/bin/k3s-agent-uninstall.sh`
 
 ## connect remotely to cluster
 
@@ -392,12 +385,40 @@ EOF
 
 1. add repo / update
     - `helm repo add tailscale https://pkgs.tailscale.com/helmcharts; helm repo update`
-1. install tailscale
+2. install tailscale
     - `envsubst < provision-cluster/tailscale/tailscale.values.yml | helm upgrade tailscale-operator tailscale/tailscale-operator -n tailscale --values -`
+
+## automatic cert rotation/renewal
+
+[k3s client/server certs are valid for 365 days](https://docs.k3s.io/cli/certificate#client-and-server-certificates) and any that are expired, or within 90 days of expiring, are automatically renewed every time k3s starts. in other words, access to cluster will cease until local `kube-config` certs are updated:
+
+to disable:
+
+1. `sudo systemctl stop k3s.service`
+2. `hwclock --verbose`
+3. `sudo timedatectl set-ntp 0`
+4. `sudo systemctl stop systemd-timesyncd.service`
+5. `sudo systemctl status systemd-timesyncd.service`
+6. `sudo date $(date "+%m%d%H%M%Y" --date="90 days ago")`
+7. `sudo systemctl start k3s.service`
+
+to renable:
+
+1. `sudo systemctl stop k3s.service`
+2. `sudo systemctl start systemd-timesyncd.service`
+3. `sudo date $(date "+%m%d%H%M%Y" --date="now")`
+4. `sudo timedatectl set-ntp 1`
 
 ## backups
 
 make a copy of `/var/lib/rancher/k3s/server/`
+
+### uninstall
+
+1. master
+    - `sudo /usr/local/bin/k3s-uninstall.sh`
+2. workers
+    - `sudo /usr/local/bin/k3s-agent-uninstall.sh`
 
 ## debugging
 
