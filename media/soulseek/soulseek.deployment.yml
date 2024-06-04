@@ -65,11 +65,12 @@ spec:
       containers:
         - name: soulseek
           image: realies/soulseek:latest
+          imagePullPolicy: Always
           env:
             - name: PGID
-              value: "0"
+              value: "1000"
             - name: PUID
-              value: "0"
+              value: "1000"
           ports:
             - containerPort: 6080
           resources:
