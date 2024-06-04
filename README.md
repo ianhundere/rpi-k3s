@@ -1,10 +1,10 @@
 # rpi-k3s
 
-These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mini S with a N5095 CPU and 8GB RAM.
+These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM, a Beelink Mini S with a N5095 CPU and 8GB RAM and Synology ds723+.
 
 ## initial setup
 
-1. download latest vers of buster-lite (e.g. <https://downloads.raspberrypi.org/raspios_lite_armhf_latest>)
+1. download latest vers of raspberry pi OS (e.g. <https://www.raspberrypi.com/software/operating-systems/>)
 2. flash sd card
 3. create empty ssh file under `/boot/`
     - `touch ssh`
@@ -13,19 +13,16 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
 5. configure static ip via router; you'll also want to do this via `/etc/dhcpcd.conf` file.
 6. set password
     - `passwd`
-7. set hostname
+7. set hostname (e.g. master/worker)
     - `sudo vi /etc/hostname`
+    - `sudo vi /etc/hosts`
 8. upgrade / reboot
     - `sudo apt-get update && sudo apt-get -y dist-upgrade && sudo reboot`
 9. enable container features by adding the following to `/boot/cmdline.txt`:
+
     - `cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory`
-10. enable arm64 cpu architecture by adding the following to `/boot/config.txt` under `[pi4]`:
 
-    - ```bash
-        arm_64bit=1
-      ```
-
-11. edit `/etc/dhcpcd.conf`
+10. edit `/etc/dhcp/dhclient.conf`
 
     - ```interface eth0
          static ip_address=<pi_ip>/24
@@ -33,11 +30,10 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM and a Beelink Mi
          static domain_name_servers=<router_ip>
       ```
 
-12. switch firewall to legacy config:
-    - `sudo update-alternatives --set iptables /usr/sbin/iptables-legacy`
-    - `sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy`
-13. configure poe hat fan control via `/boot/config.txt` and use `/opt/vc/bin/vcgencmd measure_temp` to check temp (the config may be diff depending on poe hat used):
-    - `dtoverlay=i2c-fan,emc2301`
+11. configure poe hat fan control via `/boot/config.txt` and use `/opt/vc/bin/vcgencmd measure_temp` to check temp (the config may be diff depending on poe hat used):
+    - ```[all]
+         dtoverlay=i2c-fan,emc2301`
+      ```
 
 ## configure nfs storage
 
