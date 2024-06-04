@@ -75,7 +75,7 @@ spec:
             - containerPort: 6080
           resources:
             requests:
-              cpu: 750m
+              cpu: 1
               memory: .5Gi
             limits:
               memory: .5Gi

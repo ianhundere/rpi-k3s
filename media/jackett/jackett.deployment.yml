@@ -18,6 +18,16 @@ spec:
       labels:
         app: jackett
     spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
       hostname: jackett
       initContainers:
         - name: sysctl-setup
@@ -72,10 +82,10 @@ spec:
               protocol: TCP
           resources:
             requests:
-              cpu: 500m
-              memory: .5Gi
+              cpu: 1
+              memory: 1Gi
             limits:
-              memory: .5Gi
+              memory: 1Gi
           volumeMounts:
             - mountPath: /config
               name: media-config
