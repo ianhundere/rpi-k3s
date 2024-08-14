@@ -31,7 +31,7 @@ spec:
           securityContext:
             privileged: true
         - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:7.5.1
+          image: ghcr.io/tprasadtp/protonwire:7.5.3
           restartPolicy: Always
           env:
             - name: WIREGUARD_PRIVATE_KEY
@@ -40,7 +40,7 @@ spec:
                   name: soulseek
                   key: key
             - name: PROTONVPN_SERVER
-              value: "CH-FI#1"
+              value: "CH-DK#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH

@@ -1,0 +1,10 @@
+startupapicheck:
+  timeout: 5m
+
+crds:
+  enabled: true
+
+# as per: https://github.com/cert-manager/cert-manager/issues/5189
+webhook:
+  hostNetwork: true
+  securePort: 10260
