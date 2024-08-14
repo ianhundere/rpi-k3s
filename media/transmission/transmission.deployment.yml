@@ -31,7 +31,7 @@ spec:
           securityContext:
             privileged: true
         - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:7.5.1
+          image: ghcr.io/tprasadtp/protonwire:7.5.3
           restartPolicy: Always
           env:
             - name: WIREGUARD_PRIVATE_KEY
@@ -40,7 +40,7 @@ spec:
                   name: transmission
                   key: key
             - name: PROTONVPN_SERVER
-              value: "CH-CZ#1"
+              value: "IS-NL#1"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
@@ -68,7 +68,7 @@ spec:
               value: "1000"
             - name: PGID
               value: "1000"
-          image: linuxserver/transmission:4.0.5
+          image: linuxserver/transmission:4.0.6
           imagePullPolicy: IfNotPresent
           name: transmission
           ports:

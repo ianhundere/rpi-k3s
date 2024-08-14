@@ -62,7 +62,7 @@ spec:
               memory: 1Gi
       containers:
         - name: unifi-network-application
-          image: lscr.io/linuxserver/unifi-network-application:8.1.113
+          image: lscr.io/linuxserver/unifi-network-application:8.3.32
           env:
             - name: PGID
               value: "1000"
@@ -96,6 +96,6 @@ spec:
           resources:
             requests:
               cpu: 2
-              memory: 2Gi
+              memory: 1.5Gi
             limits:
-              memory: 2Gi
+              memory: 1.5Gi
