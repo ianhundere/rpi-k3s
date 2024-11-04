@@ -204,7 +204,7 @@ spec:
     solvers:
     - http01:
         ingress:
-          class: nginx
+          ingressClassName: nginx
 EOF
 ```
 
@@ -225,7 +225,7 @@ spec:
     solvers:
     - http01:
         ingress:
-          ingressClassName:: nginx
+          ingressClassName: nginx
 EOF
 ```
 
