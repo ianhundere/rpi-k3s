@@ -99,9 +99,9 @@ spec:
           resources:
             requests:
               cpu: 1
-              memory: .5Gi
+              memory: 1800Mi
             limits:
-              memory: .5Gi
+              memory: 1800Mi
           volumeMounts:
             - name: media-config
               mountPath: /data/.SoulseekQt
