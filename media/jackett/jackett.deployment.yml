@@ -98,3 +98,5 @@ spec:
         - name: media-config
           persistentVolumeClaim:
             claimName: media-config
+      nodeSelector:
+        kubernetes.io/arch: arm64
