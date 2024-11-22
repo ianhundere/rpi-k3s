@@ -43,7 +43,7 @@ spec:
             name: unifi-controller-mongo-init-script
       initContainers:
         - name: unifi-db
-          image: docker.io/mongo:3.6
+          image: docker.io/mongo:3.6.23
           restartPolicy: Always
           volumeMounts:
             - name: unifi
@@ -62,7 +62,7 @@ spec:
               memory: 1Gi
       containers:
         - name: unifi-network-application
-          image: lscr.io/linuxserver/unifi-network-application:8.3.32
+          image: lscr.io/linuxserver/unifi-network-application:8.6.9
           env:
             - name: PGID
               value: "1000"
