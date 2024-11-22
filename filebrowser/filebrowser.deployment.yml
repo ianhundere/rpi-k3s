@@ -42,7 +42,7 @@ spec:
     spec:
       containers:
         - name: filebrowser
-          image: filebrowser/filebrowser:v2.28.0
+          image: filebrowser/filebrowser:v2.31.2
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: filebrowser
