@@ -1,38 +1,38 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  namespace: filebrowser
-  name: filebrowser
+  name: calibre
+  namespace: calibre
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     cert-manager.io/issue-temporary-certificate: "true"
     acme.cert-manager.io/http01-edit-in-place: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: 50m
     nginx.ingress.kubernetes.io/limit-connections: "10"
-    nginx.ingress.kubernetes.io/limit-rpm: "30"
-    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/configuration-snippet: |
       more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
       more_set_headers "server: hide";
-      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
       more_set_headers "X-Content-Type-Options: nosniff";
       more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+    nginx.ingress.kubernetes.io/limit-rpm: "30"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - "${FILEBROWSER_HOST}"
-      secretName: filebrowser-cert
+        - "${CALIBRE_HOST}"
+      secretName: calibre-cert
   rules:
-    - host: "${FILEBROWSER_HOST}"
+    - host: ${CALIBRE_HOST}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: filebrowser
+                name: calibre
                 port:
-                  number: 44301
+                  number: 8083
