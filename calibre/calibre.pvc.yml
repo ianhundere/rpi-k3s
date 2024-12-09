@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: calibre
+  namespace: calibre
+  labels:
+    app: calibre
+spec:
+  storageClassName: nfs-rpik3s
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi

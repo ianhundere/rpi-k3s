@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calibre
+  namespace: calibre
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: calibre
+  template:
+    metadata:
+      labels:
+        app: calibre
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: calibre
+          image: lscr.io/linuxserver/calibre-web:latest
+          ports:
+            - containerPort: 8083
+              name: http
+            - containerPort: 8083
+              name: opds
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "UTC"
+            - name: DOCKER_MODS
+              value: linuxserver/mods:universal-calibre
+            - name: ENABLE_OPDS
+              value: "1"
+          volumeMounts:
+            - name: calibre
+              mountPath: /config
+              subPath: config
+            - name: calibre
+              mountPath: /books
+              subPath: library
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "200m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: calibre
+          persistentVolumeClaim:
+            claimName: calibre
