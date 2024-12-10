@@ -21,8 +21,6 @@ spec:
           ports:
             - containerPort: 8083
               name: http
-            - containerPort: 8083
-              name: opds
           env:
             - name: PUID
               value: "1000"
@@ -32,8 +30,6 @@ spec:
               value: "UTC"
             - name: DOCKER_MODS
               value: linuxserver/mods:universal-calibre
-            - name: ENABLE_OPDS
-              value: "1"
           volumeMounts:
             - name: calibre
               mountPath: /config

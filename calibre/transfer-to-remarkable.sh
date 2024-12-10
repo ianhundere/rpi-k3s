@@ -1,25 +1,29 @@
 #!/bin/bash
 
 # default config
-REMARKABLE_HOST=${REMARKABLE_HOST:-"root@10.11.99.1"}
+REMARKABLE_USB="root@10.11.99.1"
+REMARKABLE_WIFI="root@192.168.3.76"
+REMARKABLE_HOST=${REMARKABLE_HOST:-"remarkable"}
 REMARKABLE_DIR=${REMARKABLE_DIR:-"/home/root/.local/share/remarkable/xochitl"}
-TIMEOUT=${TIMEOUT:-5} # SSH connection timeout in seconds
+TIMEOUT=${TIMEOUT:-5}
 SUPPORTED_FORMATS="pdf|epub"
 XOCHITL_SERVICE="xochitl"
 
 show_usage() {
-    echo "Usage: $0 [OPTIONS] <directory-with-books>"
+    echo "Usage: $(basename "$0") [OPTIONS] <directory-with-books>"
     echo
     echo "Options:"
+    echo "  -h, --help          Show this help message"
     echo "  --purge-except PATTERN    Remove all files except those matching PATTERN"
     echo "  --remove FILE       Remove specific file from reMarkable"
     echo "  -r, --restart       Restart xochitl after transfer (default: true)"
     echo "  -q, --quiet         Suppress non-error output"
     echo
-    echo "Example:"
-    echo "  $0 ~/Desktop/Books"
-    echo "  $0 --purge-except \"Quick sheets|Notebook tutorial\"  # keeps only these, removes rest"
-    echo "  $0 --remove \"My Book.pdf\""
+    echo "Examples:"
+    echo "  $(basename "$0") ~/Desktop/Books                                    # Upload all books from directory"
+    echo "  $(basename "$0") --purge-except \"Quick sheets|Notebook tutorial\"  # Keep only matching files"
+    echo "  $(basename "$0") --remove \"My Book.pdf\"                          # Remove specific file"
+    echo "  $(basename "$0") -q ~/Desktop/Books                                # Quiet mode"
     exit 1
 }
 
@@ -213,6 +217,13 @@ cleanup_remarkable() {
     echo "Cleanup complete!"
 }
 
+test_remarkable_connection() {
+    if ssh -q "$REMARKABLE_HOST" exit 2>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
 main() {
     local restart_xochitl=true
     local book_dir=""
@@ -253,8 +264,8 @@ main() {
     [ -z "$book_dir" ] && show_usage
 
     # check connection
-    if ! ssh -q "$REMARKABLE_HOST" exit; then
-        echo "Cannot connect to reMarkable tablet"
+    if ! test_remarkable_connection; then
+        echo "Cannot connect to reMarkable tablet via USB ($REMARKABLE_USB) or WiFi ($REMARKABLE_WIFI)"
         exit 1
     fi
 
