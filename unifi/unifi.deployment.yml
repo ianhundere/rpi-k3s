@@ -57,9 +57,9 @@ spec:
           resources:
             requests:
               cpu: 300m
-              memory: 1Gi
+              memory: 1.250Gi
             limits:
-              memory: 1Gi
+              memory: 1.250Gi
       containers:
         - name: unifi-network-application
           image: lscr.io/linuxserver/unifi-network-application:8.6.9
