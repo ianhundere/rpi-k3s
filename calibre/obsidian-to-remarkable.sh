@@ -147,34 +147,35 @@ test_remarkable_connection() {
 show_usage() {
     echo "Usage: $(basename "$0") [OPTIONS] [FILES/DIRECTORIES]"
     echo
-    echo "Convert markdown files to PDF and upload them to reMarkable tablet."
+    echo "Convert markdown files to PDF and upload them (or upload PDF files directly) to reMarkable tablet."
     echo
     echo "Options:"
     echo "  -h, --help    Show this help message"
     echo
     echo "Arguments:"
-    echo "  If no arguments provided, processes all .md files from ~/notes"
+    echo "  If no arguments provided, processes all .md and .pdf files from ~/notes"
     echo "  Otherwise, processes specified files or directories"
     echo
     echo "Examples:"
     echo "  $(basename "$0")                           # Process all files in ~/notes"
-    echo "  $(basename "$0") ~/notes/myfile.md         # Process single file"
-    echo "  $(basename "$0") ~/notes/file1.md file2.md # Process multiple files"
-    echo "  $(basename "$0") ~/documents/markdown/     # Process all .md files in directory"
+    echo "  $(basename "$0") ~/notes/myfile.md         # Process single markdown file"
+    echo "  $(basename "$0") ~/notes/document.pdf      # Upload single PDF file"
+    echo "  $(basename "$0") ~/notes/file1.md file2.pdf # Process multiple files"
+    echo "  $(basename "$0") ~/documents/              # Process all supported files in directory"
     exit 1
 }
 
 main() {
-    local md_files=()
+    local files=()
 
     # get files to process
     if [ $# -gt 0 ]; then
-        md_files=("$@")
+        files=("$@")
     else
-        # process all markdown files in vault
+        # process all markdown and pdf files in vault
         while IFS= read -r -d '' file; do
-            md_files+=("$file")
-        done < <(find "$OBSIDIAN_VAULT" -name "*.md" -print0)
+            files+=("$file")
+        done < <(find "$OBSIDIAN_VAULT" \( -name "*.md" -o -name "*.pdf" \) -print0)
     fi
 
     # check remarkable connection
@@ -186,15 +187,21 @@ main() {
     # stop remarkable ui
     ssh_cmd "systemctl stop xochitl"
 
-    for md in "${md_files[@]}"; do
-        title=$(basename "${md%.md}")
-        pdf="$TEMP_DIR/${title// /_}.pdf"
+    for file in "${files[@]}"; do
+        title=$(basename "${file%.*}")
+        ext="${file##*.}"
 
-        # convert and upload
-        if convert_to_pdf "$md" "$pdf"; then
-            upload_to_remarkable "$pdf"
+        if [ "$ext" = "pdf" ]; then
+            # directly upload pdfs
+            upload_to_remarkable "$file"
         else
-            echo "Failed to convert: $title"
+            # convert and upload
+            pdf="$TEMP_DIR/${title// /_}.pdf"
+            if convert_to_pdf "$file" "$pdf"; then
+                upload_to_remarkable "$pdf"
+            else
+                echo "Failed to convert: $title"
+            fi
         fi
     done
 
