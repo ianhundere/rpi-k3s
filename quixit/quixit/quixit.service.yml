@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: quixit-backend-service
+  namespace: quixit
+spec:
+  selector:
+    app: quixit-backend
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: ClusterIP 
