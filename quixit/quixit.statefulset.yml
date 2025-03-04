@@ -1,0 +1,195 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+ name: quixit
+ namespace: quixit
+spec:
+ serviceName: quixit
+ replicas: 1
+ selector:
+  matchLabels:
+   app: quixit
+ template:
+  metadata:
+   labels:
+    app: quixit
+  spec:
+   imagePullSecrets:
+    - name: ghcr-secret
+   containers:
+    - name: postgres
+      image: postgres:15-alpine
+      ports:
+       - containerPort: 5432
+         name: postgres
+      env:
+       - name: POSTGRES_USER
+         value: postgres
+       - name: POSTGRES_PASSWORD
+         valueFrom:
+          secretKeyRef:
+           name: quixit
+           key: postgres_password
+       - name: POSTGRES_DB
+         value: sample_exchange
+       - name: PGDATA
+         value: /var/lib/postgresql/data/pgdata
+      volumeMounts:
+       - name: postgres-data
+         mountPath: /var/lib/postgresql/data
+      resources:
+       requests:
+        memory: '256Mi'
+        cpu: '100m'
+       limits:
+        memory: '512Mi'
+        cpu: '500m'
+      livenessProbe:
+       exec:
+        command:
+         - pg_isready
+         - -U
+         - postgres
+       initialDelaySeconds: 30
+       periodSeconds: 10
+      readinessProbe:
+       exec:
+        command:
+         - pg_isready
+         - -U
+         - postgres
+       initialDelaySeconds: 5
+       periodSeconds: 5
+    - name: quixit
+      image: ghcr.io/ianhundere/quixit:latest
+      imagePullPolicy: Always
+      ports:
+       - containerPort: 8080
+         name: http
+       - containerPort: 3000
+         name: frontend
+      env:
+       # Server settings
+       - name: GIN_MODE
+         value: 'release'
+       - name: PORT
+         value: '8080'
+
+       # Production settings
+       - name: DEV_MODE
+         value: 'false'
+       - name: BYPASS_TIME_WINDOWS
+         value: 'false'
+       - name: BYPASS_OAUTH
+         value: 'false'
+
+       # Host settings
+       - name: HOST_DOMAIN
+         value: '${QUIXIT_HOST}'
+       - name: HOST_PORT
+         value: '3000'
+
+       # JWT durations
+       - name: JWT_ACCESS_DURATION
+         value: '15m'
+       - name: JWT_REFRESH_DURATION
+         value: '168h'
+
+       # Storage settings
+       - name: STORAGE_PATH
+         value: '/app/storage'
+
+       # Database settings
+       - name: DB_HOST
+         value: 'localhost'
+       - name: DB_PORT
+         value: '5432'
+       - name: DB_USER
+         value: 'postgres'
+       - name: DB_PASSWORD
+         valueFrom:
+          secretKeyRef:
+           name: quixit
+           key: postgres_password
+       - name: DB_NAME
+         value: 'sample_exchange'
+
+       # OAuth settings
+       - name: OAUTH_REDIRECT_URL
+         value: 'https://${QUIXIT_HOST}/auth/callback'
+
+       # Auth settings
+       - name: JWT_SECRET
+         valueFrom:
+          secretKeyRef:
+           name: quixit
+           key: jwt_secret
+       - name: OAUTH_GITHUB_CLIENT_ID
+         valueFrom:
+          secretKeyRef:
+           name: quixit
+           key: github_client_id
+       - name: OAUTH_GITHUB_CLIENT_SECRET
+         valueFrom:
+          secretKeyRef:
+           name: quixit
+           key: github_client_secret
+       - name: OAUTH_GOOGLE_CLIENT_ID
+         valueFrom:
+          secretKeyRef:
+           name: quixit
+           key: google_client_id
+       - name: OAUTH_GOOGLE_CLIENT_SECRET
+         valueFrom:
+          secretKeyRef:
+           name: quixit
+           key: google_client_secret
+       - name: OAUTH_DISCORD_CLIENT_ID
+         valueFrom:
+          secretKeyRef:
+           name: quixit
+           key: discord_client_id
+       - name: OAUTH_DISCORD_CLIENT_SECRET
+         valueFrom:
+          secretKeyRef:
+           name: quixit
+           key: discord_client_secret
+      volumeMounts:
+       - name: quixit-data
+         mountPath: /app/storage
+      resources:
+       requests:
+        memory: '256Mi'
+        cpu: '100m'
+       limits:
+        memory: '512Mi'
+        cpu: '500m'
+      livenessProbe:
+       httpGet:
+        path: /api/v1/health
+        port: http
+       initialDelaySeconds: 30
+       periodSeconds: 10
+      readinessProbe:
+       httpGet:
+        path: /api/v1/health
+        port: http
+       initialDelaySeconds: 5
+       periodSeconds: 5
+ volumeClaimTemplates:
+  - metadata:
+     name: postgres-data
+    spec:
+     accessModes: ['ReadWriteOnce']
+     storageClassName: nfs-music
+     resources:
+      requests:
+       storage: 10Gi
+  - metadata:
+     name: quixit-data
+    spec:
+     accessModes: ['ReadWriteOnce']
+     storageClassName: nfs-music
+     resources:
+      requests:
+       storage: 20Gi

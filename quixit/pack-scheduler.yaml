@@ -1,0 +1,105 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: create-sample-pack
+  namespace: quixit
+spec:
+  # run at 00:00 every friday - weekly schedule
+  schedule: "0 0 * * 5"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: pack-creator
+              # use postgres client image directly
+              image: postgres:15-alpine
+              env:
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: quixit
+                      key: postgres_password
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # skip the api and use direct db access
+                  TITLE="Sample Pack $(date +%Y-%m-%d)"
+                  echo "creating new sample pack: $TITLE"
+
+                  # set password from env var
+                  export PGPASSWORD="$DB_PASSWORD"
+                  echo "database password set, length: ${#PGPASSWORD}"
+
+                  # insert directly via postgres
+                  echo "inserting pack directly into database..."
+                  QUERY="INSERT INTO sample_packs (title, description, created_at, updated_at, is_active) VALUES ('$TITLE', 'Weekly sample pack starting $(date +%Y-%m-%d)', NOW(), NOW(), true) RETURNING id;"
+                  echo "running query: $QUERY"
+
+                  # run the query with proper service dns name
+                  PACK_ID=$(psql -h quixit.quixit.svc.cluster.local -U postgres -d sample_exchange -t -c "$QUERY")
+                  PACK_ID=$(echo "$PACK_ID" | xargs)  # trim whitespace
+
+                  if [ -z "$PACK_ID" ]; then
+                    echo "failed to create sample pack"
+                    exit 1
+                  else
+                    echo "successfully created sample pack with id: $PACK_ID"
+                  fi
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: close-sample-pack
+  namespace: quixit
+spec:
+  # run at 23:59 every thursday (before creating new pack)
+  schedule: "59 23 * * 4"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: pack-closer
+              # use postgres client image directly
+              image: postgres:15-alpine
+              env:
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: quixit
+                      key: postgres_password
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # skip the api and use direct db access
+                  echo "fetching active pack id directly from database..."
+
+                  # set password from env var
+                  export PGPASSWORD="$DB_PASSWORD"
+                  echo "database password set, length: ${#PGPASSWORD}"
+
+                  # get active pack id using service dns name
+                  PACK_ID=$(psql -h quixit.quixit.svc.cluster.local -U postgres -d sample_exchange -t -c "SELECT id FROM sample_packs WHERE is_active = true ORDER BY created_at DESC LIMIT 1;")
+                  PACK_ID=$(echo "$PACK_ID" | xargs)  # trim whitespace
+
+                  echo "current active pack id: $PACK_ID"
+
+                  if [ -z "$PACK_ID" ] || [ "$PACK_ID" = "null" ]; then
+                    echo "no active pack found to close"
+                  else
+                    echo "closing pack id: $PACK_ID via direct db update"
+                    CLOSE_RESULT=$(psql -h quixit.quixit.svc.cluster.local -U postgres -d sample_exchange -t -c "UPDATE sample_packs SET is_active = false, updated_at = NOW() WHERE id = $PACK_ID RETURNING id;")
+                    CLOSE_RESULT=$(echo "$CLOSE_RESULT" | xargs)  # trim whitespace
+                    
+                    if [ -z "$CLOSE_RESULT" ]; then
+                      echo "failed to close pack"
+                      exit 1
+                    else  
+                      echo "successfully closed pack with id: $CLOSE_RESULT"
+                    fi
+                  fi
+          restartPolicy: OnFailure
