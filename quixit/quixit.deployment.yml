@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quixit-scripts
+  namespace: quixit
+  labels:
+    app: quixit
+data:
+  init-quixit.sh: |
+    #!/usr/bin/env sh
+    /quixit config init
+    /quixit config set \
+        --port 44301 \
+        --address 0.0.0.0 \
+        --baseurl "/" \
+        --root "/srv" \
+        --branding.name "${QUIXIT_HOST}" \
+        --branding.disableExternal
+    /quixit users add ${QUIXIT_USER} ${QUIXIT_PW} --perm.admin
+    exec /quixit --port 44301 --disable-exec
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quixit
+  namespace: quixit
+  labels:
+    app: quixit
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: quixit
+  template:
+    metadata:
+      labels:
+        app: quixit
+    spec:
+      containers:
+        - name: quixit
+          image: filebrowser/filebrowser:v2.32.0
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: quixit
+              mountPath: /srv
+              subPath: files
+            - name: quixit
+              mountPath: /database.db
+              subPath: database.db
+            - name: quixit-scripts
+              mountPath: /scripts
+          ports:
+            - containerPort: 44301
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              memory: 512Mi
+          command: ["/bin/sh", "-c", "/scripts/init-quixit.sh"]
+      volumes:
+        - name: quixit
+          persistentVolumeClaim:
+            claimName: quixit
+        - name: quixit-scripts
+          configMap:
+            name: quixit-scripts
+            defaultMode: 0755
