@@ -29,6 +29,13 @@ spec:
     - host: "${QUIXIT_HOST}"
       http:
         paths:
+          # - path: /oauth2
+          #   pathType: Prefix
+          #   backend:
+          #     service:
+          #       name: oauth2-proxy
+          #       port:
+          #         number: 4180
           - path: /
             pathType: Prefix
             backend:

@@ -1,0 +1,38 @@
+{{- if .Values.search.ingress.enabled }}
+apiVersion: "networking.k8s.io/v1"
+kind: Ingress
+metadata:
+  labels:
+    {{- include "rekor.search.labels" . | nindent 4 }}
+  name: {{ template "rekor.search.fullname" . }}
+{{ include "rekor.namespace" . | indent 2 }}
+  annotations:
+{{ toYaml .Values.search.ingress.annotations | indent 4 }}
+{{- if .Values.search.authEnabled }}
+    nginx.ingress.kubernetes.io/auth-signin: https://rekor-search.arcs.{{ .Values.search.ssoEnvironment }}.aws.swacorp.com/oauth2/start?rd=$escaped_request_uri
+    nginx.ingress.kubernetes.io/auth-url: http://oauth2-proxy.rekor-system.svc.cluster.local/oauth2/auth
+{{- end}}
+spec:
+{{- if .Values.search.ingress.className }}
+  ingressClassName: {{ .Values.search.ingress.className }}
+{{- end }}
+  rules:
+    {{- range .Values.search.ingress.hosts }}
+    - host: {{ required "An Ingress hostname is required" .host | quote }}
+      http:
+        paths:
+          - path: {{ .path }}
+            pathType: {{ default "Prefix" .pathType }}
+            backend: {{- include "rekor.search.ingress.backend" $  | nindent 14 }}
+    {{- end }}
+{{- if .Values.search.ingress.tls }}
+  tls:
+    {{- range .Values.search.ingress.tls }}
+    - hosts:
+      {{- range .hosts }}
+      - {{ . | quote }}
+      {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+{{- end -}}
+{{- end }}

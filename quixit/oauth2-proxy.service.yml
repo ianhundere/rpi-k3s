@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+ name: oauth2-proxy
+ namespace: quixit
+ labels:
+  app: oauth2-proxy
+spec:
+ ports:
+  - name: http
+    port: 4180
+    targetPort: 4180
+    protocol: TCP
+ selector:
+  app: oauth2-proxy

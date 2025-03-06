@@ -1,72 +1,95 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: quixit-scripts
-  namespace: quixit
-  labels:
-    app: quixit
+ name: quixit-scripts
+ namespace: quixit
+ labels:
+  app: quixit
 data:
-  init-quixit.sh: |
-    #!/usr/bin/env sh
-    /quixit config init
-    /quixit config set \
-        --port 44301 \
-        --address 0.0.0.0 \
-        --baseurl "/" \
-        --root "/srv" \
-        --branding.name "${QUIXIT_HOST}" \
-        --branding.disableExternal
-    /quixit users add ${QUIXIT_USER} ${QUIXIT_PW} --perm.admin
-    exec /quixit --port 44301 --disable-exec
+ init-quixit.sh: |
+  #!/usr/bin/env sh
+  mkdir -p /branding/img 
+
+  cp /branding/img/record.svg /branding/img/logo.svg
+
+  /filebrowser config init
+  /filebrowser config set \
+      --port 44301 \
+      --address 0.0.0.0 \
+      --baseurl "/" \
+      --root "/srv" \
+      --branding.name "${QUIXIT_HOST}" \
+      --branding.disableExternal \
+      --branding.files "/branding"
+
+  mkdir -p /srv/SamplePacks/Current
+  mkdir -p /srv/SamplePacks/Archive
+  echo "Sample directories created"
+  /filebrowser users add ${QUIXIT_USER} ${QUIXIT_PW} --perm.admin
+  exec /filebrowser --port 44301 --disable-exec
+
+ branding_img_record_svg: |
+  <?xml version="1.0" encoding="UTF-8"?>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30">
+    <circle cx="15" cy="15" r="12" fill="#6B5B95"/>
+    <circle cx="15" cy="15" r="4" fill="#98FB98"/>
+    <circle cx="15" cy="15" r="2" fill="#6B5B95"/>
+  </svg>
+
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: quixit
-  namespace: quixit
-  labels:
-    app: quixit
+ name: quixit
+ namespace: quixit
+ labels:
+  app: quixit
 spec:
-  replicas: 1
-  revisionHistoryLimit: 3
-  strategy:
-    type: RollingUpdate
-  selector:
-    matchLabels:
-      app: quixit
-  template:
-    metadata:
-      labels:
-        app: quixit
-    spec:
-      containers:
-        - name: quixit
-          image: filebrowser/filebrowser:v2.32.0
-          imagePullPolicy: IfNotPresent
-          volumeMounts:
-            - name: quixit
-              mountPath: /srv
-              subPath: files
-            - name: quixit
-              mountPath: /database.db
-              subPath: database.db
-            - name: quixit-scripts
-              mountPath: /scripts
-          ports:
-            - containerPort: 44301
-              protocol: TCP
-          resources:
-            requests:
-              cpu: 500m
-              memory: 512Mi
-            limits:
-              memory: 512Mi
-          command: ["/bin/sh", "-c", "/scripts/init-quixit.sh"]
-      volumes:
-        - name: quixit
-          persistentVolumeClaim:
-            claimName: quixit
-        - name: quixit-scripts
-          configMap:
-            name: quixit-scripts
-            defaultMode: 0755
+ replicas: 1
+ revisionHistoryLimit: 3
+ strategy:
+  type: RollingUpdate
+ selector:
+  matchLabels:
+   app: quixit
+ template:
+  metadata:
+   labels:
+    app: quixit
+  spec:
+   containers:
+    - name: quixit
+      image: filebrowser/filebrowser:v2.32.0
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+       - name: quixit
+         mountPath: /srv
+         subPath: files
+       - name: quixit
+         mountPath: /database
+         subPath: database
+       - name: quixit-scripts
+         mountPath: /scripts/init-quixit.sh
+         subPath: init-quixit.sh
+       - name: quixit-scripts
+         mountPath: /branding/img/record.svg
+         subPath: branding_img_record_svg
+      ports:
+       - name: http
+         containerPort: 44301
+         protocol: TCP
+      resources:
+       requests:
+        cpu: 500m
+        memory: 512Mi
+       limits:
+        memory: 512Mi
+      command: ['/bin/sh', '-c', '/scripts/init-quixit.sh']
+   volumes:
+    - name: quixit
+      persistentVolumeClaim:
+       claimName: quixit
+    - name: quixit-scripts
+      configMap:
+       name: quixit-scripts
+       defaultMode: 0755

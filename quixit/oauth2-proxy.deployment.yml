@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: oauth2-proxy
+ namespace: quixit
+ labels:
+  app: oauth2-proxy
+spec:
+ replicas: 1
+ selector:
+  matchLabels:
+   app: oauth2-proxy
+ template:
+  metadata:
+   labels:
+    app: oauth2-proxy
+  spec:
+   containers:
+    - name: oauth2-proxy
+      image: quay.io/oauth2-proxy/oauth2-proxy:v7.4.0
+      args:
+       - --provider=github
+       - --email-domain=*
+       - --upstream=http://quixit.quixit.svc.cluster.local:44301
+       - --http-address=0.0.0.0:4180
+       - --cookie-secret=$(COOKIE_SECRET)
+       - --client-id=$(CLIENT_ID)
+       - --client-secret=$(CLIENT_SECRET)
+       - --redirect-url=https://$(QUIXIT_HOST)/oauth2/callback
+       - --cookie-secure=true
+       - --pass-access-token=true
+       - --set-xauthrequest=true
+      env:
+       - name: COOKIE_SECRET
+         valueFrom:
+          secretKeyRef:
+           name: oauth2-proxy-secrets
+           key: cookie-secret
+       - name: CLIENT_ID
+         valueFrom:
+          secretKeyRef:
+           name: oauth2-proxy-secrets
+           key: client-id
+       - name: CLIENT_SECRET
+         valueFrom:
+          secretKeyRef:
+           name: oauth2-proxy-secrets
+           key: client-secret
+       - name: QUIXIT_HOST
+         value: '${QUIXIT_HOST}'
+      ports:
+       - containerPort: 4180
+         protocol: TCP
+      resources:
+       requests:
+        cpu: 100m
+        memory: 128Mi
+       limits:
+        memory: 256Mi
