@@ -1,0 +1,560 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: quixit-scripts
+ namespace: quixit
+ labels:
+  app: quixit
+data:
+ init-quixit.sh: |
+  #!/usr/bin/env sh
+
+  # Create logs directory
+  mkdir -p /logs
+
+  /filebrowser config init --database /database/filebrowser.db
+
+  /filebrowser config set \
+      --database /database/filebrowser.db \
+      --port 44301 \
+      --address 0.0.0.0 \
+      --baseurl "/" \
+      --root "/srv" \
+      --branding.name "${QUIXIT_HOST}" \
+      --branding.disableExternal \
+      --branding.disableUsedPercentage \
+      --branding.files "/branding" \
+      --signup \
+      --log "/logs/filebrowser.log"
+
+  # create main quixit directory
+  mkdir -p /srv/quixit
+
+  # create welcome file
+  echo "WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE" > /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+  echo "each week, a new quixit-<number> folder will be created." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+  echo "phase 1: upload samples to the samples directory" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+  echo "phase 2: download the sample pack and upload your songs to the songs directory" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+  echo "all previous quixit challenges are available in read-only mode." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+
+  # create or update admin user
+  /filebrowser users add "${QUIXIT_USER}" "${QUIXIT_PW}" --perm.admin --database /database/filebrowser.db || \
+  /filebrowser users update "${QUIXIT_USER}" --password "${QUIXIT_PW}" --database /database/filebrowser.db
+
+  # set simple default permissions for all users
+  # the file-watcher sidecar will enforce stricter rules at the filesystem level
+  /filebrowser config set \
+      --database /database/filebrowser.db \
+      --scope "/quixit" \
+      --perm.admin=false \
+      --perm.execute=false \
+      --perm.create=true \
+      --perm.rename=false \
+      --perm.modify=false \
+      --perm.delete=false \
+      --perm.share=false \
+      --perm.download=true
+
+  # start filebrowser
+  exec /filebrowser --port 44301 --database /database/filebrowser.db --log "/logs/filebrowser.log"
+ watcher.sh: |
+  #!/bin/sh
+
+  # watcher.sh - monitors file uploads and enforces phase rules
+
+  LOG_FILE="/tmp/watcher.log"
+
+  log() {
+    echo "[$(date)] $1" >> $LOG_FILE
+  }
+
+  log "starting file watcher..."
+
+  # function to check if a file is in the correct directory based on phase
+  check_file() {
+    FILE=$1
+    log "checking file: $FILE"
+    
+    # don't allow uploads to root directory
+    if [ "$(dirname "$FILE")" = "/srv/quixit" ]; then
+      log "file uploaded to root directory, not allowed. removing file."
+      rm -f "$FILE"
+      return 1
+    fi
+    
+    # extract quixit folder from path
+    QUIXIT_FOLDER=""
+    if echo "$FILE" | grep -q "quixit-[0-9]"; then
+      QUIXIT_FOLDER=$(echo "$FILE" | grep -o "quixit-[0-9][0-9]*")
+      log "quixit_folder: $QUIXIT_FOLDER"
+      
+      # don't allow uploads directly to quixit folder
+      if [ "$(dirname "$FILE")" = "/srv/quixit/$QUIXIT_FOLDER" ]; then
+        log "file uploaded directly to quixit folder, not in samples or songs. removing file."
+        rm -f "$FILE"
+        return 1
+      fi
+    else
+      log "not in a quixit folder, removing file"
+      rm -f "$FILE"
+      return 1
+    fi
+    
+    # check for songs phase
+    if ls "/srv/quixit/$QUIXIT_FOLDER/SUBMIT_SONGS_BEFORE_"* 2>/dev/null; then
+      log "found songs phase indicator file"
+      
+      # we're in songs phase, only allow uploads to the songs directory
+      if echo "$FILE" | grep -q "/songs/"; then
+        log "song upload allowed during songs phase"
+        return 0
+      else
+        log "not uploading to songs directory during songs phase, removing file"
+        rm -f "$FILE"
+        return 1
+      fi
+    fi
+    
+    # check for samples phase
+    if ls "/srv/quixit/$QUIXIT_FOLDER/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"* 2>/dev/null; then
+      log "found samples phase indicator file"
+      
+      # we're in samples phase, only allow uploads to the samples directory
+      if echo "$FILE" | grep -q "/samples/"; then
+        log "sample upload allowed during samples phase"
+        return 0
+      else
+        log "not uploading to samples directory during samples phase, removing file"
+        rm -f "$FILE"
+        return 1
+      fi
+    fi
+    
+    # check for completed phase
+    if ls "/srv/quixit/$QUIXIT_FOLDER/QUIXIT_COMPLETED.txt" 2>/dev/null; then
+      log "found completed phase indicator file"
+      log "quixit is completed, removing uploaded file"
+      rm -f "$FILE"
+      return 1
+    fi
+    
+    # if we got here, the quixit exists but we're not in a valid phase for uploads
+    log "not in a valid phase for uploads to this quixit, removing file"
+    rm -f "$FILE"
+    return 1
+  }
+
+  # function to check for phase transitions and clean up files
+  check_phase_transitions() {
+    log "checking for phase transitions..."
+    
+    # find all quixit folders
+    for QUIXIT_DIR in /srv/quixit/quixit-*; do
+      if [ -d "$QUIXIT_DIR" ]; then
+        QUIXIT_NUM=$(basename "$QUIXIT_DIR" | cut -d'-' -f2)
+        log "checking quixit-$QUIXIT_NUM for phase transitions"
+        
+        # check if we just transitioned from samples to songs phase
+        if [ -f "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ] && [ -f "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"* ] && [ -d "$QUIXIT_DIR/samples" ]; then
+          log "detected transition to songs phase, cleaning up samples folder"
+          
+          # verify sample pack exists and is not empty before removing samples
+          if [ -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
+            log "sample pack exists and is not empty, removing samples directory"
+            rm -rf "$QUIXIT_DIR/samples"
+            log "samples directory removed for quixit-$QUIXIT_NUM"
+          else
+            log "sample pack is empty or missing, keeping samples directory"
+          fi
+        fi
+        
+        # check if we just finalized the quixit
+        if [ -f "$QUIXIT_DIR/ALL_SONGS.tar.gz" ] && [ -f "$QUIXIT_DIR/QUIXIT_COMPLETED.txt" ]; then
+          log "detected finalized quixit, ensuring clean structure"
+          
+          # remove any remaining samples directory
+          if [ -d "$QUIXIT_DIR/samples" ]; then
+            rm -rf "$QUIXIT_DIR/samples"
+            log "removed samples directory from finalized quixit-$QUIXIT_NUM"
+          fi
+          
+          # make the entire quixit directory read-only
+          chmod -R 555 "$QUIXIT_DIR"
+          log "set entire quixit-$QUIXIT_NUM directory to read-only"
+          
+          # ensure the archive files are readable
+          chmod 444 "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" "$QUIXIT_DIR/ALL_SONGS.tar.gz"
+          log "ensured archive files are readable in quixit-$QUIXIT_NUM"
+        fi
+      fi
+    done
+  }
+
+  # run initial phase transition check
+  check_phase_transitions
+
+  # main loop to monitor for new files
+  while true; do
+    # check for phase transitions every 5 minutes
+    check_phase_transitions
+    
+    # use inotifywait to monitor file creation events
+    inotifywait -r -e create,moved_to /srv/quixit 2>/dev/null | while read DIR EVENT FILE; do
+      FULL_PATH="$DIR$FILE"
+      log "event: $EVENT, file: $FULL_PATH"
+      
+      # skip directories and temporary files
+      if [ -d "$FULL_PATH" ] || echo "$FILE" | grep -q "\.tmp$"; then
+        log "skipping directory or temporary file"
+        continue
+      fi
+      
+      # check if the file is allowed based on phase
+      check_file "$FULL_PATH"
+      
+      # check for phase transitions after file operations
+      check_phase_transitions
+    done
+    
+    # if inotifywait fails, sleep for a bit before retrying
+    sleep 5
+  done
+ wrapper.sh: |
+  #!/bin/sh
+
+  # wrapper.sh - ensures only one instance of watcher.sh runs
+  # and monitors file uploads and enforces phase rules
+
+  # Create logs directory
+  mkdir -p /logs
+
+  # install required tools
+  apk add --no-cache inotify-tools util-linux file
+
+  # create lock file
+  LOCK_FILE="/tmp/watcher.lock"
+
+  # use flock to ensure only one instance runs
+  # the -n flag makes it non-blocking
+  # the -e flag is for exclusive lock
+  exec flock -n -e "$LOCK_FILE" /bin/sh -c '
+
+  # redirect logs to both file and stdout for kubectl logs
+  LOG_FILE="/logs/watcher.log"
+
+  log() {
+    echo "[$(date)] $1" | tee -a $LOG_FILE
+  }
+
+  log "starting file watcher..."
+
+  # function to check if a file has an allowed audio extension
+  has_audio_extension() {
+    FILE=$1
+    # list of allowed audio file extensions
+    if echo "$FILE" | grep -i -E "\.(wav|mp3|ogg|flac|aiff)$" > /dev/null; then
+      return 0
+    else
+      return 1
+    fi
+  }
+
+  # function to check if a file is actually an audio file using the file command
+  is_audio_content() {
+    FILE=$1
+    # use file command to check mime type
+    MIME_TYPE=$(file --mime-type -b "$FILE")
+    FILE_DESC=$(file "$FILE" | sed "s|$FILE: ||")
+    
+    log "checking file content: $FILE (mime: $MIME_TYPE, desc: $FILE_DESC)"
+    
+    # check if mime type is audio
+    if echo "$MIME_TYPE" | grep -E "^audio/" > /dev/null; then
+      log "file is audio based on mime type"
+      return 0
+    fi
+    
+    # check if file output contains audio signatures
+    if echo "$FILE_DESC" | grep -i -E "audio|WAVE|AIFF|FLAC|MP3|Vorbis" > /dev/null; then
+      log "file is audio based on file description"
+      return 0
+    fi
+    
+    # explicitly reject text files with audio extensions
+    if echo "$MIME_TYPE" | grep -E "^text/" > /dev/null || echo "$FILE_DESC" | grep -i -E "^(ASCII|UTF-8) text" > /dev/null; then
+      log "file has audio extension but is actually text: $MIME_TYPE"
+      return 1
+    fi
+    
+    # explicitly reject empty files
+    if [ ! -s "$FILE" ]; then
+      log "file is empty"
+      return 1
+    fi
+    
+    # if we cannot determine for sure, allow it if it has the right extension
+    # this is a fallback for cases where file command might not recognize the format
+    if has_audio_extension "$FILE"; then
+      log "allowing file with audio extension (mime type: $MIME_TYPE)"
+      return 0
+    fi
+    
+    return 1
+  }
+
+  # function to check if a file is in the correct directory based on phase
+  check_file() {
+    FILE=$1
+    log "checking file: $FILE"
+    
+    # check if file has an allowed audio extension
+    if ! has_audio_extension "$FILE"; then
+      log "file does not have an allowed audio extension, removing file: $FILE"
+      rm -f "$FILE"
+      return 1
+    fi
+    
+    # check if file is actually an audio file
+    if ! is_audio_content "$FILE"; then
+      log "file does not contain audio content, removing file: $FILE"
+      rm -f "$FILE"
+      return 1
+    fi
+    
+    # dont allow uploads to root directory
+    if [ "$(dirname "$FILE")" = "/srv/quixit" ]; then
+      log "file uploaded to root directory, not allowed. removing file."
+      rm -f "$FILE"
+      return 1
+    fi
+    
+    # extract quixit folder from path
+    QUIXIT_FOLDER=""
+    if echo "$FILE" | grep -q "quixit-[0-9]"; then
+      QUIXIT_FOLDER=$(echo "$FILE" | grep -o "quixit-[0-9][0-9]*")
+      log "quixit_folder: $QUIXIT_FOLDER"
+      
+      # dont allow uploads directly to quixit folder
+      if [ "$(dirname "$FILE")" = "/srv/quixit/$QUIXIT_FOLDER" ]; then
+        log "file uploaded directly to quixit folder, not in samples or songs. removing file."
+        rm -f "$FILE"
+        return 1
+      fi
+    else
+      log "not in a quixit folder, removing file"
+      rm -f "$FILE"
+      return 1
+    fi
+    
+    # check for songs phase
+    if ls "/srv/quixit/$QUIXIT_FOLDER/SUBMIT_SONGS_BEFORE_"* 2>/dev/null; then
+      log "found songs phase indicator file"
+      
+      # we are in songs phase, only allow uploads to the songs directory
+      if echo "$FILE" | grep -q "/songs/"; then
+        log "song upload allowed during songs phase"
+        return 0
+      else
+        log "not uploading to songs directory during songs phase, removing file"
+        rm -f "$FILE"
+        return 1
+      fi
+    fi
+    
+    # check for samples phase
+    if ls "/srv/quixit/$QUIXIT_FOLDER/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"* 2>/dev/null; then
+      log "found samples phase indicator file"
+      
+      # we are in samples phase, only allow uploads to the samples directory
+      if echo "$FILE" | grep -q "/samples/"; then
+        log "sample upload allowed during samples phase"
+        return 0
+      else
+        log "not uploading to samples directory during samples phase, removing file"
+        rm -f "$FILE"
+        return 1
+      fi
+    fi
+    
+    # check for completed phase
+    if ls "/srv/quixit/$QUIXIT_FOLDER/QUIXIT_COMPLETED.txt" 2>/dev/null; then
+      log "found completed phase indicator file"
+      log "quixit is completed, removing uploaded file"
+      rm -f "$FILE"
+      return 1
+    fi
+    
+    # if we got here, the quixit exists but we are not in a valid phase for uploads
+    log "not in a valid phase for uploads to this quixit, removing file"
+    rm -f "$FILE"
+    return 1
+  }
+
+  # function to check for phase transitions and clean up files
+  check_phase_transitions() {
+    log "checking for phase transitions..."
+    
+    # find all quixit folders
+    for QUIXIT_DIR in /srv/quixit/quixit-*; do
+      if [ -d "$QUIXIT_DIR" ]; then
+        QUIXIT_NUM=$(basename "$QUIXIT_DIR" | cut -d"-" -f2)
+        log "checking quixit-$QUIXIT_NUM for phase transitions"
+        
+        # check if we just transitioned from samples to songs phase
+        if [ -f "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ] && [ -f "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"* ] && [ -d "$QUIXIT_DIR/samples" ]; then
+          log "detected transition to songs phase, cleaning up samples folder"
+          
+          # verify sample pack exists and is not empty before removing samples
+          if [ -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
+            log "sample pack exists and is not empty, removing samples directory"
+            rm -rf "$QUIXIT_DIR/samples"
+            log "samples directory removed for quixit-$QUIXIT_NUM"
+          else
+            log "sample pack is empty or missing, keeping samples directory"
+          fi
+        fi
+        
+        # check if we just finalized the quixit
+        if [ -f "$QUIXIT_DIR/ALL_SONGS.tar.gz" ] && [ -f "$QUIXIT_DIR/QUIXIT_COMPLETED.txt" ]; then
+          log "detected finalized quixit, ensuring clean structure"
+          
+          # remove any remaining samples directory
+          if [ -d "$QUIXIT_DIR/samples" ]; then
+            rm -rf "$QUIXIT_DIR/samples"
+            log "removed samples directory from finalized quixit-$QUIXIT_NUM"
+          fi
+          
+          # make the entire quixit directory read-only
+          chmod -R 555 "$QUIXIT_DIR"
+          log "set entire quixit-$QUIXIT_NUM directory to read-only"
+          
+          # ensure the archive files are readable
+          chmod 444 "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" "$QUIXIT_DIR/ALL_SONGS.tar.gz"
+          log "ensured archive files are readable in quixit-$QUIXIT_NUM"
+        fi
+      fi
+    done
+  }
+
+  # run initial phase transition check
+  check_phase_transitions
+
+  # set up a background job to check for phase transitions every 5 minutes
+  while true; do
+    sleep 300
+    check_phase_transitions
+  done &
+
+  # use inotifywait to monitor file creation events
+  while true; do
+    inotifywait -r -e create,moved_to /srv/quixit 2>/dev/null | while read DIR EVENT FILE; do
+      FULL_PATH="$DIR$FILE"
+      log "event: $EVENT, file: $FULL_PATH"
+      
+      # skip directories and temporary files
+      if [ -d "$FULL_PATH" ] || echo "$FILE" | grep -q "\.tmp$"; then
+        log "skipping directory or temporary file"
+        continue
+      fi
+      
+      # check if the file is allowed based on phase
+      check_file "$FULL_PATH"
+    done
+    
+    # if inotifywait fails, sleep for a bit before retrying
+    log "inotifywait exited, restarting in 5 seconds..."
+    sleep 5
+  done
+  '
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: quixit
+ namespace: quixit
+ labels:
+  app: quixit
+spec:
+ replicas: 1
+ revisionHistoryLimit: 3
+ strategy:
+  type: RollingUpdate
+ selector:
+  matchLabels:
+   app: quixit
+ template:
+  metadata:
+   labels:
+    app: quixit
+  spec:
+   containers:
+    - name: quixit
+      image: filebrowser/filebrowser:v2.32.0
+      imagePullPolicy: IfNotPresent
+      env:
+       - name: QUIXIT_HOST
+         value: 'quixit.us'
+       - name: QUIXIT_USER
+         valueFrom:
+          secretKeyRef:
+           name: quixit-admin-credentials
+           key: admin-user
+       - name: QUIXIT_PW
+         valueFrom:
+          secretKeyRef:
+           name: quixit-admin-credentials
+           key: admin-password
+      volumeMounts:
+       - name: quixit
+         mountPath: /srv
+         subPath: files
+       - name: quixit
+         mountPath: /database
+         subPath: database
+       - name: quixit
+         mountPath: /branding
+         subPath: branding
+       - name: quixit
+         mountPath: /logs
+         subPath: logs
+       - name: quixit-scripts
+         mountPath: /scripts
+      ports:
+       - name: http
+         containerPort: 44301
+         protocol: TCP
+      resources:
+       requests:
+        cpu: 500m
+        memory: 512Mi
+       limits:
+        memory: 512Mi
+      command: ['/bin/sh', '-c', '/scripts/init-quixit.sh']
+    - name: file-watcher
+      image: alpine:latest
+      imagePullPolicy: IfNotPresent
+      command: ['/bin/sh', '-c', '/scripts/wrapper.sh']
+      volumeMounts:
+       - name: quixit
+         mountPath: /srv
+         subPath: files
+       - name: quixit
+         mountPath: /logs
+         subPath: logs
+       - name: quixit-scripts
+         mountPath: /scripts
+      resources:
+       requests:
+        cpu: 100m
+        memory: 64Mi
+       limits:
+        memory: 128Mi
+   volumes:
+    - name: quixit
+      persistentVolumeClaim:
+       claimName: quixit
+    - name: quixit-scripts
+      configMap:
+       name: quixit-scripts
+       defaultMode: 0755

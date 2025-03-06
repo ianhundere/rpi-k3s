@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+ name: quixit-create-challenge
+ namespace: quixit
+spec:
+ template:
+  spec:
+   containers:
+    - name: quixit-create-challenge
+      image: filebrowser/filebrowser:v2.32.0
+      command:
+       - /bin/sh
+       - -c
+       - |
+        # get the next quixit number
+        if [ -f "/srv/quixit/current_quixit_number.txt" ]; then
+          CURRENT_NUMBER=$(cat /srv/quixit/current_quixit_number.txt)
+          NEW_NUMBER=$((CURRENT_NUMBER + 1))
+        else
+          NEW_NUMBER=1
+        fi
+
+        # create directory structure
+        QUIXIT_DIR="/srv/quixit/quixit-$NEW_NUMBER"
+        mkdir -p "$QUIXIT_DIR/samples"
+        mkdir -p "$QUIXIT_DIR/songs"
+
+        # set deadline (7 days)
+        SAMPLE_DEADLINE=$(date -d "7 days" +%Y-%m-%d 2>/dev/null || date -v+7d +%Y-%m-%d 2>/dev/null || echo "$(date +%Y-%m-%d)")
+
+        # create phase indicator file
+        echo "upload your samples to the samples directory before $SAMPLE_DEADLINE" > "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
+
+        # update current number
+        echo "$NEW_NUMBER" > "/srv/quixit/current_quixit_number.txt"
+
+        # set directory permissions
+        chmod -R 777 "$QUIXIT_DIR"
+      volumeMounts:
+       - name: quixit
+         mountPath: /srv
+         subPath: files
+   volumes:
+    - name: quixit
+      persistentVolumeClaim:
+       claimName: quixit
+   restartPolicy: OnFailure

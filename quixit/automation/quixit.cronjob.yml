@@ -1,0 +1,401 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+ name: quixit-folder-manager
+ namespace: quixit
+spec:
+ # Run at 00:00 every Monday to start a new Quixit cycle
+ schedule: '0 0 * * 1'
+ jobTemplate:
+  spec:
+   template:
+    spec:
+     containers:
+      - name: quixit-manager
+        image: alpine/curl:latest
+        env:
+         - name: QUIXIT_USER
+           valueFrom:
+            secretKeyRef:
+             name: quixit-admin-credentials
+             key: admin-user
+         - name: QUIXIT_PW
+           valueFrom:
+            secretKeyRef:
+             name: quixit-admin-credentials
+             key: admin-password
+        volumeMounts:
+         - name: quixit
+           mountPath: /srv
+           subPath: files
+         - name: quixit
+           mountPath: /database
+           subPath: database
+        command:
+         - /bin/sh
+         - -c
+         - |
+          # authenticate with filebrowser
+          TOKEN=$(curl -s -X POST http://quixit.quixit:44301/api/login \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"${QUIXIT_USER}\",\"password\":\"${QUIXIT_PW}\"}")
+
+          # verify token
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            exit 1
+          fi
+
+          # get the next quixit number
+          NEXT_NUMBER=1
+          if [ -d "/srv/quixit" ]; then
+            HIGHEST=$(find /srv/quixit -maxdepth 1 -type d -name "quixit-*" | sed 's/.*quixit-//' | sort -n | tail -1)
+            if [ ! -z "$HIGHEST" ]; then
+              NEXT_NUMBER=$((HIGHEST + 1))
+            fi
+          fi
+
+          # set variables
+          QUIXIT_FOLDER="quixit-${NEXT_NUMBER}"
+          SAMPLES_FOLDER="${QUIXIT_FOLDER}/samples"
+          SONGS_FOLDER="${QUIXIT_FOLDER}/songs"
+
+          # calculate deadline (7 days)
+          SAMPLE_DEADLINE=$(date -d "7 days" +%Y-%m-%d 2>/dev/null || date -v+7d +%Y-%m-%d 2>/dev/null || echo "$(date +%Y-%m-%d)")
+
+          # create directory structure
+          mkdir -p /srv/quixit/${QUIXIT_FOLDER}
+          mkdir -p /srv/quixit/${SAMPLES_FOLDER}
+          mkdir -p /srv/quixit/${SONGS_FOLDER}
+
+          # create phase indicator file
+          echo "Upload your audio samples to the samples folder. Deadline: ${SAMPLE_DEADLINE}" > "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+
+          # update permissions for samples folder
+          SAMPLES_JSON="{\"path\":\"/quixit/${SAMPLES_FOLDER}\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":true,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":false}}"
+          curl -s -X POST "http://quixit.quixit:44301/api/resources/share" \
+            -H "Content-Type: application/json" \
+            -H "X-Auth: $TOKEN" \
+            --data-binary "$SAMPLES_JSON" > /dev/null
+
+          # update permissions for songs folder
+          SONGS_JSON="{\"path\":\"/quixit/${SONGS_FOLDER}\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":false}}"
+          curl -s -X POST "http://quixit.quixit:44301/api/resources/share" \
+            -H "Content-Type: application/json" \
+            -H "X-Auth: $TOKEN" \
+            --data-binary "$SONGS_JSON" > /dev/null
+
+          # store the quixit number
+          echo "${NEXT_NUMBER}" > /srv/quixit/current_quixit_number.txt
+     volumes:
+      - name: quixit
+        persistentVolumeClaim:
+         claimName: quixit
+     restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+ name: quixit-samples-to-songs-phase
+ namespace: quixit
+spec:
+ # Run at 00:00 every Monday to transition from samples to songs phase
+ schedule: '0 0 * * 1'
+ jobTemplate:
+  spec:
+   template:
+    spec:
+     containers:
+      - name: phase-transition
+        image: alpine/curl:latest
+        env:
+         - name: QUIXIT_USER
+           valueFrom:
+            secretKeyRef:
+             name: quixit-admin-credentials
+             key: admin-user
+         - name: QUIXIT_PW
+           valueFrom:
+            secretKeyRef:
+             name: quixit-admin-credentials
+             key: admin-password
+        volumeMounts:
+         - name: quixit
+           mountPath: /srv
+           subPath: files
+         - name: quixit
+           mountPath: /database
+           subPath: database
+        command:
+         - /bin/sh
+         - -c
+         - |
+          # authenticate with filebrowser
+          TOKEN=$(curl -s -X POST http://quixit.quixit:44301/api/login \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"${QUIXIT_USER}\",\"password\":\"${QUIXIT_PW}\"}")
+
+          # verify token
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            exit 1
+          fi
+
+          # get the current quixit number
+          if [ -f "/srv/quixit/current_quixit_number.txt" ]; then
+            CURRENT_NUMBER=$(cat /srv/quixit/current_quixit_number.txt)
+            QUIXIT_FOLDER="quixit-${CURRENT_NUMBER}"
+            
+            # check if in sample phase
+            if ls /srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_*.txt 1> /dev/null 2>&1; then
+              SAMPLES_FOLDER="${QUIXIT_FOLDER}/samples"
+              SONGS_FOLDER="${QUIXIT_FOLDER}/songs"
+              
+              # check if any samples were uploaded
+              SAMPLE_COUNT=$(find /srv/quixit/${SAMPLES_FOLDER} -type f | wc -l)
+              
+              if [ "$SAMPLE_COUNT" -eq 0 ]; then
+                # extend sample phase if no samples
+                NEW_SAMPLE_DEADLINE=$(date -d "7 days" +%Y-%m-%d 2>/dev/null || date -v+7d +%Y-%m-%d 2>/dev/null || echo "$(date +%Y-%m-%d)")
+                
+                # remove old phase file
+                rm -f /srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_*.txt
+                
+                # create new phase file with updated deadline
+                echo "Upload your audio samples to the samples folder. Deadline: ${NEW_SAMPLE_DEADLINE}" > "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                
+                exit 0
+              fi
+              
+              # calculate song deadline (12 days)
+              SONG_DEADLINE=$(date -d "12 days" +%Y-%m-%d 2>/dev/null || date -v+12d +%Y-%m-%d 2>/dev/null || echo "$(date +%Y-%m-%d)")
+
+              # remove old phase file
+              rm -f /srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_*.txt
+
+              # create sample pack archive
+              cd /srv/quixit
+              tar -czf "${QUIXIT_FOLDER}/SAMPLE_PACK.tar.gz" "${SAMPLES_FOLDER}"
+
+              # create songs phase indicator
+              echo "Sample phase complete. Download SAMPLE_PACK.tar.gz and create your song. Upload your finished song to the songs folder. Deadline: ${SONG_DEADLINE}" > "/srv/quixit/${QUIXIT_FOLDER}/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+              
+              # update permissions for samples folder (read-only)
+              SAMPLES_JSON="{\"path\":\"/quixit/${SAMPLES_FOLDER}\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":false}}"
+              curl -s -X POST "http://quixit.quixit:44301/api/resources/share" \
+                -H "Content-Type: application/json" \
+                -H "X-Auth: $TOKEN" \
+                --data-binary "$SAMPLES_JSON" > /dev/null
+
+              # update permissions for songs folder (allow uploads)
+              SONGS_JSON="{\"path\":\"/quixit/${SONGS_FOLDER}\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":true,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":false}}"
+              curl -s -X POST "http://quixit.quixit:44301/api/resources/share" \
+                -H "Content-Type: application/json" \
+                -H "X-Auth: $TOKEN" \
+                --data-binary "$SONGS_JSON" > /dev/null
+
+              # make sample pack downloadable
+              SAMPLE_PACK_JSON="{\"path\":\"/quixit/${QUIXIT_FOLDER}/SAMPLE_PACK.tar.gz\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+              curl -s -X POST "http://quixit.quixit:44301/api/resources/share" \
+                -H "Content-Type: application/json" \
+                -H "X-Auth: $TOKEN" \
+                --data-binary "$SAMPLE_PACK_JSON" > /dev/null
+            fi
+          fi
+     volumes:
+      - name: quixit
+        persistentVolumeClaim:
+         claimName: quixit
+     restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+ name: quixit-finalize
+ namespace: quixit
+spec:
+ # Run at 00:00 every Saturday to finalize the song submission phase
+ schedule: '0 0 * * 6'
+ jobTemplate:
+  spec:
+   template:
+    spec:
+     containers:
+      - name: quixit-finalizer
+        image: alpine/curl:latest
+        env:
+         - name: QUIXIT_USER
+           valueFrom:
+            secretKeyRef:
+             name: quixit-admin-credentials
+             key: admin-user
+         - name: QUIXIT_PW
+           valueFrom:
+            secretKeyRef:
+             name: quixit-admin-credentials
+             key: admin-password
+        volumeMounts:
+         - name: quixit
+           mountPath: /srv
+           subPath: files
+         - name: quixit
+           mountPath: /database
+           subPath: database
+        command:
+         - /bin/sh
+         - -c
+         - |
+          # authenticate with filebrowser
+          TOKEN=$(curl -s -X POST http://quixit.quixit:44301/api/login \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"${QUIXIT_USER}\",\"password\":\"${QUIXIT_PW}\"}")
+
+          # verify token
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            exit 1
+          fi
+
+          # find quixit folders with song submission phase that has ended
+          for folder in /srv/quixit/quixit-*; do
+            if [ -d "$folder" ]; then
+              QUIXIT_FOLDER=$(basename "$folder")
+              
+              # check if in song phase
+              SONG_FILE=$(find "$folder" -maxdepth 1 -name "SUBMIT_SONGS_BEFORE_*.txt" | head -1)
+              if [ ! -z "$SONG_FILE" ]; then
+                # extract deadline date from filename
+                DEADLINE=$(echo "$SONG_FILE" | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}')
+                TODAY=$(date +%Y-%m-%d)
+                
+                # check if deadline has passed
+                if [ "$TODAY" \> "$DEADLINE" ] || [ "$TODAY" = "$DEADLINE" ]; then
+                  # check if any songs were uploaded
+                  SONGS_FOLDER="${QUIXIT_FOLDER}/songs"
+                  SONG_COUNT=$(find /srv/quixit/${SONGS_FOLDER} -type f | wc -l)
+                  
+                  if [ "$SONG_COUNT" -eq 0 ]; then
+                    # mark as incomplete if no songs
+                    rm -f "$SONG_FILE"
+                    echo "This Quixit challenge was incomplete. No songs were submitted." > "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_INCOMPLETE_NO_SONGS_SUBMITTED.txt"
+                    continue
+                  fi
+                  
+                  # remove old phase file
+                  rm -f "$SONG_FILE"
+                  
+                  # create songs compilation archive
+                  cd /srv/quixit
+                  tar -czf "${QUIXIT_FOLDER}/ALL_SONGS.tar.gz" "${QUIXIT_FOLDER}/songs"
+                  
+                  # create completion indicator
+                  echo "This Quixit challenge is complete. All songs and samples are available for download." > "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_COMPLETE_ARCHIVE_AVAILABLE.txt"
+                  
+                  # make everything read-only
+                  FOLDER_JSON="{\"path\":\"/quixit/${QUIXIT_FOLDER}\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+                  curl -s -X POST "http://quixit.quixit:44301/api/resources/share" \
+                    -H "Content-Type: application/json" \
+                    -H "X-Auth: $TOKEN" \
+                    --data-binary "$FOLDER_JSON" > /dev/null
+                  
+                  # make songs archive downloadable
+                  SONGS_TAR_JSON="{\"path\":\"/quixit/${QUIXIT_FOLDER}/ALL_SONGS.tar.gz\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+                  curl -s -X POST "http://quixit.quixit:44301/api/resources/share" \
+                    -H "Content-Type: application/json" \
+                    -H "X-Auth: $TOKEN" \
+                    --data-binary "$SONGS_TAR_JSON" > /dev/null
+                fi
+              fi
+            fi
+          done
+     volumes:
+      - name: quixit
+        persistentVolumeClaim:
+         claimName: quixit
+     restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+ name: quixit-phase-checker
+ namespace: quixit
+spec:
+ schedule: '0 * * * *' # Run every hour
+ jobTemplate:
+  spec:
+   template:
+    spec:
+     containers:
+      - name: quixit-phase-checker
+        image: filebrowser/filebrowser:v2.32.0
+        command:
+         - /bin/sh
+         - -c
+         - |
+          # get current quixit number
+          if [ -f "/srv/quixit/current_quixit_number.txt" ]; then
+            QUIXIT_NUMBER=$(cat /srv/quixit/current_quixit_number.txt)
+            QUIXIT_DIR="/srv/quixit/quixit-$QUIXIT_NUMBER"
+          else
+            exit 0
+          fi
+
+          # check which phase we're in
+          if ls "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"* 1>/dev/null 2>&1; then
+            PHASE="samples"
+            PHASE_FILE=$(ls "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"*)
+            DEADLINE=$(echo "$PHASE_FILE" | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}")
+          elif ls "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"* 1>/dev/null 2>&1; then
+            PHASE="songs"
+            PHASE_FILE=$(ls "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"*)
+            DEADLINE=$(echo "$PHASE_FILE" | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}")
+          elif [ -f "$QUIXIT_DIR/QUIXIT_COMPLETED.txt" ]; then
+            PHASE="completed"
+            DEADLINE=""
+          else
+            PHASE="unknown"
+            DEADLINE=""
+          fi
+
+          # check if any deadlines have passed
+          if [ -n "$DEADLINE" ]; then
+            TODAY=$(date +%Y-%m-%d)
+            
+            # compare dates
+            if [ "$TODAY" \> "$DEADLINE" ]; then
+              if [ "$PHASE" = "samples" ]; then
+                # transition from samples to songs phase
+                rm "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"*
+                
+                # set song deadline (7 days)
+                SONG_DEADLINE=$(date -d "7 days" +%Y-%m-%d 2>/dev/null || date -v+7d +%Y-%m-%d 2>/dev/null || echo "$(date +%Y-%m-%d)")
+                
+                # create songs phase indicator
+                echo "Upload your songs to the songs directory before $SONG_DEADLINE" > "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+                
+                # create sample pack
+                cd "$QUIXIT_DIR"
+                tar -czf SAMPLE_PACK.tar.gz samples/
+                
+              elif [ "$PHASE" = "songs" ]; then
+                # finalize quixit
+                rm "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"*
+                
+                # create songs archive
+                cd "$QUIXIT_DIR"
+                tar -czf ALL_SONGS.tar.gz songs/
+                
+                # create completion indicator
+                echo "Quixit #$QUIXIT_NUMBER completed on $(date +"%Y-%m-%d")" > "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+              fi
+            fi
+          fi
+        volumeMounts:
+         - name: quixit
+           mountPath: /srv
+           subPath: files
+         - name: quixit
+           mountPath: /database
+           subPath: database
+     restartPolicy: OnFailure
+     volumes:
+      - name: quixit
+        persistentVolumeClaim:
+         claimName: quixit

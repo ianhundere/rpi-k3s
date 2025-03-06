@@ -1,0 +1,57 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+ namespace: quixit
+ name: quixit
+ annotations:
+  cert-manager.io/cluster-issuer: letsencrypt-prod
+  cert-manager.io/issue-temporary-certificate: 'true'
+  acme.cert-manager.io/http01-edit-in-place: 'true'
+  nginx.ingress.kubernetes.io/proxy-body-size: 50m
+  nginx.ingress.kubernetes.io/limit-connections: '10'
+  nginx.ingress.kubernetes.io/limit-rpm: '30'
+  nginx.ingress.kubernetes.io/limit-burst-multiplier: '5'
+  nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+  nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+  # # OAuth2 Proxy Authentication
+  # nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.quixit.svc.cluster.local:4180/oauth2/auth"
+  # nginx.ingress.kubernetes.io/auth-signin: "https://${QUIXIT_HOST}/oauth2/sign_in"
+  # nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User, X-Auth-Request-Email, X-Auth-Request-Access-Token"
+  # nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+  nginx.ingress.kubernetes.io/configuration-snippet: |
+   more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
+   more_set_headers "server: hide";
+   more_set_headers "X-Frame-Options: DENY";
+   more_set_headers "X-Content-Type-Options: nosniff";
+   more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+spec:
+ ingressClassName: nginx
+ tls:
+  - hosts:
+     - ${QUIXIT_HOST}
+    secretName: quixit-cert
+ rules:
+  - host: ${QUIXIT_HOST}
+    http:
+     paths:
+      # - path: /oauth2
+      #   pathType: Prefix
+      #   backend:
+      #     service:
+      #       name: oauth2-proxy
+      #       port:
+      #         number: 4180
+      # - path: /auth
+      #   pathType: Prefix
+      #   backend:
+      #     service:
+      #       name: oauth2-proxy
+      #       port:
+      #         number: 4180
+      - path: /
+        pathType: Prefix
+        backend:
+         service:
+          name: quixit
+          port:
+           number: 44301

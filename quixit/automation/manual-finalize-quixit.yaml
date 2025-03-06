@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+ name: quixit-finalize
+ namespace: quixit
+spec:
+ template:
+  spec:
+   containers:
+    - name: quixit-finalize
+      image: filebrowser/filebrowser:v2.32.0
+      command:
+       - /bin/sh
+       - -c
+       - |
+        # get current quixit number
+        if [ -f "/srv/quixit/current_quixit_number.txt" ]; then
+          QUIXIT_NUMBER=$(cat /srv/quixit/current_quixit_number.txt)
+          QUIXIT_DIR="/srv/quixit/quixit-$QUIXIT_NUMBER"
+        else
+          exit 1
+        fi
+
+        # check if in songs phase
+        if ls "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"* 1>/dev/null 2>&1; then
+          # remove songs phase indicator
+          rm "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"*
+          
+          # create songs archive
+          cd "$QUIXIT_DIR"
+          tar -czf ALL_SONGS.tar.gz songs/
+          
+          # create completion indicator
+          echo "quixit #$QUIXIT_NUMBER completed on $(date +"%Y-%m-%d")" > "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+        else
+          exit 1
+        fi
+      volumeMounts:
+       - name: quixit
+         mountPath: /srv
+         subPath: files
+   volumes:
+    - name: quixit
+      persistentVolumeClaim:
+       claimName: quixit
+   restartPolicy: OnFailure
