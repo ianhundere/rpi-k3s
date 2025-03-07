@@ -1,48 +1,72 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: create-sample-pack
+  name: quixit-init
+  namespace: quixit
 spec:
-  # Run at 00:00 every Friday
-  schedule: "0 0 * * 5"
+  # Run once at startup to create initial directory structure
+  schedule: "@reboot"
   jobTemplate:
     spec:
       template:
         spec:
           containers:
-            - name: pack-creator
+            - name: quixit-initializer
               image: curlimages/curl:latest
+              volumeMounts:
+                - name: filebrowser-data
+                  mountPath: /data
               command:
                 - /bin/sh
                 - -c
                 - |
-                  TITLE="Sample Pack $(date +%Y-%m-%d)"
-                  curl -X POST http://quixit-backend-service/api/admin/packs \
-                    -H "Content-Type: application/json" \
-                    -d "{\"title\":\"$TITLE\",\"description\":\"Weekly sample pack starting $(date +%Y-%m-%d)\"}"
-          restartPolicy: OnFailure
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: close-sample-pack
-spec:
-  # Run at 00:00 every Friday (before creating new pack)
-  schedule: "0 0 * * 5"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: pack-closer
-              image: curlimages/curl:latest
-              command:
-                - /bin/sh
-                - -c
-                - |
-                  # Get current pack ID
-                  PACK_ID=$(curl -s http://quixit-backend-service/api/samples/packs | jq -r '.currentPack.ID')
-                  if [ ! -z "$PACK_ID" ]; then
-                    curl -X POST http://quixit-backend-service/api/admin/packs/$PACK_ID/close
+                  # create main quixit directory if it doesn't exist
+                  mkdir -p /data/quixit
+                  
+                  # create a .filebrowser.json in the quixit directory to set default permissions
+                  cat > /data/quixit/.filebrowser.json << EOF
+                  {
+                    "perm": {
+                      "admin": false,
+                      "execute": false,
+                      "create": false,
+                      "rename": false,
+                      "modify": false,
+                      "delete": false,
+                      "share": false,
+                      "download": true
+                    }
+                  }
+                  EOF
+                  
+                  # create an initial README
+                  if [ ! -f /data/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt ]; then
+                    echo "WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE" > /data/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+                    echo "Each week, a new quixit-<number> folder will be created." >> /data/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+                    echo "Phase 1: Upload samples to the samples directory" >> /data/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+                    echo "Phase 2: Download the sample pack and upload your songs to the songs directory" >> /data/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+                    echo "All previous Quixit challenges are available in read-only mode." >> /data/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
                   fi
+                  
+                  # set permissions for the root quixit directory
+                  curl -X POST http://filebrowser-service.filebrowser:44301/api/resources/share \
+                    -H "X-Auth: ${QUIXIT_USER}:${QUIXIT_PW}" \
+                    -d "{\"path\":\"/quixit\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+                  
+                  echo "Quixit directory structure initialized"
+              env:
+                - name: QUIXIT_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: quixit-admin-credentials
+                      key: admin-user
+                - name: QUIXIT_PW
+                  valueFrom:
+                    secretKeyRef:
+                      name: quixit-admin-credentials
+                      key: admin-password
+          volumes:
+            - name: filebrowser-data
+              persistentVolumeClaim:
+                claimName: filebrowser
           restartPolicy: OnFailure

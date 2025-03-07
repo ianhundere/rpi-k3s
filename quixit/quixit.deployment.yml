@@ -8,12 +8,10 @@ metadata:
 data:
  init-quixit.sh: |
   #!/usr/bin/env sh
-  mkdir -p /branding/img 
+  /filebrowser config init --database /database/filebrowser.db
 
-  cp /branding/img/record.svg /branding/img/logo.svg
-
-  /filebrowser config init
   /filebrowser config set \
+      --database /database/filebrowser.db \
       --port 44301 \
       --address 0.0.0.0 \
       --baseurl "/" \
@@ -25,17 +23,10 @@ data:
   mkdir -p /srv/SamplePacks/Current
   mkdir -p /srv/SamplePacks/Archive
   echo "Sample directories created"
-  /filebrowser users add ${QUIXIT_USER} ${QUIXIT_PW} --perm.admin
-  exec /filebrowser --port 44301 --disable-exec
 
- branding_img_record_svg: |
-  <?xml version="1.0" encoding="UTF-8"?>
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30">
-    <circle cx="15" cy="15" r="12" fill="#6B5B95"/>
-    <circle cx="15" cy="15" r="4" fill="#98FB98"/>
-    <circle cx="15" cy="15" r="2" fill="#6B5B95"/>
-  </svg>
+  /filebrowser users add "${QUIXIT_USER}" "${QUIXIT_PW}" --perm.admin --database /database/filebrowser.db
 
+  exec /filebrowser --port 44301 --database /database/filebrowser.db --disable-exec
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -68,12 +59,11 @@ spec:
        - name: quixit
          mountPath: /database
          subPath: database
+       - name: quixit
+         mountPath: /branding
+         subPath: branding
        - name: quixit-scripts
-         mountPath: /scripts/init-quixit.sh
-         subPath: init-quixit.sh
-       - name: quixit-scripts
-         mountPath: /branding/img/record.svg
-         subPath: branding_img_record_svg
+         mountPath: /scripts
       ports:
        - name: http
          containerPort: 44301

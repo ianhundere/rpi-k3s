@@ -1,37 +1,200 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: manage-sample-packs
+  name: quixit-folder-manager
   namespace: quixit
 spec:
-  # Run at 23:59 every Thursday (just before Friday)
-  schedule: "59 23 * * 4"
+  # Run at 00:00 every Friday to start a new Quixit cycle
+  schedule: "0 0 * * 5"
   jobTemplate:
     spec:
       template:
         spec:
           containers:
-            - name: pack-manager
+            - name: quixit-manager
               image: curlimages/curl:latest
+              volumeMounts:
+                - name: filebrowser-data
+                  mountPath: /data
               command:
                 - /bin/sh
                 - -c
                 - |
-                  # First, close the current pack if it exists
-                  CURRENT_PACK=$(curl -s http://quixit-backend-service.quixit/api/samples/packs | jq -r '.currentPack')
-                  if [ "$CURRENT_PACK" != "null" ]; then
-                    PACK_ID=$(echo $CURRENT_PACK | jq -r '.ID')
-                    echo "Closing pack $PACK_ID"
-                    curl -X POST http://quixit-backend-service.quixit/api/admin/packs/$PACK_ID/close
-                  fi
-
-                  # Wait a moment to ensure the close is processed
-                  sleep 5
-
-                  # Create new pack for the upcoming week
-                  NEXT_FRIDAY=$(date -d "tomorrow" +%Y-%m-%d)
-                  echo "Creating new pack for $NEXT_FRIDAY"
-                  curl -X POST http://quixit-backend-service.quixit/api/admin/packs \
-                    -H "Content-Type: application/json" \
-                    -d "{\"title\":\"Sample Pack $NEXT_FRIDAY\",\"description\":\"Weekly sample pack starting $NEXT_FRIDAY\"}"
+                  # set variables
+                  DATE=$(date +%Y-%m-%d)
+                  QUIXIT_NUMBER=$(date +%U)
+                  QUIXIT_FOLDER="quixit-${QUIXIT_NUMBER}"
+                  SAMPLES_FOLDER="${QUIXIT_FOLDER}/samples"
+                  SONGS_FOLDER="${QUIXIT_FOLDER}/songs"
+                  DEADLINE=$(date -d "+7 days" +%Y-%m-%d)
+                  
+                  # create directory structure
+                  mkdir -p /data/quixit/${QUIXIT_FOLDER}
+                  mkdir -p /data/quixit/${SAMPLES_FOLDER}
+                  mkdir -p /data/quixit/${SONGS_FOLDER}
+                  
+                  # create info files with descriptive names
+                  echo "Upload your audio samples to the samples folder. Deadline: ${DEADLINE}" > "/data/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${DEADLINE}.txt"
+                  
+                  # update filebrowser permissions - allow uploads to samples folder
+                  curl -X POST http://filebrowser-service.filebrowser:44301/api/resources/share \
+                    -H "X-Auth: ${QUIXIT_USER}:${QUIXIT_PW}" \
+                    -d "{\"path\":\"/quixit/${SAMPLES_FOLDER}\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":true,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+                  
+                  # make songs folder read-only during sample phase
+                  curl -X POST http://filebrowser-service.filebrowser:44301/api/resources/share \
+                    -H "X-Auth: ${QUIXIT_USER}:${QUIXIT_PW}" \
+                    -d "{\"path\":\"/quixit/${SONGS_FOLDER}\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+                  
+                  echo "Created new Quixit folder structure for week ${QUIXIT_NUMBER}"
+              env:
+                - name: QUIXIT_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: quixit-admin-credentials
+                      key: admin-user
+                - name: QUIXIT_PW
+                  valueFrom:
+                    secretKeyRef:
+                      name: quixit-admin-credentials
+                      key: admin-password
+          volumes:
+            - name: filebrowser-data
+              persistentVolumeClaim:
+                claimName: filebrowser
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: quixit-samples-to-songs-phase
+  namespace: quixit
+spec:
+  # Run at 00:00 every Monday to transition from samples to songs phase
+  schedule: "0 0 * * 1"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: phase-transition
+              image: curlimages/curl:latest
+              volumeMounts:
+                - name: filebrowser-data
+                  mountPath: /data
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # set variables
+                  QUIXIT_NUMBER=$(date +%U)
+                  QUIXIT_FOLDER="quixit-${QUIXIT_NUMBER}"
+                  SAMPLES_FOLDER="${QUIXIT_FOLDER}/samples"
+                  SONGS_FOLDER="${QUIXIT_FOLDER}/songs"
+                  DEADLINE=$(date -d "+4 days" +%Y-%m-%d)
+                  
+                  # remove old phase file
+                  rm -f /data/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_*.txt
+                  
+                  # create sample pack zip
+                  cd /data/quixit
+                  zip -r "${QUIXIT_FOLDER}/SAMPLE_PACK.zip" "${SAMPLES_FOLDER}"
+                  
+                  # create info file for songs phase with descriptive name
+                  echo "Sample phase complete. Download SAMPLE_PACK.zip and create your song. Upload your finished song to the songs folder. Deadline: ${DEADLINE}" > "/data/quixit/${QUIXIT_FOLDER}/SUBMIT_SONGS_BEFORE_${DEADLINE}.txt"
+                  
+                  # update filebrowser permissions - make samples read-only and allow uploads to songs folder
+                  curl -X POST http://filebrowser-service.filebrowser:44301/api/resources/share \
+                    -H "X-Auth: ${QUIXIT_USER}:${QUIXIT_PW}" \
+                    -d "{\"path\":\"/quixit/${SAMPLES_FOLDER}\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+                  
+                  curl -X POST http://filebrowser-service.filebrowser:44301/api/resources/share \
+                    -H "X-Auth: ${QUIXIT_USER}:${QUIXIT_PW}" \
+                    -d "{\"path\":\"/quixit/${SONGS_FOLDER}\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":true,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+                  
+                  # make sample pack downloadable
+                  curl -X POST http://filebrowser-service.filebrowser:44301/api/resources/share \
+                    -H "X-Auth: ${QUIXIT_USER}:${QUIXIT_PW}" \
+                    -d "{\"path\":\"/quixit/${QUIXIT_FOLDER}/SAMPLE_PACK.zip\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+                  
+                  echo "Transitioned to songs phase for Quixit week ${QUIXIT_NUMBER}"
+              env:
+                - name: QUIXIT_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: quixit-admin-credentials
+                      key: admin-user
+                - name: QUIXIT_PW
+                  valueFrom:
+                    secretKeyRef:
+                      name: quixit-admin-credentials
+                      key: admin-password
+          volumes:
+            - name: filebrowser-data
+              persistentVolumeClaim:
+                claimName: filebrowser
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: quixit-finalize
+  namespace: quixit
+spec:
+  # Run at 00:00 every Friday to finalize the current Quixit
+  schedule: "0 0 * * 5"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: quixit-finalizer
+              image: curlimages/curl:latest
+              volumeMounts:
+                - name: filebrowser-data
+                  mountPath: /data
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # set variables
+                  PREV_WEEK=$(date -d "7 days ago" +%U)
+                  QUIXIT_FOLDER="quixit-${PREV_WEEK}"
+                  
+                  # remove old phase file
+                  rm -f /data/quixit/${QUIXIT_FOLDER}/SUBMIT_SONGS_*.txt
+                  
+                  # create songs compilation zip
+                  cd /data/quixit
+                  zip -r "${QUIXIT_FOLDER}/ALL_SONGS.zip" "${QUIXIT_FOLDER}/songs"
+                  
+                  # finalize info file with descriptive name
+                  echo "This Quixit challenge is complete. All songs and samples are available for download." > "/data/quixit/${QUIXIT_FOLDER}/QUIXIT_COMPLETE_ARCHIVE_AVAILABLE.txt"
+                  
+                  # update filebrowser permissions - make everything read-only
+                  curl -X POST http://filebrowser-service.filebrowser:44301/api/resources/share \
+                    -H "X-Auth: ${QUIXIT_USER}:${QUIXIT_PW}" \
+                    -d "{\"path\":\"/quixit/${QUIXIT_FOLDER}\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+                  
+                  # make songs zip downloadable
+                  curl -X POST http://filebrowser-service.filebrowser:44301/api/resources/share \
+                    -H "X-Auth: ${QUIXIT_USER}:${QUIXIT_PW}" \
+                    -d "{\"path\":\"/quixit/${QUIXIT_FOLDER}/ALL_SONGS.zip\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+                  
+                  echo "Finalized Quixit week ${PREV_WEEK}"
+              env:
+                - name: QUIXIT_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: quixit-admin-credentials
+                      key: admin-user
+                - name: QUIXIT_PW
+                  valueFrom:
+                    secretKeyRef:
+                      name: quixit-admin-credentials
+                      key: admin-password
+          volumes:
+            - name: filebrowser-data
+              persistentVolumeClaim:
+                claimName: filebrowser
           restartPolicy: OnFailure
