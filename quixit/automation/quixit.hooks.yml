@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: quixit-hooks
+ namespace: quixit
+ labels:
+  app: quixit
+data:
+ quixit-hooks.js: |
+  // this script is loaded by filebrowser command runner
+  // see: https://filebrowser.org/configuration/command-runner
+
+  module.exports = {
+    // hook executed before saving a file
+    before_save: function (info) {
+      const path = info.path;
+      
+      // check if this is a file in a quixit folder
+      if (path.includes('/quixit/quixit-')) {
+        const parts = path.split('/');
+        const quixitFolderIndex = parts.findIndex(p => p.startsWith('quixit-'));
+        
+        if (quixitFolderIndex !== -1) {
+          const quixitFolder = parts[quixitFolderIndex];
+          const subPath = parts.slice(quixitFolderIndex + 1).join('/');
+          
+          // check if this is in the samples folder
+          if (subPath.startsWith('samples/')) {
+            // check if we're in the samples phase by reading the README
+            const fs = require('fs');
+            const readmePath = `/srv/quixit/${quixitFolder}/README.txt`;
+            
+            if (fs.existsSync(readmePath)) {
+              const content = fs.readFileSync(readmePath, 'utf8');
+              
+              // if we're not in the samples phase, reject the upload
+              if (!content.includes('UPLOAD_SAMPLES_BEFORE')) {
+                return {
+                  status: 403,
+                  message: 'Sample submission phase is over for this Quixit'
+                };
+              }
+            }
+          }
+          
+          // check if this is in the songs folder
+          if (subPath.startsWith('songs/')) {
+            // check if we're in the songs phase by reading the README
+            const fs = require('fs');
+            const readmePath = `/srv/quixit/${quixitFolder}/README.txt`;
+            
+            if (fs.existsSync(readmePath)) {
+              const content = fs.readFileSync(readmePath, 'utf8');
+              
+              // if we're not in the songs phase, reject the upload
+              if (!content.includes('SUBMIT_SONGS_BEFORE')) {
+                return {
+                  status: 403,
+                  message: 'Song submission phase is not active for this Quixit'
+                };
+              }
+            }
+          }
+        }
+      }
+      
+      // allow the save
+      return { status: 200 };
+    }
+  };
+
+ update-filebrowser-config.sh: |
+  #!/bin/sh
+
+  # script to update filebrowser configuration to support quixit workflow
+
+  # enable command runner
+  /filebrowser config set --commands.enabled
+
+  # set command runner script
+  /filebrowser config set --commands.before_save="/scripts/quixit-hooks.js"
+
+  # restart filebrowser to apply changes
+  kill -HUP 1

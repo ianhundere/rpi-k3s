@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quixit-config
+  namespace: quixit
+data:
+  quixit_host: "${QUIXIT_HOST}"

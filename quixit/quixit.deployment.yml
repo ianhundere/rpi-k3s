@@ -18,13 +18,27 @@ data:
       --root "/srv" \
       --branding.name "${QUIXIT_HOST}" \
       --branding.disableExternal \
-      --branding.files "/branding"
+      --branding.files "/branding" \
+      --signup
 
   mkdir -p /srv/SamplePacks/Current
   mkdir -p /srv/SamplePacks/Archive
   echo "Sample directories created"
 
   /filebrowser users add "${QUIXIT_USER}" "${QUIXIT_PW}" --perm.admin --database /database/filebrowser.db
+
+  # set default permissions for new users
+  /filebrowser config set \
+      --database /database/filebrowser.db \
+      --defaults.scope "/srv/quixit" \
+      --defaults.perm.admin=false \
+      --defaults.perm.execute=false \
+      --defaults.perm.create=true \
+      --defaults.perm.rename=false \
+      --defaults.perm.modify=false \
+      --defaults.perm.delete=false \
+      --defaults.perm.share=false \
+      --defaults.perm.download=true
 
   exec /filebrowser --port 44301 --database /database/filebrowser.db --disable-exec
 ---

@@ -1,0 +1,93 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: quixit-update-permissions
+  namespace: quixit
+spec:
+  # Run daily to ensure permissions are correct
+  schedule: "0 0 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: permission-updater
+              image: filebrowser/filebrowser:latest
+              volumeMounts:
+                - name: filebrowser-data
+                  mountPath: /database
+                - name: filebrowser-config
+                  mountPath: /config
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Get current quixit number
+                  if [ -f "/database/quixit/current_quixit_number.txt" ]; then
+                    QUIXIT_NUMBER=$(cat /database/quixit/current_quixit_number.txt)
+                    QUIXIT_FOLDER="quixit-${QUIXIT_NUMBER}"
+                    
+                    # Check which phase we're in
+                    if ls /database/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_*.txt 1> /dev/null 2>&1; then
+                      PHASE="samples"
+                    elif ls /database/quixit/${QUIXIT_FOLDER}/SUBMIT_SONGS_BEFORE_*.txt 1> /dev/null 2>&1; then
+                      PHASE="songs"
+                    else
+                      PHASE="readonly"
+                    fi
+                    
+                    echo "Current phase: ${PHASE}"
+                    
+                    # Get list of users
+                    USERS=$(/filebrowser users ls | grep -v admin | awk '{print $1}')
+                    
+                    for USER_ID in $USERS; do
+                      if [ "$PHASE" = "samples" ]; then
+                        # During sample phase, allow uploads to samples folder
+                        /filebrowser users update $USER_ID \
+                          --perm.admin=false \
+                          --perm.execute=false \
+                          --perm.create=true \
+                          --perm.rename=false \
+                          --perm.modify=false \
+                          --perm.delete=false \
+                          --perm.share=false \
+                          --perm.download=true
+                      elif [ "$PHASE" = "songs" ]; then
+                        # During song phase, allow uploads to songs folder
+                        /filebrowser users update $USER_ID \
+                          --perm.admin=false \
+                          --perm.execute=false \
+                          --perm.create=true \
+                          --perm.rename=false \
+                          --perm.modify=false \
+                          --perm.delete=false \
+                          --perm.share=false \
+                          --perm.download=true
+                      else
+                        # After completion, read-only access
+                        /filebrowser users update $USER_ID \
+                          --perm.admin=false \
+                          --perm.execute=false \
+                          --perm.create=false \
+                          --perm.rename=false \
+                          --perm.modify=false \
+                          --perm.delete=false \
+                          --perm.share=false \
+                          --perm.download=true
+                      fi
+                      
+                      echo "Updated permissions for user ID: $USER_ID"
+                    done
+                  else
+                    echo "No current Quixit number found"
+                  fi
+          volumes:
+            - name: filebrowser-data
+              persistentVolumeClaim:
+                claimName: filebrowser
+            - name: filebrowser-config
+              configMap:
+                name: filebrowser-config
+                optional: true
+          restartPolicy: OnFailure

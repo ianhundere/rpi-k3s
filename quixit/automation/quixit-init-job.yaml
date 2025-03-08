@@ -1,0 +1,66 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+ name: quixit-init-job
+ namespace: quixit
+spec:
+ template:
+  spec:
+   containers:
+    - name: quixit-initializer
+      image: alpine:latest
+      volumeMounts:
+       - name: filebrowser-data
+         mountPath: /data
+      command:
+       - /bin/sh
+       - -c
+       - |
+        # create main quixit directory if it doesn't exist
+        mkdir -p /data/quixit
+
+        # create a .filebrowser.json in the quixit directory to set default permissions
+        cat > /data/quixit/.filebrowser.json << EOF
+        {
+          "perm": {
+            "admin": false,
+            "execute": false,
+            "create": false,
+            "rename": false,
+            "modify": false,
+            "delete": false,
+            "share": false,
+            "download": true
+          }
+        }
+        EOF
+
+        # create an initial README
+        echo "WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE" > /data/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+        echo "Each week, a new quixit-<number> folder will be created." >> /data/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+        echo "Phase 1: Upload samples to the samples directory" >> /data/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+        echo "Phase 2: Download the sample pack and upload your songs to the songs directory" >> /data/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+        echo "All previous Quixit challenges are available in read-only mode." >> /data/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+
+        # set permissions for the root quixit directory
+        curl -X POST http://filebrowser-service.filebrowser:44301/api/resources/share \
+          -H "X-Auth: ${QUIXIT_USER}:${QUIXIT_PW}" \
+          -d "{\"path\":\"/quixit\",\"users\":[\"*\"],\"perm\":{\"admin\":false,\"execute\":false,\"create\":false,\"rename\":false,\"modify\":false,\"delete\":false,\"share\":false,\"download\":true}}"
+
+        echo "Quixit directory structure initialized"
+      env:
+       - name: QUIXIT_USER
+         valueFrom:
+          secretKeyRef:
+           name: quixit-admin-credentials
+           key: admin-user
+       - name: QUIXIT_PW
+         valueFrom:
+          secretKeyRef:
+           name: quixit-admin-credentials
+           key: admin-password
+   volumes:
+    - name: filebrowser-data
+      persistentVolumeClaim:
+       claimName: filebrowser
+   restartPolicy: OnFailure

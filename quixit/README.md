@@ -31,8 +31,35 @@ The automation handles:
 - `pack-scheduler.yaml` - Initializes the Quixit directory structure
 - `quixit-init-job.yaml` - One-time job to initialize the Quixit environment
 - `quixit-phase-transition-job.yaml` - Manual job to force phase transitions
+- `quixit.configmap.yml` - ConfigMap for Quixit configuration
+- `quixit.secret.yml` - Secrets for Quixit (including OAuth credentials)
+- `oauth/oauth2-proxy.deployment.yml` - OAuth2 Proxy deployment
+- `oauth/oauth2-proxy.service.yml` - OAuth2 Proxy service
+- `setup.sh` - Script to deploy Quixit
+- `env-setup.sh` - Script to set up environment variables
 
-## Setup
+## Quick Setup
+
+The easiest way to deploy Quixit is to use the provided scripts:
+
+1. Make the scripts executable:
+   ```
+   chmod +x env-setup.sh setup.sh
+   ```
+
+2. Set up environment variables:
+   ```
+   ./env-setup.sh
+   ```
+
+3. Deploy Quixit:
+   ```
+   ./setup.sh
+   ```
+
+## Manual Setup
+
+If you prefer to set up Quixit manually, follow these steps:
 
 1. Create the namespace:
    ```
@@ -44,14 +71,34 @@ The automation handles:
    kubectl apply -f quixit.pvc.yml
    ```
 
-3. Deploy FileBrowser:
+3. Set up environment variables:
+   ```
+   export QUIXIT_HOST=your-quixit-domain.com
+   export GITHUB_CLIENT_ID=your-github-client-id
+   export GITHUB_CLIENT_SECRET=your-github-client-secret
+   export COOKIE_SECRET=$(openssl rand -base64 32 | tr -- '+/' '-_')
+   ```
+
+4. Create the ConfigMap and Secrets:
+   ```
+   envsubst < quixit.configmap.yml | kubectl apply -f -
+   envsubst < quixit.secret.yml | kubectl apply -f -
+   ```
+
+5. Deploy OAuth2 Proxy:
+   ```
+   kubectl apply -f oauth/oauth2-proxy.service.yml
+   kubectl apply -f oauth/oauth2-proxy.deployment.yml
+   ```
+
+6. Deploy FileBrowser:
    ```
    kubectl apply -f quixit.deployment.yml
    kubectl apply -f quixit.service.yml
-   kubectl apply -f quixit.ingress.yml
+   envsubst < quixit.ingress.yml | kubectl apply -f -
    ```
 
-4. Create the admin credentials secret:
+7. Create the admin credentials secret:
    ```
    kubectl create secret generic quixit-admin-credentials \
      --namespace quixit \
@@ -59,16 +106,28 @@ The automation handles:
      --from-literal=admin-password=YOUR_ADMIN_PASSWORD
    ```
 
-5. Apply the CronJobs:
+8. Apply the CronJobs:
    ```
    kubectl apply -f quixit.cronjob.yml
    kubectl apply -f pack-scheduler.yaml
    ```
 
-6. Initialize the Quixit environment:
+9. Initialize the Quixit environment:
    ```
    kubectl apply -f quixit-init-job.yaml
    ```
+
+## Setting up GitHub OAuth
+
+1. Go to GitHub Developer Settings: https://github.com/settings/developers
+2. Click "New OAuth App"
+3. Fill in the application details:
+   - Application name: Quixit
+   - Homepage URL: https://your-quixit-domain.com
+   - Authorization callback URL: https://your-quixit-domain.com/oauth2/callback
+4. Register the application
+5. Copy the Client ID and generate a Client Secret
+6. Use these values for the GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables
 
 ## Manual Operations
 
