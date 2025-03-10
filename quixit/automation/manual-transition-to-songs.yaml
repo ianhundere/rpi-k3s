@@ -23,18 +23,85 @@ spec:
 
         # check if in samples phase
         if ls "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"* 1>/dev/null 2>&1; then
-          # remove samples phase indicator
+          # remove samples phase indicator files
           rm "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"*
           
-          # set deadline (7 days)
-          SONG_DEADLINE=$(date -d "7 days" +%Y-%m-%d 2>/dev/null || date -v+7d +%Y-%m-%d 2>/dev/null || echo "$(date +%Y-%m-%d)")
+          # set deadline (7 days) using manual calculation that works in all environments
+          TODAY=$(date +%Y-%m-%d)
+          YEAR=$(echo $TODAY | cut -d'-' -f1)
+          MONTH=$(echo $TODAY | cut -d'-' -f2)
+          DAY=$(echo $TODAY | cut -d'-' -f3)
           
-          # create songs phase indicator
-          echo "upload your songs to the songs directory before $SONG_DEADLINE" > "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          # Remove leading zeros
+          MONTH=$(echo $MONTH | sed 's/^0//')
+          DAY=$(echo $DAY | sed 's/^0//')
+          
+          # Add 7 days
+          DAY=$((DAY + 7))
+          
+          # Handle month rollover
+          DAYS_IN_MONTH=31
+          if [ "$MONTH" = "4" ] || [ "$MONTH" = "6" ] || [ "$MONTH" = "9" ] || [ "$MONTH" = "11" ]; then
+            DAYS_IN_MONTH=30
+          elif [ "$MONTH" = "2" ]; then
+            # Check for leap year
+            if [ $((YEAR % 4)) -eq 0 ] && [ $((YEAR % 100)) -ne 0 ] || [ $((YEAR % 400)) -eq 0 ]; then
+              DAYS_IN_MONTH=29
+            else
+              DAYS_IN_MONTH=28
+            fi
+          fi
+          
+          # Adjust for month rollover
+          if [ "$DAY" -gt "$DAYS_IN_MONTH" ]; then
+            DAY=$((DAY - DAYS_IN_MONTH))
+            MONTH=$((MONTH + 1))
+            
+            # Adjust for year rollover
+            if [ "$MONTH" -gt 12 ]; then
+              MONTH=1
+              YEAR=$((YEAR + 1))
+            fi
+          fi
+          
+          # Format with padding
+          if [ "$MONTH" -lt 10 ]; then
+            MONTH="0$MONTH"
+          fi
+          if [ "$DAY" -lt 10 ]; then
+            DAY="0$DAY"
+          fi
+          
+          SONG_DEADLINE="$YEAR-$MONTH-$DAY"
+          
+          # create songs phase indicator file with detailed information
+          echo "QUIXIT #$QUIXIT_NUMBER - SONG SUBMISSION PHASE" > "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "Upload your finished track before: $SONG_DEADLINE" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "Guidelines:" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "- Use ONLY samples from the provided sample pack" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "- All tracks will be compiled into a downloadable archive when the phase ends" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          
+          # update current quixit number file
+          echo "$QUIXIT_NUMBER" > "/srv/quixit/current_quixit_number.txt"
+          chmod 444 "/srv/quixit/current_quixit_number.txt"
+          
+          # create songs directory for uploading songs
+          mkdir -p "$QUIXIT_DIR/songs"
+          chmod 777 "$QUIXIT_DIR/songs"
           
           # create sample pack
           cd "$QUIXIT_DIR"
           tar -czf SAMPLE_PACK.tar.gz samples/
+          
+          # remove samples directory after creating sample pack
+          if [ -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
+            rm -rf "$QUIXIT_DIR/samples"
+          fi
         else
           exit 1
         fi

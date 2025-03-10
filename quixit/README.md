@@ -32,10 +32,11 @@ quixit operates in sequential phases, with each challenge numbered sequentially 
 
 ## timeline
 
-- **monday 00:00** - new challenge created (7-day sample submission)
-- **next monday 00:00** - sample submission ends, song submission begins (12-day window)
-- **friday before midnight** - deadline for song submissions
-- **saturday 00:00** - challenge finalized and made read-only
+- **day 0** - new challenge created
+- **day 7** - sample submission ends, song submission begins (if samples exist)
+  - if no samples are uploaded, the sample phase is extended by 7 days
+- **day 19** - deadline for song submissions (12 days after song phase begins)
+- **day 20** - challenge finalized and made read-only
 
 ## automation
 
@@ -69,10 +70,11 @@ kubectl exec -n quixit <pod-name> -c quixit -- cat /logs/filebrowser.log
 
 ```text
 /quixit/
+  ├── current_quixit_number.txt                              # tracks current quixit number
   └── quixit-<number>/
       ├── QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_<date>.txt  # samples phase
       ├── SUBMIT_SONGS_BEFORE_<date>.txt                     # songs phase
-      ├── QUIXIT_COMPLETE_ARCHIVE_AVAILABLE.txt              # completed phase
+      ├── QUIXIT_COMPLETED.txt                               # completed phase
       ├── SAMPLE_PACK.tar.gz                                 # created after samples phase
       ├── ALL_SONGS.tar.gz                                   # created after songs phase
       ├── samples/                                           # for sample uploads
