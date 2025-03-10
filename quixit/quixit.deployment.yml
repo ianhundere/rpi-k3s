@@ -50,7 +50,7 @@ data:
       --perm.execute=false \
       --perm.create=true \
       --perm.rename=false \
-      --perm.modify=false \
+      --perm.modify=true \
       --perm.delete=false \
       --perm.share=false \
       --perm.download=true
