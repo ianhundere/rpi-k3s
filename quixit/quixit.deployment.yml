@@ -74,7 +74,7 @@ data:
   mkdir -p /logs
 
   # Install required tools
-  apk add --no-cache inotify-tools util-linux file
+  apk add --no-cache inotify-tools util-linux file curl jq
 
   # Create the watcher script
   cat > /tmp/watcher.sh << 'EOF'
@@ -88,13 +88,143 @@ data:
   }
 
   log "Starting file watcher..."
+  
+  # global variables for caching usernames
+  CACHED_USERNAMES=""
+  CACHE_TIMESTAMP=0
+  CACHE_TTL=900  # 15 minutes in seconds
+  
+  # track recently processed files to avoid duplicate processing
+  PROCESSED_FILES_DIR="/tmp/processed_files"
+  mkdir -p "$PROCESSED_FILES_DIR"
+  
+  # function to check if a file was recently processed
+  was_recently_processed() {
+    FILE_PATH="$1"
+    FILE_HASH=$(echo "$FILE_PATH" | md5sum | cut -d' ' -f1)
+    MARKER_FILE="$PROCESSED_FILES_DIR/$FILE_HASH"
+    
+    if [ -f "$MARKER_FILE" ]; then
+      # check if the marker is less than 10 seconds old
+      MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
+      if [ "$MARKER_AGE" -lt 10 ]; then
+        log "file was processed recently ($MARKER_AGE seconds ago), skipping: $FILE_PATH"
+        return 0
+      fi
+    fi
+    
+    # mark the file as processed
+    touch "$MARKER_FILE"
+    
+    # clean up old markers (older than 1 minute)
+    find "$PROCESSED_FILES_DIR" -type f -mmin +1 -delete 2>/dev/null
+    
+    return 1
+  }
 
   # Function to check if a file has an allowed audio extension
   has_audio_extension() {
-    case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
-      *.wav|*.mp3|*.ogg|*.flac|*.aiff) return 0 ;;
-      *) return 1 ;;
-    esac
+    FILE="$1"
+    LOWERCASE_FILE=$(echo "$FILE" | tr '[:upper:]' '[:lower:]')
+    
+    # explicitly check for allowed extensions
+    if echo "$LOWERCASE_FILE" | grep -q -E '\.wav$|\.mp3$|\.ogg$|\.flac$|\.aiff$'; then
+      return 0
+    fi
+    
+    # explicitly reject common non-audio extensions
+    if echo "$LOWERCASE_FILE" | grep -q -E '\.rar$|\.zip$|\.tar$|\.gz$|\.7z$|\.txt$|\.pdf$|\.doc$|\.docx$|\.jpg$|\.jpeg$|\.png$|\.gif$'; then
+      log "file has explicitly rejected extension: $FILE"
+      return 1
+    fi
+    
+    # reject any other extensions
+    return 1
+  }
+
+  # function to check if a filename contains a username
+  check_username_in_filename() {
+    FILENAME="$1"
+    log "checking if filename contains a username: $FILENAME"
+    
+    # check if we need to refresh the cache
+    CURRENT_TIME=$(date +%s)
+    CACHE_AGE=$((CURRENT_TIME - CACHE_TIMESTAMP))
+    
+    if [ -z "$CACHED_USERNAMES" ] || [ "$CACHE_AGE" -gt "$CACHE_TTL" ]; then
+      log "username cache expired or empty, refreshing from api"
+      
+      # get auth token from filebrowser api
+      API_URL="http://quixit.quixit:44301/api"
+      ADMIN_USER="${QUIXIT_USER}"
+      ADMIN_PASS="${QUIXIT_PW}"
+      
+      # get auth token
+      TOKEN_RESPONSE=$(curl -s -X POST "$API_URL/login" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "{\"username\":\"$ADMIN_USER\",\"password\":\"$ADMIN_PASS\"}" 2>/dev/null)
+      
+      # check if token was obtained
+      if [ -z "$TOKEN_RESPONSE" ]; then
+        log "failed to get auth token, using static fallback list"
+        # fallback to static list if api fails
+        CACHED_USERNAMES="quixit-admin"
+        # add any other known users to the static list
+        log "using static usernames list: $CACHED_USERNAMES"
+      else
+        # get users list
+        USERS_JSON=$(curl -s -X GET "$API_URL/users" \
+          -H "X-Auth: $TOKEN_RESPONSE" \
+          -H "Content-Type: application/json" 2>/dev/null)
+        
+        # extract usernames
+        USERNAMES=$(echo "$USERS_JSON" | grep -o '"username":"[^"]*"' | sed 's/"username":"//g' | sed 's/"//g')
+        
+        # check if we got any usernames
+        if [ -z "$USERNAMES" ]; then
+          log "failed to get usernames from api, using static fallback list"
+          CACHED_USERNAMES="quixit-admin"
+          log "using static usernames list: $CACHED_USERNAMES"
+        else
+          log "successfully retrieved usernames from api"
+          CACHED_USERNAMES="$USERNAMES"
+          log "usernames: $CACHED_USERNAMES"
+        fi
+      fi
+      
+      # update cache timestamp
+      CACHE_TIMESTAMP=$CURRENT_TIME
+      log "updated username cache timestamp: $CACHE_TIMESTAMP"
+    else
+      log "using cached usernames list (age: ${CACHE_AGE}s)"
+    fi
+    
+    # check if filename contains any username
+    # use a temporary file to store the result to avoid pipe subshell issues
+    TEMP_RESULT=$(mktemp)
+    echo "0" > "$TEMP_RESULT"
+    
+    echo "$CACHED_USERNAMES" | while read -r USERNAME; do
+      if [ -z "$USERNAME" ]; then
+        continue
+      fi
+      
+      if echo "$FILENAME" | grep -q "_${USERNAME}[.][^.]*$"; then
+        log "file $FILENAME contains username $USERNAME"
+        echo "1" > "$TEMP_RESULT"
+        break
+      fi
+    done
+    
+    FOUND=$(cat "$TEMP_RESULT")
+    rm "$TEMP_RESULT"
+    
+    if [ "$FOUND" -eq 1 ]; then
+      return 0
+    else
+      log "file $FILENAME does not contain any username"
+      return 1
+    fi
   }
 
   # Function to protect important system files
@@ -138,17 +268,63 @@ data:
         
         # Protect phase indicator files
         find "$QUIXIT_DIR" -maxdepth 1 -name "QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_*" -type f | while read -r FILE; do
+          # Check if file is empty or has been tampered with
+          if [ ! -s "$FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" "$FILE"; then
+            log "Sample phase file is empty or has been tampered with, restoring content: $FILE"
+            DEADLINE=$(basename "$FILE" | sed 's/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_//')
+            echo "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" > "$FILE"
+            echo "" >> "$FILE"
+            echo "Upload your samples before: $DEADLINE" >> "$FILE"
+            echo "" >> "$FILE"
+            echo "Guidelines:" >> "$FILE"
+            echo "- Upload audio samples to the 'samples' directory" >> "$FILE"
+            echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FILE"
+            echo "- Keep samples short and focused" >> "$FILE"
+            echo "" >> "$FILE"
+            echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$FILE"
+          fi
           chmod 444 "$FILE"
           log "Protected samples phase file: $FILE"
         done
         
         find "$QUIXIT_DIR" -maxdepth 1 -name "SUBMIT_SONGS_BEFORE_*" -type f | while read -r FILE; do
+          # Check if file is empty or has been tampered with
+          if [ ! -s "$FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SONG PHASE" "$FILE"; then
+            log "Song phase file is empty or has been tampered with, restoring content: $FILE"
+            DEADLINE=$(basename "$FILE" | sed 's/SUBMIT_SONGS_BEFORE_//')
+            echo "QUIXIT #$QUIXIT_NUM - SONG PHASE" > "$FILE"
+            echo "" >> "$FILE"
+            echo "Submit your songs before: $DEADLINE" >> "$FILE"
+            echo "" >> "$FILE"
+            echo "Guidelines:" >> "$FILE"
+            echo "- Upload your finished track to the 'songs' directory" >> "$FILE"
+            echo "- Use ONLY samples from the provided sample pack" >> "$FILE"
+            echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$FILE"
+            echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FILE"
+            echo "" >> "$FILE"
+            echo "After the deadline, all songs will be compiled for everyone to enjoy!" >> "$FILE"
+          fi
           chmod 444 "$FILE"
           log "Protected songs phase file: $FILE"
         done
         
         # Protect completion indicator
         if [ -f "$QUIXIT_DIR/QUIXIT_COMPLETED.txt" ]; then
+          # Check if file is empty or has been tampered with
+          if [ ! -s "$QUIXIT_DIR/QUIXIT_COMPLETED.txt" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - COMPLETED" "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"; then
+            log "Completion file is empty or has been tampered with, restoring content"
+            COMPLETION_DATE=$(date +"%Y-%m-%d")
+            echo "QUIXIT #$QUIXIT_NUM - COMPLETED" > "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "This quixit challenge is now complete!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "Completed on: $COMPLETION_DATE" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "You can download:" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "- SAMPLE_PACK.tar.gz - All samples used in this challenge" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "- ALL_SONGS.tar.gz - All submitted tracks" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "Thank you for participating!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          fi
           chmod 444 "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
           log "Protected completion indicator"
         fi
@@ -229,16 +405,9 @@ data:
   # Function to check if a file is in the correct directory based on phase
   check_file() {
     FILE="$1"
+    IS_CREATE_EVENT="$2"
+    IS_PRIORITY="$3"
     log "Checking file: $FILE"
-    
-    # Add delay to allow file to finish uploading
-    sleep 3
-    
-    # Skip if file no longer exists
-    if [ ! -f "$FILE" ]; then
-      log "File no longer exists, skipping check"
-      return 1
-    fi
     
     # Extract quixit folder from path
     QUIXIT_FOLDER=""
@@ -259,10 +428,28 @@ data:
       return 1
     fi
     
-    # Check if file has an allowed audio extension
+    # Check if file has an allowed audio extension - do this BEFORE any delays
     if ! has_audio_extension "$FILE"; then
-      log "File does not have an allowed audio extension, removing file: $FILE"
+      log "File does not have an allowed audio extension, removing file immediately: $FILE"
       rm -f "$FILE"
+      return 1
+    fi
+    
+    # Add delay to allow file to finish uploading
+    # Use a much shorter delay for priority files in samples/songs directories
+    if [ "$IS_PRIORITY" = "true" ]; then
+      log "Priority file detected, using minimal delay"
+      sleep 0.5
+    elif [ "$IS_CREATE_EVENT" = "true" ]; then
+      log "Create event detected, using shorter delay"
+      sleep 1
+    else
+      sleep 3
+    fi
+    
+    # Skip if file no longer exists
+    if [ ! -f "$FILE" ]; then
+      log "File no longer exists, skipping check"
       return 1
     fi
     
@@ -270,7 +457,14 @@ data:
     if ! is_audio_content "$FILE"; then
       # Add a second chance with a longer delay
       log "File appears empty or not audio, waiting longer for potential large upload..."
+      # Use a shorter delay for priority files
+      if [ "$IS_PRIORITY" = "true" ]; then
+        sleep 1
+      elif [ "$IS_CREATE_EVENT" = "true" ]; then
+        sleep 3
+      else
       sleep 7
+      fi
       
       # Check again after longer delay
       if [ ! -f "$FILE" ]; then
@@ -292,6 +486,16 @@ data:
       # Only allow uploads to songs directory
       if echo "$FILE" | grep -q "/$QUIXIT_FOLDER/songs/"; then
         log "Song upload allowed during songs phase"
+        
+        # check if filename contains a username
+        FILENAME=$(basename "$FILE")
+        if ! check_username_in_filename "$FILENAME"; then
+          log "song file does not contain a username in the filename, removing: $FILE"
+          log "filename format should be: track_username.extension (e.g. mysong_quixit-admin.mp3)"
+          rm -f "$FILE"
+          return 1
+        fi
+        
         return 0
       else
         log "Not uploading to songs directory during songs phase, removing file: $FILE"
@@ -415,6 +619,15 @@ data:
           elif [ ! -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ] && [ -d "$QUIXIT_DIR/samples" ]; then
             log "Sample pack is empty or missing, keeping samples directory"
           fi
+          
+          # Run a full scan of the songs directory to ensure compliance
+          log "Running full scan of songs directory after phase transition"
+          if [ -d "$QUIXIT_DIR/songs" ]; then
+            find "$QUIXIT_DIR/songs" -type f | while read -r SONG_FILE; do
+              log "Checking song file after phase transition: $SONG_FILE"
+              check_file "$SONG_FILE"
+            done
+          fi
         fi
         
         # Check if songs have been compressed but directory still exists
@@ -442,6 +655,17 @@ data:
             rm -rf "$QUIXIT_DIR/songs"
             log "Removed songs directory from finalized quixit-$QUIXIT_NUM"
           fi
+          
+          # Remove any unauthorized files in the root of the quixit directory
+          find "$QUIXIT_DIR" -maxdepth 1 -type f | while read -r ROOT_FILE; do
+            # Skip protected files
+            if echo "$ROOT_FILE" | grep -q "QUIXIT_COMPLETED.txt\|SAMPLE_PACK.tar.gz\|ALL_SONGS.tar.gz\|QUIXIT_HAS_BEGUN\|SUBMIT_SONGS_BEFORE"; then
+              continue
+            fi
+            
+            log "Removing unauthorized file from finalized quixit root: $ROOT_FILE"
+            rm -f "$ROOT_FILE"
+          done
           
           # Make the entire quixit directory read-only
           chmod -R 555 "$QUIXIT_DIR"
@@ -512,6 +736,27 @@ data:
   find /srv/quixit -type f -name "QUIXIT_*_SONG_PHASE_INFO.txt" -delete
   find /srv/quixit -type f -name "QUIXIT_*_SAMPLE_PHASE_INFO.txt" -delete
   log "Cleaned up any redundant info files"
+  
+  # Run an initial scan of all files to catch any that were added while the watcher was not running
+  log "Running initial scan of all files"
+  find /srv/quixit -type f | while read -r FILE; do
+    # skip system and protected files
+    if echo "$FILE" | grep -q "QUIXIT_HAS_BEGUN\|SUBMIT_SONGS_BEFORE\|QUIXIT_COMPLETED\|SAMPLE_PACK\.tar\.gz\|ALL_SONGS\.tar.gz\|WELCOME_TO_QUIXIT\|current_quixit_number.txt"; then
+      continue
+    fi
+    
+    # check if this is a file in a quixit folder
+    if echo "$FILE" | grep -q "/quixit/quixit-[0-9]"; then
+      QUIXIT_FOLDER=$(echo "$FILE" | grep -o "quixit-[0-9][0-9]*")
+      
+      # check if file is in samples or songs directory
+      if echo "$FILE" | grep -q "/$QUIXIT_FOLDER/samples/" || echo "$FILE" | grep -q "/$QUIXIT_FOLDER/songs/"; then
+        log "Checking existing file during initial scan: $FILE"
+        check_file "$FILE"
+      fi
+    fi
+  done
+  log "Initial file scan complete"
 
   # Set up a background job to check for phase transitions every 5 minutes
   (
@@ -521,18 +766,336 @@ data:
       protect_system_files
       check_unauthorized_directories
       
+      # scan all existing files to ensure they comply with rules
+      log "performing full scan of all files to ensure compliance with rules"
+      find /srv/quixit -type f | while read -r FILE; do
+        # skip system and protected files
+        if echo "$FILE" | grep -q "QUIXIT_HAS_BEGUN\|SUBMIT_SONGS_BEFORE\|QUIXIT_COMPLETED\|SAMPLE_PACK\.tar\.gz\|ALL_SONGS\.tar.gz\|WELCOME_TO_QUIXIT\|current_quixit_number.txt"; then
+          continue
+        fi
+        
+        # check if this is a file in a quixit folder
+        if echo "$FILE" | grep -q "/quixit/quixit-[0-9]"; then
+          QUIXIT_FOLDER=$(echo "$FILE" | grep -o "quixit-[0-9][0-9]*")
+          
+          # check if file is in samples or songs directory
+          if echo "$FILE" | grep -q "/$QUIXIT_FOLDER/samples/" || echo "$FILE" | grep -q "/$QUIXIT_FOLDER/songs/"; then
+            log "scanning existing file: $FILE"
+            check_file "$FILE"
+          fi
+        fi
+      done
+      
       # Clean up any redundant info files that might exist
       find /srv/quixit -type f -name "QUIXIT_*_SONG_PHASE_INFO.txt" -delete
       find /srv/quixit -type f -name "QUIXIT_*_SAMPLE_PHASE_INFO.txt" -delete
-      log "Cleaned up any redundant info files in background job"
+      log "cleaned up any redundant info files in background job"
     done
   ) &
+  BACKGROUND_PID=$!
+  log "Started background job with PID: $BACKGROUND_PID"
 
-  # Use inotifywait to monitor file creation events
+  # Set up a continuous scanner that checks for invalid files every 1 second
+  (
   while true; do
-    inotifywait -r -e close_write,moved_to,modify,attrib,create /srv/quixit 2>/dev/null | while read -r DIR EVENT FILE; do
+      # Find all samples and songs directories
+      find /srv/quixit -type d | grep -E '/(samples|songs)$' | while read -r DIR; do
+        # Check for invalid files in this directory
+        find "$DIR" -type f -not -path "*/\.*" | while read -r FILE; do
+          # Skip if file was recently processed
+          FILE_HASH=$(echo "$FILE" | md5sum | cut -d' ' -f1)
+          MARKER_FILE="$PROCESSED_FILES_DIR/$FILE_HASH"
+          
+          if [ -f "$MARKER_FILE" ]; then
+            MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
+            if [ "$MARKER_AGE" -lt 5 ]; then  # Reduced from 10 to 5 seconds
+              continue
+            fi
+          fi
+          
+          # Check for invalid extensions immediately
+          if ! echo "$FILE" | grep -q -i -E '\.wav$|\.mp3$|\.ogg$|\.flac$|\.aiff$'; then
+            log "Continuous scanner: Removing file with invalid extension: $FILE"
+            rm -f "$FILE"
+            touch "$MARKER_FILE"
+            continue
+          fi
+          
+          # If in songs directory, check for username in filename
+          if echo "$FILE" | grep -q "/songs/"; then
+            QUIXIT_FOLDER=$(echo "$FILE" | grep -o "quixit-[0-9][0-9]*")
+            # Check if we're in songs phase
+            if find "/srv/quixit/$QUIXIT_FOLDER" -maxdepth 1 -name "SUBMIT_SONGS_BEFORE_*" -type f | grep -q .; then
+              FILENAME=$(basename "$FILE")
+              
+              # More aggressive check for username pattern
+              if ! echo "$FILENAME" | grep -q "_[a-zA-Z0-9-]\+[.][^.]*$"; then
+                log "Continuous scanner: Song file does not contain a username in the filename, removing: $FILE"
+                rm -f "$FILE"
+                touch "$MARKER_FILE"
+                continue
+              fi
+              
+              # Additional check for known usernames without API call
+              # This is a more aggressive approach that doesn't wait for the API check
+              if ! echo "$FILENAME" | grep -q -E "_(quixit-admin|zfigz|admin)[.][^.]*$"; then
+                # Check if the file has been around for more than 5 seconds
+                FILE_AGE=$(($(date +%s) - $(date -r "$FILE" +%s)))
+                if [ "$FILE_AGE" -gt 5 ]; then
+                  log "Continuous scanner: Song file does not contain a known username after 5 seconds, removing: $FILE"
+                  rm -f "$FILE"
+                  touch "$MARKER_FILE"
+                fi
+              fi
+            fi
+          fi
+        done
+      done
+      
+      # Check for files in the root of finalized quixit directories
+      find /srv/quixit -type d -name "quixit-*" | while read -r QUIXIT_DIR; do
+        # Check if this quixit is finalized
+        if [ -f "$QUIXIT_DIR/QUIXIT_COMPLETED.txt" ] && [ -f "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
+          # Find files in the root of the quixit directory
+          find "$QUIXIT_DIR" -maxdepth 1 -type f | while read -r ROOT_FILE; do
+            # Skip if file was recently processed
+            FILE_HASH=$(echo "$ROOT_FILE" | md5sum | cut -d' ' -f1)
+            MARKER_FILE="$PROCESSED_FILES_DIR/$FILE_HASH"
+            
+            if [ -f "$MARKER_FILE" ]; then
+              MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
+              if [ "$MARKER_AGE" -lt 5 ]; then
+                continue
+              fi
+            fi
+            
+            # Skip protected files
+            if echo "$ROOT_FILE" | grep -q "QUIXIT_COMPLETED.txt\|SAMPLE_PACK.tar.gz\|ALL_SONGS.tar.gz\|QUIXIT_HAS_BEGUN\|SUBMIT_SONGS_BEFORE"; then
+              continue
+            fi
+            
+            log "Continuous scanner: Removing unauthorized file from finalized quixit root: $ROOT_FILE"
+            rm -f "$ROOT_FILE"
+            touch "$MARKER_FILE"
+          done
+        fi
+      done
+      
+      # Check for protected files in unauthorized locations
+      find /srv/quixit -type f | grep -E "QUIXIT_HAS_BEGUN|SUBMIT_SONGS_BEFORE|QUIXIT_COMPLETED|SAMPLE_PACK\.tar\.gz|ALL_SONGS\.tar\.gz" | while read -r PROTECTED_FILE; do
+        # Skip if file was recently processed
+        FILE_HASH=$(echo "$PROTECTED_FILE" | md5sum | cut -d' ' -f1)
+        MARKER_FILE="$PROCESSED_FILES_DIR/$FILE_HASH"
+        
+        if [ -f "$MARKER_FILE" ]; then
+          MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
+          if [ "$MARKER_AGE" -lt 5 ]; then
+            continue
+          fi
+        fi
+        
+        # Check if this is in a valid location
+        if echo "$PROTECTED_FILE" | grep -q "^/srv/quixit/quixit-[0-9][0-9]*/QUIXIT_HAS_BEGUN" || \
+           echo "$PROTECTED_FILE" | grep -q "^/srv/quixit/quixit-[0-9][0-9]*/SUBMIT_SONGS_BEFORE" || \
+           echo "$PROTECTED_FILE" | grep -q "^/srv/quixit/quixit-[0-9][0-9]*/QUIXIT_COMPLETED" || \
+           echo "$PROTECTED_FILE" | grep -q "^/srv/quixit/quixit-[0-9][0-9]*/SAMPLE_PACK\.tar\.gz" || \
+           echo "$PROTECTED_FILE" | grep -q "^/srv/quixit/quixit-[0-9][0-9]*/ALL_SONGS\.tar\.gz"; then
+          
+          # This is in the right place, ensure it has the correct permissions
+          chmod 444 "$PROTECTED_FILE"
+        else
+          # This is not in the right place, so remove it
+          log "Continuous scanner: Removing protected file in unauthorized location: $PROTECTED_FILE"
+          rm -f "$PROTECTED_FILE"
+          touch "$MARKER_FILE"
+        fi
+      done
+      
+      # Check welcome file
+      if [ -f "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt" ]; then
+        # Skip if file was recently processed
+        FILE_HASH=$(echo "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt" | md5sum | cut -d' ' -f1)
+        MARKER_FILE="$PROCESSED_FILES_DIR/$FILE_HASH"
+        
+        if [ -f "$MARKER_FILE" ]; then
+          MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
+          if [ "$MARKER_AGE" -lt 5 ]; then
+            continue
+          fi
+        fi
+        
+        # Check if content has been modified
+        if ! grep -q "WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE" "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"; then
+          log "Continuous scanner: Welcome file content has been modified, restoring original content"
+          echo "WELCOME TO QUIXIT MUSIC COLLABORATION CHALLENGE" > "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "quixit is a regular event that allows everyone to work off of a single pack of audio samples, make a track in 12 days, and then receive constructive criticism from fellow peers on their track." >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "how it works:" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "1. upload samples during the sample submission phase" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "2. download the sample pack when it becomes available" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "3. create your track using only the provided samples" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "4. upload your finished track during the song submission phase" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "5. download and listen to everyone's tracks when the challenge is complete" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "important: when uploading your finished track, please include your username in the filename (e.g. my_track_username.mp3)" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "all previous quixit challenges are available in read-only mode." >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+        fi
+        
+        # Ensure permissions are set
+        chmod 444 "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+        touch "$MARKER_FILE"
+      fi
+      
+      # Check current_quixit_number.txt
+      if [ -f "/srv/quixit/current_quixit_number.txt" ]; then
+        # Skip if file was recently processed
+        FILE_HASH=$(echo "/srv/quixit/current_quixit_number.txt" | md5sum | cut -d' ' -f1)
+        MARKER_FILE="$PROCESSED_FILES_DIR/$FILE_HASH"
+        
+        if [ -f "$MARKER_FILE" ]; then
+          MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
+          if [ "$MARKER_AGE" -lt 5 ]; then
+            continue
+          fi
+        fi
+        
+        # Update the current quixit number file using the locking mechanism
+        update_current_quixit_number
+        touch "$MARKER_FILE"
+      fi
+      
+      # Explicitly check all protected files in all quixit directories
+      find /srv/quixit -type d -name "quixit-*" | while read -r QUIXIT_DIR; do
+        QUIXIT_NUM=$(basename "$QUIXIT_DIR" | cut -d"-" -f2)
+        
+        # Check QUIXIT_COMPLETED.txt
+        if [ -f "$QUIXIT_DIR/QUIXIT_COMPLETED.txt" ]; then
+          FILE_HASH=$(echo "$QUIXIT_DIR/QUIXIT_COMPLETED.txt" | md5sum | cut -d' ' -f1)
+          MARKER_FILE="$PROCESSED_FILES_DIR/$FILE_HASH"
+          
+          if [ -f "$MARKER_FILE" ]; then
+            MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
+            if [ "$MARKER_AGE" -ge 5 ]; then
+              log "Continuous scanner: Checking QUIXIT_COMPLETED.txt in $QUIXIT_DIR"
+              if [ ! -s "$QUIXIT_DIR/QUIXIT_COMPLETED.txt" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - COMPLETED" "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"; then
+                log "Continuous scanner: QUIXIT_COMPLETED.txt content has been modified, restoring content"
+                COMPLETION_DATE=$(date +"%Y-%m-%d")
+                echo "QUIXIT #$QUIXIT_NUM - COMPLETED" > "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                echo "This quixit challenge is now complete!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                echo "Completed on: $COMPLETION_DATE" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                echo "You can download:" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                echo "- SAMPLE_PACK.tar.gz - All samples used in this challenge" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                echo "- ALL_SONGS.tar.gz - All submitted tracks" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                echo "Thank you for participating!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+              fi
+              chmod 444 "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+              touch "$MARKER_FILE"
+            fi
+          else
+            log "Continuous scanner: First check of QUIXIT_COMPLETED.txt in $QUIXIT_DIR"
+            chmod 444 "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            touch "$MARKER_FILE"
+          fi
+        fi
+        
+        # Check SUBMIT_SAMPLES_BEFORE_* files
+        find "$QUIXIT_DIR" -maxdepth 1 -name "QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_*" -type f | while read -r SAMPLE_FILE; do
+          FILE_HASH=$(echo "$SAMPLE_FILE" | md5sum | cut -d' ' -f1)
+          MARKER_FILE="$PROCESSED_FILES_DIR/$FILE_HASH"
+          
+          if [ -f "$MARKER_FILE" ]; then
+            MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
+            if [ "$MARKER_AGE" -ge 5 ]; then
+              log "Continuous scanner: Checking sample phase file in $QUIXIT_DIR"
+              if [ ! -s "$SAMPLE_FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" "$SAMPLE_FILE"; then
+                log "Continuous scanner: Sample phase file content has been modified, restoring content"
+                DEADLINE=$(basename "$SAMPLE_FILE" | sed 's/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_//')
+                echo "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" > "$SAMPLE_FILE"
+                echo "" >> "$SAMPLE_FILE"
+                echo "Upload your samples before: $DEADLINE" >> "$SAMPLE_FILE"
+                echo "" >> "$SAMPLE_FILE"
+                echo "Guidelines:" >> "$SAMPLE_FILE"
+                echo "- Upload audio samples to the 'samples' directory" >> "$SAMPLE_FILE"
+                echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SAMPLE_FILE"
+                echo "- Keep samples short and focused" >> "$SAMPLE_FILE"
+                echo "" >> "$SAMPLE_FILE"
+                echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$SAMPLE_FILE"
+              fi
+              chmod 444 "$SAMPLE_FILE"
+              touch "$MARKER_FILE"
+            fi
+          else
+            log "Continuous scanner: First check of sample phase file in $QUIXIT_DIR"
+            chmod 444 "$SAMPLE_FILE"
+            touch "$MARKER_FILE"
+          fi
+        done
+        
+        # Check SUBMIT_SONGS_BEFORE_* files
+        find "$QUIXIT_DIR" -maxdepth 1 -name "SUBMIT_SONGS_BEFORE_*" -type f | while read -r SONG_FILE; do
+          FILE_HASH=$(echo "$SONG_FILE" | md5sum | cut -d' ' -f1)
+          MARKER_FILE="$PROCESSED_FILES_DIR/$FILE_HASH"
+          
+          if [ -f "$MARKER_FILE" ]; then
+            MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
+            if [ "$MARKER_AGE" -ge 5 ]; then
+              log "Continuous scanner: Checking song phase file in $QUIXIT_DIR"
+              if [ ! -s "$SONG_FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SONG PHASE" "$SONG_FILE"; then
+                log "Continuous scanner: Song phase file content has been modified, restoring content"
+                DEADLINE=$(basename "$SONG_FILE" | sed 's/SUBMIT_SONGS_BEFORE_//')
+                echo "QUIXIT #$QUIXIT_NUM - SONG PHASE" > "$SONG_FILE"
+                echo "" >> "$SONG_FILE"
+                echo "Submit your songs before: $DEADLINE" >> "$SONG_FILE"
+                echo "" >> "$SONG_FILE"
+                echo "Guidelines:" >> "$SONG_FILE"
+                echo "- Upload your finished track to the 'songs' directory" >> "$SONG_FILE"
+                echo "- Use ONLY samples from the provided sample pack" >> "$SONG_FILE"
+                echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$SONG_FILE"
+                echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SONG_FILE"
+                echo "" >> "$SONG_FILE"
+                echo "After the deadline, all songs will be compiled for everyone to enjoy!" >> "$SONG_FILE"
+              fi
+              chmod 444 "$SONG_FILE"
+              touch "$MARKER_FILE"
+            fi
+          else
+            log "Continuous scanner: First check of song phase file in $QUIXIT_DIR"
+            chmod 444 "$SONG_FILE"
+            touch "$MARKER_FILE"
+          fi
+        done
+      done
+      
+      # Sleep for a short time before next scan
+      sleep 1  # Reduced from 2 to 1 second
+    done
+  ) &
+  CONTINUOUS_SCANNER_PID=$!
+  log "Started continuous scanner with PID: $CONTINUOUS_SCANNER_PID"
+  
+  # Update the trap to kill both background processes
+  trap 'kill $BACKGROUND_PID $CONTINUOUS_SCANNER_PID 2>/dev/null; log "Killed background jobs"; exit' INT TERM EXIT
+
+  # main loop that restarts inotifywait if it exits
+  log "Starting main file watch loop"
+  while true; do
+    log "Setting up inotifywait to monitor file events"
+    # Use inotifywait with -m flag to keep it running continuously
+    inotifywait -m -r -e close_write,moved_to,modify,attrib,create /srv/quixit 2>/dev/null | while read -r DIR EVENT FILE; do
       FULL_PATH="${DIR}${FILE}"
       log "Event: $EVENT, file: $FULL_PATH"
+      
+      # Skip if this file was recently processed
+      if was_recently_processed "$FULL_PATH"; then
+        continue
+      fi
       
       # Check if this is a directory creation event
       if [ -d "$FULL_PATH" ] && echo "$EVENT" | grep -q "CREATE"; then
@@ -558,10 +1121,24 @@ data:
         continue
       fi
       
+      # Immediate check for invalid file extensions in samples/songs directories
+      if echo "$EVENT" | grep -q "CREATE" && (echo "$FULL_PATH" | grep -q "/samples/" || echo "$FULL_PATH" | grep -q "/songs/"); then
+        # Check file extension immediately without any delay
+        if ! echo "$FULL_PATH" | grep -q -i -E '\.wav$|\.mp3$|\.ogg$|\.flac$|\.aiff$'; then
+          log "Immediate deletion: File with invalid extension detected in samples/songs directory: $FULL_PATH"
+          rm -f "$FULL_PATH"
+          # Mark as processed to avoid duplicate processing
+          FILE_HASH=$(echo "$FULL_PATH" | md5sum | cut -d' ' -f1)
+          MARKER_FILE="$PROCESSED_FILES_DIR/$FILE_HASH"
+          touch "$MARKER_FILE"
+          continue
+        fi
+      fi
+      
       # Check if this is a system file that was modified
       if echo "$EVENT" | grep -q "MODIFY\|ATTRIB"; then
         # Check if it is a protected file
-        if echo "$FULL_PATH" | grep -q "QUIXIT_HAS_BEGUN\|SUBMIT_SONGS_BEFORE\|QUIXIT_COMPLETED\|SAMPLE_PACK\.tar\.gz\|ALL_SONGS\.tar\.gz\|WELCOME_TO_QUIXIT"; then
+        if echo "$FULL_PATH" | grep -q "QUIXIT_HAS_BEGUN\|SUBMIT_SONGS_BEFORE\|QUIXIT_COMPLETED\|SAMPLE_PACK\.tar\.gz\|ALL_SONGS\.tar.gz\|WELCOME_TO_QUIXIT"; then
           log "Detected modification to protected file: $FULL_PATH, restoring permissions"
           chmod 444 "$FULL_PATH"
           
@@ -591,11 +1168,56 @@ data:
             continue
           fi
           
+          # Special handling for QUIXIT_HAS_BEGUN files
+          if echo "$FULL_PATH" | grep -q "QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"; then
+            log "Detected modification to sample phase file, checking content"
+            QUIXIT_NUM=$(basename "$(dirname "$FULL_PATH")" | cut -d"-" -f2)
+            if [ ! -s "$FULL_PATH" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" "$FULL_PATH"; then
+              log "Sample phase file content has been modified, restoring content"
+              DEADLINE=$(basename "$FULL_PATH" | sed 's/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_//')
+              echo "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" > "$FULL_PATH"
+              echo "" >> "$FULL_PATH"
+              echo "Upload your samples before: $DEADLINE" >> "$FULL_PATH"
+              echo "" >> "$FULL_PATH"
+              echo "Guidelines:" >> "$FULL_PATH"
+              echo "- Upload audio samples to the 'samples' directory" >> "$FULL_PATH"
+              echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FULL_PATH"
+              echo "- Keep samples short and focused" >> "$FULL_PATH"
+              echo "" >> "$FULL_PATH"
+              echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$FULL_PATH"
+              chmod 444 "$FULL_PATH"
+            fi
+            continue
+          fi
+          
+          # Special handling for SUBMIT_SONGS_BEFORE files
+          if echo "$FULL_PATH" | grep -q "SUBMIT_SONGS_BEFORE_"; then
+            log "Detected modification to song phase file, checking content"
+            QUIXIT_NUM=$(basename "$(dirname "$FULL_PATH")" | cut -d"-" -f2)
+            if [ ! -s "$FULL_PATH" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SONG PHASE" "$FULL_PATH"; then
+              log "Song phase file content has been modified, restoring content"
+              DEADLINE=$(basename "$FULL_PATH" | sed 's/SUBMIT_SONGS_BEFORE_//')
+              echo "QUIXIT #$QUIXIT_NUM - SONG PHASE" > "$FULL_PATH"
+              echo "" >> "$FULL_PATH"
+              echo "Submit your songs before: $DEADLINE" >> "$FULL_PATH"
+              echo "" >> "$FULL_PATH"
+              echo "Guidelines:" >> "$FULL_PATH"
+              echo "- Upload your finished track to the 'songs' directory" >> "$FULL_PATH"
+              echo "- Use ONLY samples from the provided sample pack" >> "$FULL_PATH"
+              echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$FULL_PATH"
+              echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FULL_PATH"
+              echo "" >> "$FULL_PATH"
+              echo "After the deadline, all songs will be compiled for everyone to enjoy!" >> "$FULL_PATH"
+              chmod 444 "$FULL_PATH"
+            fi
+            continue
+          fi
+          
           # Special handling for QUIXIT_COMPLETED.txt
           if echo "$FULL_PATH" | grep -q "QUIXIT_COMPLETED.txt"; then
             log "Detected modification to completion file, checking content"
             QUIXIT_NUM=$(basename "$(dirname "$FULL_PATH")" | cut -d"-" -f2)
-            if ! grep -q "QUIXIT #$QUIXIT_NUM - COMPLETED" "$FULL_PATH"; then
+            if [ ! -s "$FULL_PATH" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - COMPLETED" "$FULL_PATH"; then
               log "Completion file content has been modified, restoring content"
               COMPLETION_DATE=$(date +"%Y-%m-%d")
               echo "QUIXIT #$QUIXIT_NUM - COMPLETED" > "$FULL_PATH"
@@ -626,25 +1248,93 @@ data:
       fi
       
       # For new files, check if they are allowed
-      if echo "$EVENT" | grep -q "CLOSE_WRITE\|MOVED_TO"; then
+      if echo "$EVENT" | grep -q "CLOSE_WRITE\|MOVED_TO\|CREATE"; then
+        # Prioritize CREATE events for faster response
+        IS_CREATE_EVENT="false"
+        IS_PRIORITY="false"
+        
+        if echo "$EVENT" | grep -q "CREATE"; then
+          IS_CREATE_EVENT="true"
+          log "Prioritizing CREATE event for faster response"
+        fi
+        
+        # Check if this is a protected file name that was created by a user
+        if echo "$FILE" | grep -q -E "QUIXIT_HAS_BEGUN|SUBMIT_SONGS_BEFORE|QUIXIT_COMPLETED|SAMPLE_PACK\.tar\.gz|ALL_SONGS\.tar\.gz"; then
+          # Extract quixit folder if applicable
+          QUIXIT_FOLDER=""
+          if echo "$FULL_PATH" | grep -q "/quixit/quixit-[0-9]"; then
+            QUIXIT_FOLDER=$(echo "$FULL_PATH" | grep -o "quixit-[0-9][0-9]*")
+            log "Detected creation of protected file name in $QUIXIT_FOLDER: $FULL_PATH"
+            
+            # Check if this is an admin-created file (we can't really tell, but we can check if it's in the right place)
+            if echo "$FULL_PATH" | grep -q "^/srv/quixit/quixit-[0-9][0-9]*/QUIXIT_HAS_BEGUN" || \
+               echo "$FULL_PATH" | grep -q "^/srv/quixit/quixit-[0-9][0-9]*/SUBMIT_SONGS_BEFORE" || \
+               echo "$FULL_PATH" | grep -q "^/srv/quixit/quixit-[0-9][0-9]*/QUIXIT_COMPLETED" || \
+               echo "$FULL_PATH" | grep -q "^/srv/quixit/quixit-[0-9][0-9]*/SAMPLE_PACK\.tar\.gz" || \
+               echo "$FULL_PATH" | grep -q "^/srv/quixit/quixit-[0-9][0-9]*/ALL_SONGS\.tar\.gz"; then
+              
+              # This is in the right place, so it might be legitimate
+              # Set proper permissions and trigger phase transition check
+              log "Setting proper permissions for protected file: $FULL_PATH"
+              chmod 444 "$FULL_PATH"
+              
+              # Trigger phase transition check to handle the new file
+              check_phase_transitions
+            else
+              # This is not in the right place, so remove it
+              log "Removing unauthorized protected file name: $FULL_PATH"
+              rm -f "$FULL_PATH"
+            fi
+            continue
+          fi
+        fi
+        
+        # Check if this is a file in the root of a finalized quixit directory
+        if echo "$FULL_PATH" | grep -q "/quixit/quixit-[0-9][0-9]*/" && ! echo "$FULL_PATH" | grep -q "/samples/" && ! echo "$FULL_PATH" | grep -q "/songs/"; then
+          QUIXIT_FOLDER=$(echo "$FULL_PATH" | grep -o "quixit-[0-9][0-9]*")
+          
+          # Check if this quixit is finalized
+          if [ -f "/srv/quixit/$QUIXIT_FOLDER/QUIXIT_COMPLETED.txt" ] && [ -f "/srv/quixit/$QUIXIT_FOLDER/ALL_SONGS.tar.gz" ]; then
+            # Skip protected files
+            if ! echo "$FULL_PATH" | grep -q "QUIXIT_COMPLETED.txt\|SAMPLE_PACK.tar.gz\|ALL_SONGS.tar.gz\|QUIXIT_HAS_BEGUN\|SUBMIT_SONGS_BEFORE"; then
+              log "File uploaded to root of finalized quixit directory, removing: $FULL_PATH"
+              rm -f "$FULL_PATH"
+              continue
+            fi
+          fi
+        fi
+        
+        # Give highest priority to files in samples or songs directories
+        if echo "$FULL_PATH" | grep -q "/samples/" || echo "$FULL_PATH" | grep -q "/songs/"; then
+          IS_PRIORITY="true"
+          log "High priority file in samples/songs directory, processing immediately"
+          
+          # For highest priority files, process them in a background process to avoid blocking
+          # This ensures we can continue processing other events while this file is being checked
+          (
+            check_file "$FULL_PATH" "$IS_CREATE_EVENT" "$IS_PRIORITY"
+          ) &
+        else
         # Check if the file is allowed based on phase
-        check_file "$FULL_PATH"
+          check_file "$FULL_PATH" "$IS_CREATE_EVENT" "$IS_PRIORITY"
+        fi
       fi
       
       # Protect system files after file operations
       protect_system_files
     done
     
-    # If inotifywait fails, sleep for a bit before retrying
+    # If inotifywait exits, log it and restart after a short delay
     log "inotifywait exited, restarting in 5 seconds..."
     sleep 5
+    log "Restarting inotifywait..."
   done
   EOF
 
     # Make the watcher script executable
     chmod +x /tmp/watcher.sh
     
-    # Execute the watcher script
+  # Execute the watcher script with exec to replace the current process
     exec /tmp/watcher.sh
 
 ---
@@ -715,6 +1405,17 @@ spec:
       image: alpine:latest
       imagePullPolicy: IfNotPresent
       command: ['/bin/sh', '-c', '/scripts/wrapper.sh']
+      env:
+       - name: QUIXIT_USER
+         valueFrom:
+          secretKeyRef:
+           name: quixit-admin-credentials
+           key: admin-user
+       - name: QUIXIT_PW
+         valueFrom:
+          secretKeyRef:
+           name: quixit-admin-credentials
+           key: admin-password
       volumeMounts:
        - name: quixit
          mountPath: /srv
