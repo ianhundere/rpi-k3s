@@ -23,15 +23,34 @@ spec:
 
         # check if in songs phase
         if ls "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"* 1>/dev/null 2>&1; then
-          # remove songs phase indicator
+          # remove songs phase indicator files
           rm "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"*
           
           # create songs archive
           cd "$QUIXIT_DIR"
           tar -czf ALL_SONGS.tar.gz songs/
           
-          # create completion indicator
-          echo "quixit #$QUIXIT_NUMBER completed on $(date +"%Y-%m-%d")" > "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          # remove songs directory after creating archive
+          if [ -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
+            rm -rf "$QUIXIT_DIR/songs"
+          fi
+          
+          # create completion indicator with improved content
+          COMPLETION_DATE=$(date +"%Y-%m-%d")
+          echo "QUIXIT #$QUIXIT_NUMBER - COMPLETED" > "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          echo "This quixit challenge is now complete!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          echo "Completed on: $COMPLETION_DATE" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          echo "You can download:" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          echo "- SAMPLE_PACK.tar.gz - All samples used in this challenge" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          echo "- ALL_SONGS.tar.gz - All submitted tracks" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          echo "Thank you for participating!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+          
+          # update current quixit number file
+          echo "$QUIXIT_NUMBER" > "/srv/quixit/current_quixit_number.txt"
+          chmod 444 "/srv/quixit/current_quixit_number.txt"
         else
           exit 1
         fi
