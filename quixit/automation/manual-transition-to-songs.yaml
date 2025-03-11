@@ -8,7 +8,7 @@ spec:
   spec:
    containers:
     - name: quixit-to-songs
-      image: filebrowser/filebrowser:v2.32.0
+      image: alpine:3.21.3
       command:
        - /bin/sh
        - -c
@@ -82,9 +82,11 @@ spec:
           echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
           echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
           echo "Guidelines:" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "- Upload your finished track to the 'songs' directory" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
           echo "- Use ONLY samples from the provided sample pack" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
           echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
-          echo "- All tracks will be compiled into a downloadable archive when the phase ends" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
           
           # update current quixit number file
           echo "$QUIXIT_NUMBER" > "/srv/quixit/current_quixit_number.txt"
