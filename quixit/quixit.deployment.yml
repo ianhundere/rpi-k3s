@@ -83,21 +83,40 @@ data:
   # Set up logging
   LOG_FILE=/logs/watcher.log
 
+  # basic log size management function
+  manage_log_size() {
+    # check if log file exists and is larger than 50MB
+    if [ -f "$LOG_FILE" ] && [ $(stat -c%s "$LOG_FILE") -gt 52428800 ]; then
+      echo "[$(date)] log file exceeds 50MB, truncating to last 10MB" > "$LOG_FILE.tmp"
+      tail -c 10485760 "$LOG_FILE" >> "$LOG_FILE.tmp"
+      mv "$LOG_FILE.tmp" "$LOG_FILE"
+      echo "[$(date)] log file truncated" >> "$LOG_FILE"
+    fi
+  }
+
+  # check log size every 15 minutes in the background
+  (
+    while true; do
+      manage_log_size
+      sleep 900
+    done
+  ) &
+
   log() {
     echo "[$(date)] $1" | tee -a "$LOG_FILE"
   }
 
   log "Starting file watcher..."
-  
+
   # global variables for caching usernames
   CACHED_USERNAMES=""
   CACHE_TIMESTAMP=0
   CACHE_TTL=900  # 15 minutes in seconds
-  
+
   # track recently processed files to avoid duplicate processing
   PROCESSED_FILES_DIR="/tmp/processed_files"
   mkdir -p "$PROCESSED_FILES_DIR"
-  
+
   # function to check if a file was recently processed
   was_recently_processed() {
     FILE_PATH="$1"
@@ -736,7 +755,7 @@ data:
   find /srv/quixit -type f -name "QUIXIT_*_SONG_PHASE_INFO.txt" -delete
   find /srv/quixit -type f -name "QUIXIT_*_SAMPLE_PHASE_INFO.txt" -delete
   log "Cleaned up any redundant info files"
-  
+
   # Run an initial scan of all files to catch any that were added while the watcher was not running
   log "Running initial scan of all files"
   find /srv/quixit -type f | while read -r FILE; do
@@ -1079,7 +1098,7 @@ data:
   ) &
   CONTINUOUS_SCANNER_PID=$!
   log "Started continuous scanner with PID: $CONTINUOUS_SCANNER_PID"
-  
+
   # Update the trap to kill both background processes
   trap 'kill $BACKGROUND_PID $CONTINUOUS_SCANNER_PID 2>/dev/null; log "Killed background jobs"; exit' INT TERM EXIT
 
@@ -1402,9 +1421,14 @@ spec:
         memory: 512Mi
       command: ['/bin/sh', '-c', '/scripts/init-quixit.sh']
     - name: file-watcher
-      image: alpine:latest
+      image: alpine:3.18
       imagePullPolicy: IfNotPresent
-      command: ['/bin/sh', '-c', '/scripts/wrapper.sh']
+      command: ['/bin/sh', '-c']
+      args:
+       - |
+        cp /scripts/wrapper.sh /tmp/wrapper.sh
+        chmod +x /tmp/wrapper.sh
+        exec /tmp/wrapper.sh
       env:
        - name: QUIXIT_USER
          valueFrom:
@@ -1428,6 +1452,72 @@ spec:
       resources:
        requests:
         cpu: 100m
+        memory: 128Mi
+    - name: log-rotator
+      image: alpine:3.18
+      imagePullPolicy: IfNotPresent
+      command: ['/bin/sh', '-c']
+      args:
+       - |
+        # install logrotate
+        apk add --no-cache logrotate
+
+        # create logrotate config
+        cat > /etc/logrotate.d/quixit << EOF
+        # use root user and group for rotation regardless of directory permissions
+        su root root
+
+        /logs/watcher.log {
+          size 10M
+          rotate 3
+          compress
+          missingok
+          notifempty
+          copytruncate
+          dateext
+          dateformat -%Y%m%d-%H%M%S
+          create 0644 root root
+          postrotate
+            echo "[$(date)] watcher.log rotated" >> /logs/logrotate.log
+          endscript
+        }
+
+        /logs/filebrowser.log {
+          size 5M
+          rotate 2
+          compress
+          missingok
+          notifempty
+          copytruncate
+          dateext
+          dateformat -%Y%m%d-%H%M%S
+          create 0644 root root
+          postrotate
+            echo "[$(date)] filebrowser.log rotated" >> /logs/logrotate.log
+          endscript
+        }
+        EOF
+
+        # create logrotate status file
+        touch /var/lib/logrotate/status
+
+        # run logrotate immediately to handle existing large logs
+        echo "[$(date)] Initial log rotation to handle existing large logs" >> /logs/logrotate.log
+        logrotate -vf /etc/logrotate.d/quixit
+
+        # run logrotate every 15 minutes to be more aggressive with large logs
+        while true; do
+          sleep 900
+          echo "[$(date)] Running scheduled logrotate check" >> /logs/logrotate.log
+          logrotate -v /etc/logrotate.d/quixit
+        done
+      volumeMounts:
+       - name: quixit
+         mountPath: /logs
+         subPath: logs
+      resources:
+       requests:
+        cpu: 50m
         memory: 64Mi
        limits:
         memory: 128Mi
