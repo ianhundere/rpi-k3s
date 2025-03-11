@@ -47,6 +47,9 @@ data:
   echo "important: when uploading your finished track, please include your username in the filename (e.g. my_track_username.mp3)" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
   echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
   echo "all previous quixit challenges are available in read-only mode." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+  echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+  echo "if you enjoy quixit, please consider supporting the project with a donation:" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+  echo "https://www.paypal.com/donate/?hosted_button_id=T73SWSVDGBFH8" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
 
   # create or update admin user
   /filebrowser users add "${QUIXIT_USER}" "${QUIXIT_PW}" --perm.admin --database /database/filebrowser.db || \
@@ -74,7 +77,7 @@ data:
   mkdir -p /logs
 
   # Install required tools
-  apk add --no-cache inotify-tools util-linux file curl jq
+  apk add --no-cache inotify-tools util-linux file
 
   # Create the watcher script
   cat > /tmp/watcher.sh << 'EOF'
@@ -273,6 +276,9 @@ data:
       echo "important: when uploading your finished track, please include your username in the filename (e.g. my_track_username.mp3)" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       echo "all previous quixit challenges are available in read-only mode." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+      echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+      echo "if you enjoy quixit, please consider supporting the project with a donation:" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+      echo "https://www.paypal.com/donate/?hosted_button_id=T73SWSVDGBFH8" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       chmod 444 "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
     fi
     
@@ -288,17 +294,19 @@ data:
         # Protect phase indicator files
         find "$QUIXIT_DIR" -maxdepth 1 -name "QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_*" -type f | while read -r FILE; do
           # Check if file is empty or has been tampered with
-          if [ ! -s "$FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" "$FILE"; then
+          if [ ! -s "$FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" "$FILE"; then
             log "Sample phase file is empty or has been tampered with, restoring content: $FILE"
             DEADLINE=$(basename "$FILE" | sed 's/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_//')
-            echo "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" > "$FILE"
+            echo "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" > "$FILE"
             echo "" >> "$FILE"
             echo "Upload your samples before: $DEADLINE" >> "$FILE"
             echo "" >> "$FILE"
+            echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FILE"
+            echo "" >> "$FILE"
             echo "Guidelines:" >> "$FILE"
             echo "- Upload audio samples to the 'samples' directory" >> "$FILE"
-            echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FILE"
-            echo "- Keep samples short and focused" >> "$FILE"
+            echo "- Keep samples to a max size of 20mb each, no larger" >> "$FILE"
+            echo "- No more than 5 samples per user" >> "$FILE"
             echo "" >> "$FILE"
             echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$FILE"
           fi
@@ -308,20 +316,21 @@ data:
         
         find "$QUIXIT_DIR" -maxdepth 1 -name "SUBMIT_SONGS_BEFORE_*" -type f | while read -r FILE; do
           # Check if file is empty or has been tampered with
-          if [ ! -s "$FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SONG PHASE" "$FILE"; then
+          if [ ! -s "$FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" "$FILE"; then
             log "Song phase file is empty or has been tampered with, restoring content: $FILE"
             DEADLINE=$(basename "$FILE" | sed 's/SUBMIT_SONGS_BEFORE_//')
-            echo "QUIXIT #$QUIXIT_NUM - SONG PHASE" > "$FILE"
+            echo "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" > "$FILE"
             echo "" >> "$FILE"
-            echo "Submit your songs before: $DEADLINE" >> "$FILE"
+            echo "Upload your finished track before: $DEADLINE" >> "$FILE"
+            echo "" >> "$FILE"
+            echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FILE"
             echo "" >> "$FILE"
             echo "Guidelines:" >> "$FILE"
             echo "- Upload your finished track to the 'songs' directory" >> "$FILE"
             echo "- Use ONLY samples from the provided sample pack" >> "$FILE"
             echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$FILE"
-            echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FILE"
             echo "" >> "$FILE"
-            echo "After the deadline, all songs will be compiled for everyone to enjoy!" >> "$FILE"
+            echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$FILE"
           fi
           chmod 444 "$FILE"
           log "Protected songs phase file: $FILE"
@@ -962,6 +971,9 @@ data:
           echo "important: when uploading your finished track, please include your username in the filename (e.g. my_track_username.mp3)" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
           echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
           echo "all previous quixit challenges are available in read-only mode." >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "if you enjoy quixit, please consider supporting the project with a donation:" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "https://www.paypal.com/donate/?hosted_button_id=T73SWSVDGBFH8" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
         fi
         
         # Ensure permissions are set
@@ -1033,17 +1045,19 @@ data:
             MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
             if [ "$MARKER_AGE" -ge 5 ]; then
               log "Continuous scanner: Checking sample phase file in $QUIXIT_DIR"
-              if [ ! -s "$SAMPLE_FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" "$SAMPLE_FILE"; then
+              if [ ! -s "$SAMPLE_FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" "$SAMPLE_FILE"; then
                 log "Continuous scanner: Sample phase file content has been modified, restoring content"
                 DEADLINE=$(basename "$SAMPLE_FILE" | sed 's/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_//')
-                echo "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" > "$SAMPLE_FILE"
+                echo "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" > "$SAMPLE_FILE"
                 echo "" >> "$SAMPLE_FILE"
                 echo "Upload your samples before: $DEADLINE" >> "$SAMPLE_FILE"
                 echo "" >> "$SAMPLE_FILE"
+                echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SAMPLE_FILE"
+                echo "" >> "$SAMPLE_FILE"
                 echo "Guidelines:" >> "$SAMPLE_FILE"
                 echo "- Upload audio samples to the 'samples' directory" >> "$SAMPLE_FILE"
-                echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SAMPLE_FILE"
-                echo "- Keep samples short and focused" >> "$SAMPLE_FILE"
+                echo "- Keep samples to a max size of 20mb each, no larger" >> "$SAMPLE_FILE"
+                echo "- No more than 5 samples per user" >> "$SAMPLE_FILE"
                 echo "" >> "$SAMPLE_FILE"
                 echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$SAMPLE_FILE"
               fi
@@ -1066,20 +1080,21 @@ data:
             MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
             if [ "$MARKER_AGE" -ge 5 ]; then
               log "Continuous scanner: Checking song phase file in $QUIXIT_DIR"
-              if [ ! -s "$SONG_FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SONG PHASE" "$SONG_FILE"; then
+              if [ ! -s "$SONG_FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" "$SONG_FILE"; then
                 log "Continuous scanner: Song phase file content has been modified, restoring content"
                 DEADLINE=$(basename "$SONG_FILE" | sed 's/SUBMIT_SONGS_BEFORE_//')
-                echo "QUIXIT #$QUIXIT_NUM - SONG PHASE" > "$SONG_FILE"
+                echo "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" > "$SONG_FILE"
                 echo "" >> "$SONG_FILE"
-                echo "Submit your songs before: $DEADLINE" >> "$SONG_FILE"
+                echo "Upload your finished track before: $DEADLINE" >> "$SONG_FILE"
+                echo "" >> "$SONG_FILE"
+                echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SONG_FILE"
                 echo "" >> "$SONG_FILE"
                 echo "Guidelines:" >> "$SONG_FILE"
                 echo "- Upload your finished track to the 'songs' directory" >> "$SONG_FILE"
                 echo "- Use ONLY samples from the provided sample pack" >> "$SONG_FILE"
                 echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$SONG_FILE"
-                echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SONG_FILE"
                 echo "" >> "$SONG_FILE"
-                echo "After the deadline, all songs will be compiled for everyone to enjoy!" >> "$SONG_FILE"
+                echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$SONG_FILE"
               fi
               chmod 444 "$SONG_FILE"
               touch "$MARKER_FILE"
@@ -1191,17 +1206,19 @@ data:
           if echo "$FULL_PATH" | grep -q "QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"; then
             log "Detected modification to sample phase file, checking content"
             QUIXIT_NUM=$(basename "$(dirname "$FULL_PATH")" | cut -d"-" -f2)
-            if [ ! -s "$FULL_PATH" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" "$FULL_PATH"; then
+            if [ ! -s "$FULL_PATH" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" "$FULL_PATH"; then
               log "Sample phase file content has been modified, restoring content"
               DEADLINE=$(basename "$FULL_PATH" | sed 's/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_//')
-              echo "QUIXIT #$QUIXIT_NUM - SAMPLE PHASE" > "$FULL_PATH"
+              echo "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" > "$FULL_PATH"
               echo "" >> "$FULL_PATH"
               echo "Upload your samples before: $DEADLINE" >> "$FULL_PATH"
               echo "" >> "$FULL_PATH"
+              echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FULL_PATH"
+              echo "" >> "$FULL_PATH"
               echo "Guidelines:" >> "$FULL_PATH"
               echo "- Upload audio samples to the 'samples' directory" >> "$FULL_PATH"
-              echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FULL_PATH"
-              echo "- Keep samples short and focused" >> "$FULL_PATH"
+              echo "- Keep samples to a max size of 20mb each, no larger" >> "$FULL_PATH"
+              echo "- No more than 5 samples per user" >> "$FULL_PATH"
               echo "" >> "$FULL_PATH"
               echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$FULL_PATH"
               chmod 444 "$FULL_PATH"
@@ -1213,20 +1230,21 @@ data:
           if echo "$FULL_PATH" | grep -q "SUBMIT_SONGS_BEFORE_"; then
             log "Detected modification to song phase file, checking content"
             QUIXIT_NUM=$(basename "$(dirname "$FULL_PATH")" | cut -d"-" -f2)
-            if [ ! -s "$FULL_PATH" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SONG PHASE" "$FULL_PATH"; then
+            if [ ! -s "$FULL_PATH" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" "$FULL_PATH"; then
               log "Song phase file content has been modified, restoring content"
               DEADLINE=$(basename "$FULL_PATH" | sed 's/SUBMIT_SONGS_BEFORE_//')
-              echo "QUIXIT #$QUIXIT_NUM - SONG PHASE" > "$FULL_PATH"
+              echo "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" > "$FULL_PATH"
               echo "" >> "$FULL_PATH"
-              echo "Submit your songs before: $DEADLINE" >> "$FULL_PATH"
+              echo "Upload your finished track before: $DEADLINE" >> "$FULL_PATH"
+              echo "" >> "$FULL_PATH"
+              echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FULL_PATH"
               echo "" >> "$FULL_PATH"
               echo "Guidelines:" >> "$FULL_PATH"
               echo "- Upload your finished track to the 'songs' directory" >> "$FULL_PATH"
               echo "- Use ONLY samples from the provided sample pack" >> "$FULL_PATH"
               echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$FULL_PATH"
-              echo "- Accepted formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FULL_PATH"
               echo "" >> "$FULL_PATH"
-              echo "After the deadline, all songs will be compiled for everyone to enjoy!" >> "$FULL_PATH"
+              echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$FULL_PATH"
               chmod 444 "$FULL_PATH"
             fi
             continue
@@ -1421,7 +1439,7 @@ spec:
         memory: 512Mi
       command: ['/bin/sh', '-c', '/scripts/init-quixit.sh']
     - name: file-watcher
-      image: alpine:3.18
+      image: alpine/curl:8.12.1
       imagePullPolicy: IfNotPresent
       command: ['/bin/sh', '-c']
       args:
@@ -1454,7 +1472,7 @@ spec:
         cpu: 100m
         memory: 128Mi
     - name: log-rotator
-      image: alpine:3.18
+      image: alpine:3.21.3
       imagePullPolicy: IfNotPresent
       command: ['/bin/sh', '-c']
       args:

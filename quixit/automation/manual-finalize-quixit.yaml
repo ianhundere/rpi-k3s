@@ -8,7 +8,7 @@ spec:
   spec:
    containers:
     - name: quixit-finalize
-      image: filebrowser/filebrowser:v2.32.0
+      image: alpine:3.21.3
       command:
        - /bin/sh
        - -c

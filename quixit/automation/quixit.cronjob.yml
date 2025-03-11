@@ -12,7 +12,7 @@ spec:
     spec:
      containers:
       - name: quixit-manager
-        image: alpine:latest
+        image: alpine:3.21.3
         volumeMounts:
          - name: quixit
            mountPath: /srv
@@ -111,14 +111,16 @@ spec:
             # create phase indicator file with detailed information
             echo "QUIXIT #$NEXT_NUMBER - SAMPLE SUBMISSION PHASE" > "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
             echo "" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
-            echo "Upload your audio samples before: $SAMPLE_DEADLINE" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "Upload your samples before: $SAMPLE_DEADLINE" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
             echo "" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
             echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
             echo "" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
             echo "Guidelines:" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
-            echo "- Upload individual sounds, not full tracks" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
-            echo "- Keep samples under 30 seconds" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
-            echo "- All samples will be available to everyone for the song phase" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "- Upload audio samples to the 'samples' directory" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "- Keep samples to a max size of 20mb each, no larger" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "- No more than 5 samples per user" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
 
             # store the quixit number
             echo "${NEXT_NUMBER}" > /srv/quixit/current_quixit_number.txt
@@ -148,7 +150,7 @@ spec:
     spec:
      containers:
       - name: phase-checker
-        image: alpine:latest
+        image: alpine:3.21.3
         volumeMounts:
          - name: quixit
            mountPath: /srv
@@ -260,14 +262,16 @@ spec:
                   # create new phase file with updated deadline
                   echo "QUIXIT #$QUIXIT_NUMBER - SAMPLE SUBMISSION PHASE" > "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
                   echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
-                  echo "Upload your audio samples before: $NEW_SAMPLE_DEADLINE" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "Upload your samples before: $NEW_SAMPLE_DEADLINE" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
                   echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
                   echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
                   echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
                   echo "Guidelines:" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
-                  echo "- Upload individual sounds, not full tracks" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
-                  echo "- Keep samples under 30 seconds" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
-                  echo "- All samples will be available to everyone for the song phase" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "- Upload audio samples to the 'samples' directory" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "- Keep samples to a max size of 20mb each, no larger" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "- No more than 5 samples per user" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
 
                   # update current quixit number file
                   echo "$QUIXIT_NUMBER" > "/srv/quixit/current_quixit_number.txt"
@@ -334,9 +338,11 @@ spec:
                 echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
                 echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
                 echo "Guidelines:" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "- Upload your finished track to the 'songs' directory" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
                 echo "- Use ONLY samples from the provided sample pack" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
                 echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
-                echo "- All tracks will be compiled into a downloadable archive when the phase ends" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
                 
                 # update current quixit number file
                 echo "$QUIXIT_NUMBER" > "/srv/quixit/current_quixit_number.txt"

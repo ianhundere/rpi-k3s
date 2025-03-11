@@ -8,7 +8,7 @@ spec:
   spec:
    containers:
     - name: quixit-create-challenge
-      image: filebrowser/filebrowser:v2.32.0
+      image: alpine:3.21.3
       command:
        - /bin/sh
        - -c
@@ -87,14 +87,16 @@ spec:
         # create phase indicator file with detailed information
         echo "QUIXIT #$NEW_NUMBER - SAMPLE SUBMISSION PHASE" > "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
         echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
-        echo "Upload your audio samples before: $SAMPLE_DEADLINE" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
+        echo "Upload your samples before: $SAMPLE_DEADLINE" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
         echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
         echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
         echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
         echo "Guidelines:" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
-        echo "- Upload individual sounds, not full tracks" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
-        echo "- Keep samples under 30 seconds" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
-        echo "- All samples will be available to everyone for the song phase" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
+        echo "- Upload audio samples to the 'samples' directory" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
+        echo "- Keep samples to a max size of 20mb each, no larger" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
+        echo "- No more than 5 samples per user" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
+        echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
+        echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_$SAMPLE_DEADLINE.txt"
 
         # update current number
         echo "$NEW_NUMBER" > "/srv/quixit/current_quixit_number.txt"
