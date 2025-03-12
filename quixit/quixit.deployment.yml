@@ -44,7 +44,7 @@ data:
   echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
   echo "accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
   echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
-  echo "important: when uploading your finished track, please include your username in the filename (e.g. my_track_username.mp3)" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+  echo "important: when uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
   echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
   echo "all previous quixit challenges are available in read-only mode." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
   echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
@@ -273,7 +273,7 @@ data:
       echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       echo "accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
-      echo "important: when uploading your finished track, please include your username in the filename (e.g. my_track_username.mp3)" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+      echo "important: when uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       echo "all previous quixit challenges are available in read-only mode." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
@@ -328,7 +328,7 @@ data:
             echo "Guidelines:" >> "$FILE"
             echo "- Upload your finished track to the 'songs' directory" >> "$FILE"
             echo "- Use ONLY samples from the provided sample pack" >> "$FILE"
-            echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$FILE"
+            echo "- important: when uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "$FILE"
             echo "" >> "$FILE"
             echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$FILE"
           fi
@@ -968,7 +968,7 @@ data:
           echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
           echo "accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
           echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
-          echo "important: when uploading your finished track, please include your username in the filename (e.g. my_track_username.mp3)" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "important: when uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
           echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
           echo "all previous quixit challenges are available in read-only mode." >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
           echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
@@ -1092,7 +1092,7 @@ data:
                 echo "Guidelines:" >> "$SONG_FILE"
                 echo "- Upload your finished track to the 'songs' directory" >> "$SONG_FILE"
                 echo "- Use ONLY samples from the provided sample pack" >> "$SONG_FILE"
-                echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$SONG_FILE"
+                echo "- important: when uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "$SONG_FILE"
                 echo "" >> "$SONG_FILE"
                 echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$SONG_FILE"
               fi
@@ -1194,7 +1194,7 @@ data:
               echo "" >> "$FULL_PATH"
               echo "accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FULL_PATH"
               echo "" >> "$FULL_PATH"
-              echo "important: when uploading your finished track, please include your username in the filename (e.g. my_track_username.mp3)" >> "$FULL_PATH"
+              echo "important: when uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "$FULL_PATH"
               echo "" >> "$FULL_PATH"
               echo "all previous quixit challenges are available in read-only mode." >> "$FULL_PATH"
               chmod 444 "$FULL_PATH"
@@ -1242,7 +1242,7 @@ data:
               echo "Guidelines:" >> "$FULL_PATH"
               echo "- Upload your finished track to the 'songs' directory" >> "$FULL_PATH"
               echo "- Use ONLY samples from the provided sample pack" >> "$FULL_PATH"
-              echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$FULL_PATH"
+              echo "- important: when uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "$FULL_PATH"
               echo "" >> "$FULL_PATH"
               echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$FULL_PATH"
               chmod 444 "$FULL_PATH"
