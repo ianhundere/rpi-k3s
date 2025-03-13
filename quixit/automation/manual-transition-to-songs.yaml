@@ -84,7 +84,9 @@ spec:
           echo "Guidelines:" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
           echo "- Upload your finished track to the 'songs' directory" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
           echo "- Use ONLY samples from the provided sample pack" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
-          echo "- important: when uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "- Bonus: Use ALL samples from the provided sample pack" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
+          echo "- IMPORTANT: When uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
           echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
           echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_$SONG_DEADLINE.txt"
           

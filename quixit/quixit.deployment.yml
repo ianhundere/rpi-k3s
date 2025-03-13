@@ -328,7 +328,9 @@ data:
             echo "Guidelines:" >> "$FILE"
             echo "- Upload your finished track to the 'songs' directory" >> "$FILE"
             echo "- Use ONLY samples from the provided sample pack" >> "$FILE"
-            echo "- important: when uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "$FILE"
+            echo "- Bonus: Use ALL samples from the provided sample pack" >> "$FILE"
+            echo "" >> "$FILE"
+            echo "- IMPORTANT: When uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "$FILE"
             echo "" >> "$FILE"
             echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$FILE"
           fi
@@ -1045,27 +1047,39 @@ data:
             MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
             if [ "$MARKER_AGE" -ge 5 ]; then
               log "Continuous scanner: Checking sample phase file in $QUIXIT_DIR"
-              if [ ! -s "$SAMPLE_FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" "$SAMPLE_FILE"; then
-                log "Continuous scanner: Sample phase file content has been modified, restoring content"
-                DEADLINE=$(basename "$SAMPLE_FILE" | sed 's/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_//')
-                echo "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" > "$SAMPLE_FILE"
-                echo "" >> "$SAMPLE_FILE"
-                echo "Upload your samples before: $DEADLINE" >> "$SAMPLE_FILE"
-                echo "" >> "$SAMPLE_FILE"
-                echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SAMPLE_FILE"
-                echo "" >> "$SAMPLE_FILE"
-                echo "Guidelines:" >> "$SAMPLE_FILE"
-                echo "- Upload audio samples to the 'samples' directory" >> "$SAMPLE_FILE"
-                echo "- Keep samples to a max size of 20mb each, no larger" >> "$SAMPLE_FILE"
-                echo "- No more than 5 samples per user" >> "$SAMPLE_FILE"
-                echo "" >> "$SAMPLE_FILE"
-                echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$SAMPLE_FILE"
-              fi
+              # Always restore content to ensure it hasn't been tampered with
+              DEADLINE=$(basename "$SAMPLE_FILE" | sed 's/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_//')
+              echo "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" > "$SAMPLE_FILE"
+              echo "" >> "$SAMPLE_FILE"
+              echo "Upload your samples before: $DEADLINE" >> "$SAMPLE_FILE"
+              echo "" >> "$SAMPLE_FILE"
+              echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SAMPLE_FILE"
+              echo "" >> "$SAMPLE_FILE"
+              echo "Guidelines:" >> "$SAMPLE_FILE"
+              echo "- Upload audio samples to the 'samples' directory" >> "$SAMPLE_FILE"
+              echo "- Keep samples to a max size of 10mb each, no larger" >> "$SAMPLE_FILE"
+              echo "- No more than 5 samples per user" >> "$SAMPLE_FILE"
+              echo "" >> "$SAMPLE_FILE"
+              echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$SAMPLE_FILE"
               chmod 444 "$SAMPLE_FILE"
               touch "$MARKER_FILE"
             fi
           else
             log "Continuous scanner: First check of sample phase file in $QUIXIT_DIR"
+            # Always restore content on first check
+            DEADLINE=$(basename "$SAMPLE_FILE" | sed 's/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_//')
+            echo "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" > "$SAMPLE_FILE"
+            echo "" >> "$SAMPLE_FILE"
+            echo "Upload your samples before: $DEADLINE" >> "$SAMPLE_FILE"
+            echo "" >> "$SAMPLE_FILE"
+            echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SAMPLE_FILE"
+            echo "" >> "$SAMPLE_FILE"
+            echo "Guidelines:" >> "$SAMPLE_FILE"
+            echo "- Upload audio samples to the 'samples' directory" >> "$SAMPLE_FILE"
+            echo "- Keep samples to a max size of 10mb each, no larger" >> "$SAMPLE_FILE"
+            echo "- No more than 5 samples per user" >> "$SAMPLE_FILE"
+            echo "" >> "$SAMPLE_FILE"
+            echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$SAMPLE_FILE"
             chmod 444 "$SAMPLE_FILE"
             touch "$MARKER_FILE"
           fi
@@ -1080,27 +1094,39 @@ data:
             MARKER_AGE=$(($(date +%s) - $(date -r "$MARKER_FILE" +%s)))
             if [ "$MARKER_AGE" -ge 5 ]; then
               log "Continuous scanner: Checking song phase file in $QUIXIT_DIR"
-              if [ ! -s "$SONG_FILE" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" "$SONG_FILE"; then
-                log "Continuous scanner: Song phase file content has been modified, restoring content"
-                DEADLINE=$(basename "$SONG_FILE" | sed 's/SUBMIT_SONGS_BEFORE_//')
-                echo "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" > "$SONG_FILE"
-                echo "" >> "$SONG_FILE"
-                echo "Upload your finished track before: $DEADLINE" >> "$SONG_FILE"
-                echo "" >> "$SONG_FILE"
-                echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SONG_FILE"
-                echo "" >> "$SONG_FILE"
-                echo "Guidelines:" >> "$SONG_FILE"
-                echo "- Upload your finished track to the 'songs' directory" >> "$SONG_FILE"
-                echo "- Use ONLY samples from the provided sample pack" >> "$SONG_FILE"
-                echo "- important: when uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "$SONG_FILE"
-                echo "" >> "$SONG_FILE"
-                echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$SONG_FILE"
-              fi
+              # Always restore content to ensure it hasn't been tampered with
+              DEADLINE=$(basename "$SONG_FILE" | sed 's/SUBMIT_SONGS_BEFORE_//')
+              echo "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" > "$SONG_FILE"
+              echo "" >> "$SONG_FILE"
+              echo "Upload your finished track before: $DEADLINE" >> "$SONG_FILE"
+              echo "" >> "$SONG_FILE"
+              echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SONG_FILE"
+              echo "" >> "$SONG_FILE"
+              echo "Guidelines:" >> "$SONG_FILE"
+              echo "- Upload your finished track to the 'songs' directory" >> "$SONG_FILE"
+              echo "- Use ONLY samples from the provided sample pack" >> "$SONG_FILE"
+              echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$SONG_FILE"
+              echo "" >> "$SONG_FILE"
+              echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$SONG_FILE"
               chmod 444 "$SONG_FILE"
               touch "$MARKER_FILE"
             fi
           else
             log "Continuous scanner: First check of song phase file in $QUIXIT_DIR"
+            # Always restore content on first check
+            DEADLINE=$(basename "$SONG_FILE" | sed 's/SUBMIT_SONGS_BEFORE_//')
+            echo "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" > "$SONG_FILE"
+            echo "" >> "$SONG_FILE"
+            echo "Upload your finished track before: $DEADLINE" >> "$SONG_FILE"
+            echo "" >> "$SONG_FILE"
+            echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$SONG_FILE"
+            echo "" >> "$SONG_FILE"
+            echo "Guidelines:" >> "$SONG_FILE"
+            echo "- Upload your finished track to the 'songs' directory" >> "$SONG_FILE"
+            echo "- Use ONLY samples from the provided sample pack" >> "$SONG_FILE"
+            echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$SONG_FILE"
+            echo "" >> "$SONG_FILE"
+            echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$SONG_FILE"
             chmod 444 "$SONG_FILE"
             touch "$MARKER_FILE"
           fi
@@ -1108,7 +1134,7 @@ data:
       done
       
       # Sleep for a short time before next scan
-      sleep 1  # Reduced from 2 to 1 second
+      sleep 2
     done
   ) &
   CONTINUOUS_SCANNER_PID=$!
@@ -1204,49 +1230,43 @@ data:
           
           # Special handling for QUIXIT_HAS_BEGUN files
           if echo "$FULL_PATH" | grep -q "QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"; then
-            log "Detected modification to sample phase file, checking content"
+            log "Detected modification to sample phase file, restoring content"
             QUIXIT_NUM=$(basename "$(dirname "$FULL_PATH")" | cut -d"-" -f2)
-            if [ ! -s "$FULL_PATH" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" "$FULL_PATH"; then
-              log "Sample phase file content has been modified, restoring content"
-              DEADLINE=$(basename "$FULL_PATH" | sed 's/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_//')
-              echo "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" > "$FULL_PATH"
-              echo "" >> "$FULL_PATH"
-              echo "Upload your samples before: $DEADLINE" >> "$FULL_PATH"
-              echo "" >> "$FULL_PATH"
-              echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FULL_PATH"
-              echo "" >> "$FULL_PATH"
-              echo "Guidelines:" >> "$FULL_PATH"
-              echo "- Upload audio samples to the 'samples' directory" >> "$FULL_PATH"
-              echo "- Keep samples to a max size of 20mb each, no larger" >> "$FULL_PATH"
-              echo "- No more than 5 samples per user" >> "$FULL_PATH"
-              echo "" >> "$FULL_PATH"
-              echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$FULL_PATH"
-              chmod 444 "$FULL_PATH"
-            fi
+            DEADLINE=$(basename "$FULL_PATH" | sed 's/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_//')
+            echo "QUIXIT #$QUIXIT_NUM - SAMPLE SUBMISSION PHASE" > "$FULL_PATH"
+            echo "" >> "$FULL_PATH"
+            echo "Upload your samples before: $DEADLINE" >> "$FULL_PATH"
+            echo "" >> "$FULL_PATH"
+            echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FULL_PATH"
+            echo "" >> "$FULL_PATH"
+            echo "Guidelines:" >> "$FULL_PATH"
+            echo "- Upload audio samples to the 'samples' directory" >> "$FULL_PATH"
+            echo "- Keep samples to a max size of 10mb each, no larger" >> "$FULL_PATH"
+            echo "- No more than 5 samples per user" >> "$FULL_PATH"
+            echo "" >> "$FULL_PATH"
+            echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$FULL_PATH"
+            chmod 444 "$FULL_PATH"
             continue
           fi
           
           # Special handling for SUBMIT_SONGS_BEFORE files
           if echo "$FULL_PATH" | grep -q "SUBMIT_SONGS_BEFORE_"; then
-            log "Detected modification to song phase file, checking content"
+            log "Detected modification to song phase file, restoring content"
             QUIXIT_NUM=$(basename "$(dirname "$FULL_PATH")" | cut -d"-" -f2)
-            if [ ! -s "$FULL_PATH" ] || ! grep -q "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" "$FULL_PATH"; then
-              log "Song phase file content has been modified, restoring content"
-              DEADLINE=$(basename "$FULL_PATH" | sed 's/SUBMIT_SONGS_BEFORE_//')
-              echo "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" > "$FULL_PATH"
-              echo "" >> "$FULL_PATH"
-              echo "Upload your finished track before: $DEADLINE" >> "$FULL_PATH"
-              echo "" >> "$FULL_PATH"
-              echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FULL_PATH"
-              echo "" >> "$FULL_PATH"
-              echo "Guidelines:" >> "$FULL_PATH"
-              echo "- Upload your finished track to the 'songs' directory" >> "$FULL_PATH"
-              echo "- Use ONLY samples from the provided sample pack" >> "$FULL_PATH"
-              echo "- important: when uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "$FULL_PATH"
-              echo "" >> "$FULL_PATH"
-              echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$FULL_PATH"
-              chmod 444 "$FULL_PATH"
-            fi
+            DEADLINE=$(basename "$FULL_PATH" | sed 's/SUBMIT_SONGS_BEFORE_//')
+            echo "QUIXIT #$QUIXIT_NUM - SONG SUBMISSION PHASE" > "$FULL_PATH"
+            echo "" >> "$FULL_PATH"
+            echo "Upload your finished track before: $DEADLINE" >> "$FULL_PATH"
+            echo "" >> "$FULL_PATH"
+            echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$FULL_PATH"
+            echo "" >> "$FULL_PATH"
+            echo "Guidelines:" >> "$FULL_PATH"
+            echo "- Upload your finished track to the 'songs' directory" >> "$FULL_PATH"
+            echo "- Use ONLY samples from the provided sample pack" >> "$FULL_PATH"
+            echo "- Include your username in the filename (e.g. my_track_username.mp3)" >> "$FULL_PATH"
+            echo "" >> "$FULL_PATH"
+            echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$FULL_PATH"
+            chmod 444 "$FULL_PATH"
             continue
           fi
           
@@ -1516,14 +1536,36 @@ spec:
         }
         EOF
 
-        # create logrotate status file
-        touch /var/lib/logrotate/status
+        # check if logs need rotation on startup
+        echo "[$(date)] Checking logs on startup" >> /logs/logrotate.log
 
-        # run logrotate immediately to handle existing large logs
-        echo "[$(date)] Initial log rotation to handle existing large logs" >> /logs/logrotate.log
-        logrotate -vf /etc/logrotate.d/quixit
+        # check for existing rotated logs to avoid duplicates
+        EXISTING_ROTATED_LOGS=$(find /logs -name "*.gz" | wc -l)
+        if [ "$EXISTING_ROTATED_LOGS" -gt 0 ]; then
+          echo "[$(date)] Found $EXISTING_ROTATED_LOGS existing rotated logs, skipping initial rotation" >> /logs/logrotate.log
+        else
+          # only force rotation if logs exceed size limits and no rotated logs exist
+          WATCHER_LOG_SIZE=0
+          FILEBROWSER_LOG_SIZE=0
+          
+          if [ -f "/logs/watcher.log" ]; then
+            WATCHER_LOG_SIZE=$(stat -c%s "/logs/watcher.log" 2>/dev/null || echo "0")
+          fi
+          
+          if [ -f "/logs/filebrowser.log" ]; then
+            FILEBROWSER_LOG_SIZE=$(stat -c%s "/logs/filebrowser.log" 2>/dev/null || echo "0")
+          fi
+          
+          # 10M = 10485760 bytes, 5M = 5242880 bytes
+          if [ "$WATCHER_LOG_SIZE" -gt 10485760 ] || [ "$FILEBROWSER_LOG_SIZE" -gt 5242880 ]; then
+            echo "[$(date)] Logs exceed size limits, rotating now" >> /logs/logrotate.log
+            logrotate -v /etc/logrotate.d/quixit
+          else
+            echo "[$(date)] Logs are within size limits, skipping initial rotation" >> /logs/logrotate.log
+          fi
+        fi
 
-        # run logrotate every 15 minutes to be more aggressive with large logs
+        # run logrotate every 15 minutes
         while true; do
           sleep 900
           echo "[$(date)] Running scheduled logrotate check" >> /logs/logrotate.log
