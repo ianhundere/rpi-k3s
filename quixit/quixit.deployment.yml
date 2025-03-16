@@ -1057,7 +1057,7 @@ data:
               echo "" >> "$SAMPLE_FILE"
               echo "Guidelines:" >> "$SAMPLE_FILE"
               echo "- Upload audio samples to the 'samples' directory" >> "$SAMPLE_FILE"
-              echo "- Keep samples to a max size of 10mb each, no larger" >> "$SAMPLE_FILE"
+              echo "- Keep samples to a max size of 20mb each, no larger" >> "$SAMPLE_FILE"
               echo "- No more than 5 samples per user" >> "$SAMPLE_FILE"
               echo "" >> "$SAMPLE_FILE"
               echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$SAMPLE_FILE"
@@ -1076,7 +1076,7 @@ data:
             echo "" >> "$SAMPLE_FILE"
             echo "Guidelines:" >> "$SAMPLE_FILE"
             echo "- Upload audio samples to the 'samples' directory" >> "$SAMPLE_FILE"
-            echo "- Keep samples to a max size of 10mb each, no larger" >> "$SAMPLE_FILE"
+            echo "- Keep samples to a max size of 20mb each, no larger" >> "$SAMPLE_FILE"
             echo "- No more than 5 samples per user" >> "$SAMPLE_FILE"
             echo "" >> "$SAMPLE_FILE"
             echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$SAMPLE_FILE"
@@ -1241,7 +1241,7 @@ data:
             echo "" >> "$FULL_PATH"
             echo "Guidelines:" >> "$FULL_PATH"
             echo "- Upload audio samples to the 'samples' directory" >> "$FULL_PATH"
-            echo "- Keep samples to a max size of 10mb each, no larger" >> "$FULL_PATH"
+            echo "- Keep samples to a max size of 20mb each, no larger" >> "$FULL_PATH"
             echo "- No more than 5 samples per user" >> "$FULL_PATH"
             echo "" >> "$FULL_PATH"
             echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$FULL_PATH"
@@ -1506,8 +1506,8 @@ spec:
         su root root
 
         /logs/watcher.log {
-          size 10M
-          rotate 3
+          size 20M
+          rotate 5
           compress
           missingok
           notifempty
@@ -1556,8 +1556,8 @@ spec:
             FILEBROWSER_LOG_SIZE=$(stat -c%s "/logs/filebrowser.log" 2>/dev/null || echo "0")
           fi
           
-          # 10M = 10485760 bytes, 5M = 5242880 bytes
-          if [ "$WATCHER_LOG_SIZE" -gt 10485760 ] || [ "$FILEBROWSER_LOG_SIZE" -gt 5242880 ]; then
+          # 20M = 20971520 bytes, 5M = 5242880 bytes
+          if [ "$WATCHER_LOG_SIZE" -gt 20971520 ] || [ "$FILEBROWSER_LOG_SIZE" -gt 5242880 ]; then
             echo "[$(date)] Logs exceed size limits, rotating now" >> /logs/logrotate.log
             logrotate -v /etc/logrotate.d/quixit
           else

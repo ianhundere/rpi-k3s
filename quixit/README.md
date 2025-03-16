@@ -49,23 +49,6 @@ quixit operates in sequential phases, with each challenge numbered sequentially 
   - no uploads to completed quixits
 - logs are stored persistently for monitoring
 
-## manual operations
-
-```shell
-# create new challenge
-kubectl apply -f automation/manual-create-quixit.yaml
-
-# transition to songs phase
-kubectl apply -f automation/manual-transition-to-songs.yaml
-
-# finalize challenge
-kubectl apply -f automation/manual-finalize-quixit.yaml
-
-# view logs
-kubectl exec -n quixit <pod-name> -c file-watcher -- cat /logs/watcher.log
-kubectl exec -n quixit <pod-name> -c quixit -- cat /logs/filebrowser.log
-```
-
 ## directory structure
 
 ```text
