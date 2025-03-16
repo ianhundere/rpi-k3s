@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 60">
+  <!-- Computer Icon -->
+  <g transform="translate(10, 10) scale(1.5)">
+    <rect x="2" y="1" width="12" height="10" fill="#6B5B95"/>
+    <rect x="3" y="2" width="10" height="8" fill="#98FB98"/>
+    <rect x="4" y="12" width="8" height="2" fill="#6B5B95"/>
+    <rect x="13" y="11" width="2" height="3" fill="#6B5B95"/>
+  </g>
+  
+  <!-- Title Text with Heart -->
+  <g transform="translate(45, 15)">
+    <text x="0" y="20" font-family="'Press Start 2P', monospace" font-size="24" fill="#6B5B95">quixit.us<tspan x="138" y="20">&lt;3</tspan></text>
+    <text x="2" y="38" font-family="Arial, sans-serif" font-size="14" fill="#4A4A4A">a musical exercise</text>
+  </g>
+</svg>

@@ -1,0 +1,424 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+ name: quixit-folder-manager
+ namespace: quixit
+spec:
+ # Run at midnight EST (4 AM UTC) every day
+ schedule: '0 4 * * *'
+ jobTemplate:
+  spec:
+   template:
+    spec:
+     containers:
+      - name: quixit-manager
+        image: alpine:3.21.3
+        volumeMounts:
+         - name: quixit
+           mountPath: /srv
+           subPath: files
+         - name: quixit
+           mountPath: /database
+           subPath: database
+        command:
+         - /bin/sh
+         - -c
+         - |
+          # This job checks if a new quixit challenge should be created
+          # It only creates a new challenge if no active challenge exists
+
+          # Check if there's an active quixit challenge
+          ACTIVE_CHALLENGE=false
+          if [ -f "/srv/quixit/current_quixit_number.txt" ]; then
+            CURRENT_NUMBER=$(cat /srv/quixit/current_quixit_number.txt)
+            QUIXIT_FOLDER="quixit-${CURRENT_NUMBER}"
+            
+            # Check if there are any phase indicator files
+            if ls /srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_*.txt 1> /dev/null 2>&1 || \
+               ls /srv/quixit/${QUIXIT_FOLDER}/SUBMIT_SONGS_BEFORE_*.txt 1> /dev/null 2>&1; then
+              ACTIVE_CHALLENGE=true
+            fi
+          fi
+
+          # Only create a new challenge if there's no active challenge
+          if [ "$ACTIVE_CHALLENGE" = "false" ]; then
+            # get the next quixit number
+            NEXT_NUMBER=1
+            if [ -d "/srv/quixit" ]; then
+              HIGHEST=$(find /srv/quixit -maxdepth 1 -type d -name "quixit-*" | sed 's/.*quixit-//' | sort -n | tail -1)
+              if [ ! -z "$HIGHEST" ]; then
+                NEXT_NUMBER=$((HIGHEST + 1))
+              fi
+            fi
+
+            # set variables
+            QUIXIT_FOLDER="quixit-${NEXT_NUMBER}"
+            SAMPLES_FOLDER="${QUIXIT_FOLDER}/samples"
+
+            # calculate deadline (7 days) using manual calculation that works in all environments
+            TODAY=$(date +%Y-%m-%d)
+            YEAR=$(echo $TODAY | cut -d'-' -f1)
+            MONTH=$(echo $TODAY | cut -d'-' -f2)
+            DAY=$(echo $TODAY | cut -d'-' -f3)
+            
+            # Remove leading zeros
+            MONTH=$(echo $MONTH | sed 's/^0//')
+            DAY=$(echo $DAY | sed 's/^0//')
+            
+            # Add 7 days
+            DAY=$((DAY + 7))
+            
+            # Handle month rollover
+            DAYS_IN_MONTH=31
+            if [ "$MONTH" = "4" ] || [ "$MONTH" = "6" ] || [ "$MONTH" = "9" ] || [ "$MONTH" = "11" ]; then
+              DAYS_IN_MONTH=30
+            elif [ "$MONTH" = "2" ]; then
+              # Check for leap year
+              if [ $((YEAR % 4)) -eq 0 ] && [ $((YEAR % 100)) -ne 0 ] || [ $((YEAR % 400)) -eq 0 ]; then
+                DAYS_IN_MONTH=29
+              else
+                DAYS_IN_MONTH=28
+              fi
+            fi
+            
+            # Adjust for month rollover
+            if [ "$DAY" -gt "$DAYS_IN_MONTH" ]; then
+              DAY=$((DAY - DAYS_IN_MONTH))
+              MONTH=$((MONTH + 1))
+              
+              # Adjust for year rollover
+              if [ "$MONTH" -gt 12 ]; then
+                MONTH=1
+                YEAR=$((YEAR + 1))
+              fi
+            fi
+            
+            # Format with padding
+            if [ "$MONTH" -lt 10 ]; then
+              MONTH="0$MONTH"
+            fi
+            if [ "$DAY" -lt 10 ]; then
+              DAY="0$DAY"
+            fi
+            
+            SAMPLE_DEADLINE="$YEAR-$MONTH-$DAY"
+
+            # create directory structure
+            mkdir -p /srv/quixit/${QUIXIT_FOLDER}
+            mkdir -p /srv/quixit/${SAMPLES_FOLDER}
+            # songs folder will be created during transition to songs phase
+
+            # create phase indicator file with detailed information
+            echo "QUIXIT #$NEXT_NUMBER - SAMPLE SUBMISSION PHASE" > "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "Upload your samples before: $SAMPLE_DEADLINE" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "Guidelines:" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "- Upload audio samples to the 'samples' directory" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "- Keep samples to a max size of 20mb each, no larger" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "- No more than 5 samples per user" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "" >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+            echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "/srv/quixit/${QUIXIT_FOLDER}/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${SAMPLE_DEADLINE}.txt"
+
+            # store the quixit number
+            echo "${NEXT_NUMBER}" > /srv/quixit/current_quixit_number.txt
+            chmod 444 /srv/quixit/current_quixit_number.txt
+            
+            echo "Created new Quixit challenge #${NEXT_NUMBER}"
+          else
+            echo "Active Quixit challenge #${CURRENT_NUMBER} exists, skipping creation"
+          fi
+     volumes:
+      - name: quixit
+        persistentVolumeClaim:
+         claimName: quixit
+     restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+ name: quixit-phase-checker
+ namespace: quixit
+spec:
+ # Run at midnight EST (4 AM UTC) every day
+ schedule: '0 4 * * *'
+ jobTemplate:
+  spec:
+   template:
+    spec:
+     containers:
+      - name: phase-checker
+        image: alpine:3.21.3
+        volumeMounts:
+         - name: quixit
+           mountPath: /srv
+           subPath: files
+         - name: quixit
+           mountPath: /database
+           subPath: database
+        command:
+         - /bin/sh
+         - -c
+         - |
+          # get current quixit number
+          if [ -f "/srv/quixit/current_quixit_number.txt" ]; then
+            QUIXIT_NUMBER=$(cat /srv/quixit/current_quixit_number.txt)
+            QUIXIT_DIR="/srv/quixit/quixit-$QUIXIT_NUMBER"
+          else
+            echo "No current Quixit challenge found"
+            exit 0
+          fi
+
+          # check which phase we're in
+          if ls "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"* 1>/dev/null 2>&1; then
+            PHASE="samples"
+            PHASE_FILE=$(ls "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"*)
+            DEADLINE=$(echo "$PHASE_FILE" | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}")
+            echo "Current phase: SAMPLES, deadline: $DEADLINE"
+          elif ls "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"* 1>/dev/null 2>&1; then
+            PHASE="songs"
+            PHASE_FILE=$(ls "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"*)
+            DEADLINE=$(echo "$PHASE_FILE" | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}")
+            echo "Current phase: SONGS, deadline: $DEADLINE"
+          elif [ -f "$QUIXIT_DIR/QUIXIT_COMPLETED.txt" ]; then
+            PHASE="completed"
+            DEADLINE=""
+            echo "Current phase: COMPLETED"
+          else
+            PHASE="unknown"
+            DEADLINE=""
+            echo "Current phase: UNKNOWN"
+          fi
+
+          # check if deadline has passed
+          if [ -n "$DEADLINE" ]; then
+            TODAY=$(date +%Y-%m-%d)
+            
+            # compare dates
+            if [ "$TODAY" \> "$DEADLINE" ] || [ "$TODAY" = "$DEADLINE" ]; then
+              if [ "$PHASE" = "samples" ]; then
+                echo "Sample phase deadline reached, transitioning to songs phase"
+                
+                # check if any samples were uploaded
+                SAMPLES_FOLDER="$QUIXIT_DIR/samples"
+                SAMPLE_COUNT=$(find "$SAMPLES_FOLDER" -type f | wc -l)
+                
+                if [ "$SAMPLE_COUNT" -eq 0 ]; then
+                  echo "No samples uploaded, extending sample phase by 7 days"
+                  
+                  # calculate new sample deadline (7 days) using manual calculation that works in all environments
+                  TODAY=$(date +%Y-%m-%d)
+                  YEAR=$(echo $TODAY | cut -d'-' -f1)
+                  MONTH=$(echo $TODAY | cut -d'-' -f2)
+                  DAY=$(echo $TODAY | cut -d'-' -f3)
+                  
+                  # Remove leading zeros
+                  MONTH=$(echo $MONTH | sed 's/^0//')
+                  DAY=$(echo $DAY | sed 's/^0//')
+                  
+                  # Add 7 days
+                  DAY=$((DAY + 7))
+                  
+                  # Handle month rollover
+                  DAYS_IN_MONTH=31
+                  if [ "$MONTH" = "4" ] || [ "$MONTH" = "6" ] || [ "$MONTH" = "9" ] || [ "$MONTH" = "11" ]; then
+                    DAYS_IN_MONTH=30
+                  elif [ "$MONTH" = "2" ]; then
+                    # Check for leap year
+                    if [ $((YEAR % 4)) -eq 0 ] && [ $((YEAR % 100)) -ne 0 ] || [ $((YEAR % 400)) -eq 0 ]; then
+                      DAYS_IN_MONTH=29
+                    else
+                      DAYS_IN_MONTH=28
+                    fi
+                  fi
+                  
+                  # Adjust for month rollover
+                  if [ "$DAY" -gt "$DAYS_IN_MONTH" ]; then
+                    DAY=$((DAY - DAYS_IN_MONTH))
+                    MONTH=$((MONTH + 1))
+                    
+                    # Adjust for year rollover
+                    if [ "$MONTH" -gt 12 ]; then
+                      MONTH=1
+                      YEAR=$((YEAR + 1))
+                    fi
+                  fi
+                  
+                  # Format with padding
+                  if [ "$MONTH" -lt 10 ]; then
+                    MONTH="0$MONTH"
+                  fi
+                  if [ "$DAY" -lt 10 ]; then
+                    DAY="0$DAY"
+                  fi
+
+                  NEW_SAMPLE_DEADLINE="$YEAR-$MONTH-$DAY"
+
+                  # remove old phase file
+                  rm -f "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"*.txt
+
+                  # create new phase file with updated deadline
+                  echo "QUIXIT #$QUIXIT_NUMBER - SAMPLE SUBMISSION PHASE" > "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "Upload your samples before: $NEW_SAMPLE_DEADLINE" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "Guidelines:" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "- Upload audio samples to the 'samples' directory" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "- Keep samples to a max size of 20mb each, no larger" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "- No more than 5 samples per user" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "" >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+                  echo "After the deadline, all samples will be compiled into a sample pack for the song phase." >> "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_${NEW_SAMPLE_DEADLINE}.txt"
+
+                  # update current quixit number file
+                  echo "$QUIXIT_NUMBER" > "/srv/quixit/current_quixit_number.txt"
+                  chmod 444 "/srv/quixit/current_quixit_number.txt"
+
+                fi
+                
+                # transition from samples to songs phase
+                rm -f "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"*.txt
+
+                # calculate song deadline (12 days) using manual calculation that works in all environments
+                TODAY=$(date +%Y-%m-%d)
+                YEAR=$(echo $TODAY | cut -d'-' -f1)
+                MONTH=$(echo $TODAY | cut -d'-' -f2)
+                DAY=$(echo $TODAY | cut -d'-' -f3)
+                
+                # Remove leading zeros
+                MONTH=$(echo $MONTH | sed 's/^0//')
+                DAY=$(echo $DAY | sed 's/^0//')
+                
+                # Add 12 days
+                DAY=$((DAY + 12))
+                
+                # Handle month rollover
+                DAYS_IN_MONTH=31
+                if [ "$MONTH" = "4" ] || [ "$MONTH" = "6" ] || [ "$MONTH" = "9" ] || [ "$MONTH" = "11" ]; then
+                  DAYS_IN_MONTH=30
+                elif [ "$MONTH" = "2" ]; then
+                  # Check for leap year
+                  if [ $((YEAR % 4)) -eq 0 ] && [ $((YEAR % 100)) -ne 0 ] || [ $((YEAR % 400)) -eq 0 ]; then
+                    DAYS_IN_MONTH=29
+                  else
+                    DAYS_IN_MONTH=28
+                  fi
+                fi
+                
+                # Adjust for month rollover
+                if [ "$DAY" -gt "$DAYS_IN_MONTH" ]; then
+                  DAY=$((DAY - DAYS_IN_MONTH))
+                  MONTH=$((MONTH + 1))
+                  
+                  # Adjust for year rollover
+                  if [ "$MONTH" -gt 12 ]; then
+                    MONTH=1
+                    YEAR=$((YEAR + 1))
+                  fi
+                fi
+                
+                # Format with padding
+                if [ "$MONTH" -lt 10 ]; then
+                  MONTH="0$MONTH"
+                fi
+                if [ "$DAY" -lt 10 ]; then
+                  DAY="0$DAY"
+                fi
+                
+                SONG_DEADLINE="$YEAR-$MONTH-$DAY"
+                
+                # create songs phase indicator
+                echo "QUIXIT #$QUIXIT_NUMBER - SONG SUBMISSION PHASE" > "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "Upload your finished track before: $SONG_DEADLINE" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "Accepted file formats: .wav, .mp3, .ogg, .flac, .aiff" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "Guidelines:" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "- Upload your finished track to the 'songs' directory" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "- Use ONLY samples from the provided sample pack" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "- Bonus: Use ALL samples from the provided sample pack" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "- IMPORTANT: When uploading a finished track, include username exactly as registered, case sensitive; for example, 'mytrack_UserName.mp3', note the underscore immediately precedes the username." >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "" >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                echo "After the deadline, all tracks will be compiled into a downloadable archive." >> "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_${SONG_DEADLINE}.txt"
+                
+                # update current quixit number file
+                echo "$QUIXIT_NUMBER" > "/srv/quixit/current_quixit_number.txt"
+                chmod 444 "/srv/quixit/current_quixit_number.txt"
+                
+                # create sample pack
+                cd /srv/quixit
+                tar -czf "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" "$QUIXIT_DIR/samples"
+                
+                # create songs folder now that we're in songs phase
+                mkdir -p "$QUIXIT_DIR/songs"
+                chmod 777 "$QUIXIT_DIR/songs"
+                
+                # remove samples folder after creating tar file
+                if [ -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
+                  echo "Sample pack created successfully, removing samples folder"
+                  rm -rf "$QUIXIT_DIR/samples"
+                else
+                  echo "Warning: Sample pack creation may have failed, keeping samples folder"
+                fi
+                
+                echo "Transitioned to songs phase, deadline: $SONG_DEADLINE"
+                
+              elif [ "$PHASE" = "songs" ]; then
+                echo "Songs phase deadline reached, finalizing Quixit"
+                
+                # finalize quixit
+                rm -f "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"*.txt
+                
+                # check if any songs were uploaded
+                SONGS_FOLDER="$QUIXIT_DIR/songs"
+                SONG_COUNT=$(find "$SONGS_FOLDER" -type f | wc -l)
+                
+                if [ "$SONG_COUNT" -eq 0 ]; then
+                  echo "No songs uploaded, marking as incomplete"
+                  # mark as incomplete if no songs
+                  echo "This Quixit challenge was incomplete. No songs were submitted." > "$QUIXIT_DIR/QUIXIT_INCOMPLETE_NO_SONGS_SUBMITTED.txt"
+                else
+                  # create songs archive
+                  cd /srv/quixit
+                  tar -czf "$QUIXIT_DIR/ALL_SONGS.tar.gz" "$QUIXIT_DIR/songs"
+                  
+                  # remove songs directory after creating archive
+                  if [ -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
+                    echo "Songs archive created successfully, removing songs folder"
+                    rm -rf "$QUIXIT_DIR/songs"
+                  else
+                    echo "Warning: Songs archive creation may have failed, keeping songs folder"
+                  fi
+                  
+                  # create completion indicator
+                  COMPLETION_DATE=$(date +"%Y-%m-%d")
+                  echo "QUIXIT #$QUIXIT_NUMBER - COMPLETED" > "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                  echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                  echo "This quixit challenge is now complete!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                  echo "Completed on: $COMPLETION_DATE" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                  echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                  echo "You can download:" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                  echo "- SAMPLE_PACK.tar.gz - All samples used in this challenge" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                  echo "- ALL_SONGS.tar.gz - All submitted tracks" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                  echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                  echo "Thank you for participating!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+                  
+                  # update current quixit number file
+                  echo "$QUIXIT_NUMBER" > "/srv/quixit/current_quixit_number.txt"
+                  chmod 444 "/srv/quixit/current_quixit_number.txt"
+                fi
+              fi
+            else
+              echo "Current deadline ($DEADLINE) has not been reached yet"
+            fi
+          fi
+     volumes:
+      - name: quixit
+        persistentVolumeClaim:
+         claimName: quixit
+     restartPolicy: OnFailure
