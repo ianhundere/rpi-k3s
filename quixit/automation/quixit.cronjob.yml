@@ -6,6 +6,10 @@ metadata:
 spec:
  # Run at midnight EST (4 AM UTC) every day
  schedule: '0 4 * * *'
+ successfulJobsHistoryLimit: 1
+ failedJobsHistoryLimit: 1
+ concurrencyPolicy: Forbid
+ suspend: false
  jobTemplate:
   spec:
    template:
@@ -144,6 +148,10 @@ metadata:
 spec:
  # Run at midnight EST (4 AM UTC) every day
  schedule: '0 4 * * *'
+ successfulJobsHistoryLimit: 1
+ failedJobsHistoryLimit: 1
+ concurrencyPolicy: Forbid
+ suspend: false
  jobTemplate:
   spec:
    template:
