@@ -4,8 +4,8 @@ metadata:
  name: quixit-folder-manager
  namespace: quixit
 spec:
- # Run at midnight EST (4 AM UTC) every day
- schedule: '0 4 * * *'
+ # Run at 4:05 AM UTC every day (5 minutes after phase checker)
+ schedule: '5 4 * * *'
  successfulJobsHistoryLimit: 1
  failedJobsHistoryLimit: 1
  concurrencyPolicy: Forbid
@@ -359,12 +359,8 @@ spec:
                 chmod 444 "/srv/quixit/current_quixit_number.txt"
                 
                 # create sample pack
-                cd /srv/quixit
-                tar -czf "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" "$QUIXIT_DIR/samples"
-                
-                # create songs folder now that we're in songs phase
-                mkdir -p "$QUIXIT_DIR/songs"
-                chmod 777 "$QUIXIT_DIR/songs"
+                cd "$QUIXIT_DIR"
+                tar -czf SAMPLE_PACK.tar.gz samples/
                 
                 # remove samples folder after creating tar file
                 if [ -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
@@ -373,6 +369,10 @@ spec:
                 else
                   echo "Warning: Sample pack creation may have failed, keeping samples folder"
                 fi
+                
+                # create songs folder now that we're in songs phase
+                mkdir -p "$QUIXIT_DIR/songs"
+                chmod 777 "$QUIXIT_DIR/songs"
                 
                 echo "Transitioned to songs phase, deadline: $SONG_DEADLINE"
                 
@@ -392,8 +392,8 @@ spec:
                   echo "This Quixit challenge was incomplete. No songs were submitted." > "$QUIXIT_DIR/QUIXIT_INCOMPLETE_NO_SONGS_SUBMITTED.txt"
                 else
                   # create songs archive
-                  cd /srv/quixit
-                  tar -czf "$QUIXIT_DIR/ALL_SONGS.tar.gz" "$QUIXIT_DIR/songs"
+                  cd "$QUIXIT_DIR"
+                  tar -czf ALL_SONGS.tar.gz songs/
                   
                   # remove songs directory after creating archive
                   if [ -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
