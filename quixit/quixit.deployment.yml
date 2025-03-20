@@ -1507,7 +1507,7 @@ spec:
 
         /logs/watcher.log {
           size 20M
-          rotate 5
+          rotate 24
           compress
           missingok
           notifempty

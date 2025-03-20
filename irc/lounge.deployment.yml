@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: lounge
+ namespace: irc
+ labels:
+  app: lounge
+spec:
+ replicas: 1
+ selector:
+  matchLabels:
+   app: lounge
+ template:
+  metadata:
+   labels:
+    app: lounge
+  spec:
+   containers:
+    - name: lounge
+      image: ghcr.io/thelounge/thelounge:4.4.3
+      ports:
+       - containerPort: 80
+         name: http
+      volumeMounts:
+       - name: irc
+         mountPath: /var/opt/thelounge
+         subPath: lounge-data
+      securityContext:
+       runAsUser: 1000
+       runAsGroup: 1000
+      resources:
+       limits:
+        cpu: 500m
+        memory: 512Mi
+       requests:
+        cpu: 100m
+        memory: 128Mi
+   volumes:
+    - name: irc
+      persistentVolumeClaim:
+       claimName: irc
+    - name: lounge
+      configMap:
+       name: lounge

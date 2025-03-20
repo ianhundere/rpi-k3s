@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: irc
+ namespace: irc
+spec:
+ accessModes:
+  - ReadWriteOnce
+ storageClassName: nfs-rpik3s
+ resources:
+  requests:
+   storage: 1Gi
