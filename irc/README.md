@@ -322,6 +322,17 @@ kubectl exec -it -n irc deployment/soju -- ping irc.libera.chat
 kubectl exec -it -n irc deployment/soju -- sojuctl -config /etc/soju/config user run admin network status
 ```
 
+#### permission issues
+
+```bash
+# if you see "failed to open database: permission denied" errors in logs
+kubectl logs -n irc -l app=soju
+
+# fix by ensuring proper fsgroup in deployment spec
+securityContext:
+  fsGroup: 1000
+```
+
 ### logs
 
 increase verbosity for troubleshooting:
