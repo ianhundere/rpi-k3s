@@ -42,6 +42,7 @@ spec:
       volumeMounts:
        - name: irc
          mountPath: /var/lib/soju
+         subPath: soju
        - name: soju
          mountPath: /etc/soju
       readinessProbe:
