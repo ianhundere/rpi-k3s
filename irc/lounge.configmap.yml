@@ -16,14 +16,16 @@ data:
       maxFileSize: 10485760
     },
     defaults: {
-      name: "soju",
       host: "soju",
       port: 6667,
       tls: false,
-      rejectUnauthorized: false,
+      rejectUnauthorized: true,
       nick: "F-i-G",
       username: "admin/irc.libera.chat@thelounge",
-      password: "${LOUNGE_PW}",
-      join: "#quixit"
+      password: "${LIBERA_PW}",
+      join: "#quixit",
+      sasl: true,
+      saslAccount: "admin",
+      saslPassword: "${SOJU_PW}"
     }
   };
