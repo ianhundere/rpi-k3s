@@ -24,7 +24,7 @@ spec:
       volumeMounts:
        - name: irc
          mountPath: /var/opt/thelounge
-         subPath: lounge-data
+         subPath: lounge
       securityContext:
        runAsUser: 1000
        runAsGroup: 1000
