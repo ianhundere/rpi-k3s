@@ -13,22 +13,25 @@ metadata:
   nginx.ingress.kubernetes.io/limit-burst-multiplier: "3"
   nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
   nginx.ingress.kubernetes.io/ssl-redirect: 'true'
-  nginx.ingress.kubernetes.io/configuration-snippet: |
-   more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
-   more_set_headers "server: hide";
-   more_set_headers "X-Frame-Options: DENY";
-   more_set_headers "X-Content-Type-Options: nosniff";
-   more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
-   more_set_headers "Permissions-Policy: camera=(), microphone=(), geolocation=()";
-   more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'";
-  nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
-  nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-  nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-  nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+  nginx.ingress.kubernetes.io/proxy-hide-header: "server"
+  nginx.ingress.kubernetes.io/hsts: "true"
+  nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+  nginx.ingress.kubernetes.io/hsts-include-subdomains: "true"
+  nginx.ingress.kubernetes.io/hsts-preload: "true"
+  nginx.ingress.kubernetes.io/x-frame-options: "DENY"
+  nginx.ingress.kubernetes.io/x-content-type-options: "nosniff"
+  nginx.ingress.kubernetes.io/referrer-policy: "strict-origin-when-cross-origin"
   nginx.ingress.kubernetes.io/enable-cors: "true"
   nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
   nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
   nginx.ingress.kubernetes.io/whitelist-source-range: "${ALLOWED_IP_RANGES}"
+  nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+  nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+  nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+  nginx.ingress.kubernetes.io/custom-headers: |
+    Permissions-Policy: camera=(), microphone=(), geolocation=()
+    Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'
 spec:
  ingressClassName: nginx
  tls:

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: soju
+ namespace: irc
+data:
+ config: |
+  hostname ${QUIXIT_HOST}
+  listen irc+insecure://0.0.0.0:6667
+  listen ident://0.0.0.0:113
+  listen unix+admin:/var/lib/soju/control.sock
+  db sqlite3 /var/lib/soju/soju.db
+  message-store fs /var/lib/soju/logs
+  log /var/lib/soju/soju.log

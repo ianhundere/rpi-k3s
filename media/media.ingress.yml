@@ -1,49 +1,64 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  namespace: media
-  name: media-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      rewrite ^/soulseek / break;
+ namespace: media
+ name: media-ingress
+ annotations:
+  nginx.ingress.kubernetes.io/ssl-redirect: 'false'
 spec:
-  ingressClassName: nginx
-  rules:
-    - host: "media.tools"
-      http:
-        paths:
-          - path: /transmission
-            pathType: Prefix
-            backend:
-              service:
-                name: transmission
-                port:
-                  number: 80
-          - path: /sonarr
-            pathType: Prefix
-            backend:
-              service:
-                name: "sonarr"
-                port:
-                  number: 80
-          - path: /jackett
-            pathType: Prefix
-            backend:
-              service:
-                name: "jackett"
-                port:
-                  number: 80
-          - path: /radarr
-            pathType: Prefix
-            backend:
-              service:
-                name: "radarr"
-                port:
-                  number: 80
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: "soulseek"
-                port:
-                  number: 80
+ ingressClassName: nginx
+ rules:
+  - host: media.tools
+    http:
+     paths:
+      - backend:
+         service:
+          name: transmission
+          port:
+           number: 80
+        path: /transmission
+        pathType: Prefix
+      - backend:
+         service:
+          name: sonarr
+          port:
+           number: 80
+        path: /sonarr
+        pathType: Prefix
+      - backend:
+         service:
+          name: jackett
+          port:
+           number: 80
+        path: /jackett
+        pathType: Prefix
+      - backend:
+         service:
+          name: radarr
+          port:
+           number: 80
+        path: /radarr
+        pathType: Prefix
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+ annotations:
+  nginx.ingress.kubernetes.io/rewrite-target: /$2
+  nginx.ingress.kubernetes.io/ssl-redirect: 'false'
+  nginx.ingress.kubernetes.io/use-regex: 'true'
+ name: soulseek-ingress
+ namespace: media
+spec:
+ ingressClassName: nginx
+ rules:
+  - host: media.tools
+    http:
+     paths:
+      - backend:
+         service:
+          name: soulseek
+          port:
+           number: 80
+        path: /soulseek(/|$)(.*)
+        pathType: ImplementationSpecific
