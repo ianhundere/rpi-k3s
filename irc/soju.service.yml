@@ -14,6 +14,9 @@ spec:
   - name: irc
     port: 6667
     targetPort: 6667
+  - name: irc-tls
+    port: 6697
+    targetPort: 6697
   - name: ident
     port: 113
     targetPort: 113
