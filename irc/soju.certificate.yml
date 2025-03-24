@@ -1,0 +1,26 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+ name: soju-tls
+ namespace: irc
+spec:
+ secretName: soju-tls
+ duration: 2160h
+ renewBefore: 360h
+ subject:
+  organizations:
+   - ${QUIXIT_HOST}
+ isCA: false
+ privateKey:
+  algorithm: RSA
+  encoding: PKCS1
+  size: 2048
+ usages:
+  - server auth
+  - client auth
+ dnsNames:
+  - irc.${QUIXIT_HOST}
+ issuerRef:
+  name: letsencrypt-prod
+  kind: ClusterIssuer
+  group: cert-manager.io
