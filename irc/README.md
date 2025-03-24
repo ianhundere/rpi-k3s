@@ -311,28 +311,6 @@ For bans and exceptions:
 /mode #channel +I *!*@hostname    # Allow user to join invite-only channel
 ```
 
-## the lounge
-
-create first user:
-
-```bash
-# admin user
-kubectl exec -it -n irc deployment/lounge -- thelounge add <username>
-```
-
-manage users:
-
-```bash
-# List all users
-kubectl exec -it -n irc deployment/lounge -- thelounge list
-
-# check user pw
-kubectl exec -it -n irc deployment/lounge -- thelounge reset <username>
-
-# remove user
-kubectl exec -it -n irc deployment/lounge -- thelounge remove <username>
-```
-
 ### halloy client config
 
 To configure Halloy client to connect to multiple networks through the bouncer:
