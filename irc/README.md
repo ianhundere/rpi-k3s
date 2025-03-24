@@ -2,10 +2,7 @@
 
 ## soju
 
-- Server: soju
-- Port: 6667
-- Username: admin
-- Password: New-Strong-Password-456
+[soju](https://soju.im/) is a user-friendly IRC bouncer that connects to upstream IRC servers on behalf of users, offering features like multi-user support, IRCv3 extensions, chat history playback, and detached channels.
 
 ### via cmd line
 
@@ -40,7 +37,7 @@ kubectl exec -it -n irc deployment/soju -- sojuctl -config /etc/soju/config user
 kubectl exec -it -n irc deployment/soju -- sojuctl -config /etc/soju/config user status
 ```
 
-### BouncerServ
+### bouncer/soju mgmt w/ BouncerServ
 
 Soju provides both IRC commands (via the BouncerServ service) and command-line commands. Commands in IRC can be abbreviated (e.g., "network" as "net" or just "n").
 
@@ -70,6 +67,13 @@ channel status                        - Show status of all channels
 ```
 
 Note: When creating channels, they are added to the default network unless specified. To add channels to specific networks, use the network quote command to join them first.
+
+```bash
+channel create <network> <channel>               - Add channel to auto-join
+channel delete <network> <channel>               - Remove channel from auto-join
+channel status                                   - Show channel status
+channel update <network> <channel> [options]     - Update channel settings
+```
 
 #### sasl authentication
 
@@ -128,15 +132,6 @@ network delete <name>                - Delete a network
 network connect <name>               - Connect to a network
 network disconnect <name>            - Disconnect from a network
 network quote <network> <command>                - Send raw IRC command to network
-```
-
-#### channel
-
-```bash
-channel create <network> <channel>               - Add channel to auto-join
-channel delete <network> <channel>               - Remove channel from auto-join
-channel status                                   - Show channel status
-channel update <network> <channel> [options]     - Update channel settings
 ```
 
 #### sasl
@@ -237,26 +232,80 @@ ex:
 
 > note: network must be connected before you can send commands to it.
 
-## the lounge
+## channel mgmt w/ ChanServ
 
-create first user:
+When you have registered channels on IRC networks like Libera.Chat, you can use ChanServ services to maintain persistent channel settings, particularly useful when using a bouncer like soju.
 
-```bash
-# admin user
-kubectl exec -it -n irc deployment/lounge -- thelounge add <username>
+### persistent topics
+
+To ensure your channel topic persists through network disconnections and bouncer restarts:
+
+```irc
+/msg ChanServ SET #channel TOPICLOCK ON
+/msg ChanServ TOPIC #channel Your persistent topic here
 ```
 
-manage users:
+When TOPICLOCK is ON:
 
-```bash
-# List all users
-kubectl exec -it -n irc deployment/lounge -- thelounge list
+- Only users with appropriate channel privileges can change the topic
+- The topic persists through server restarts and network splits
+- ChanServ automatically restores the topic when reconnecting after disruptions
 
-# check user pw
-kubectl exec -it -n irc deployment/lounge -- thelounge reset <username>
+### common cmds
 
-# remove user
-kubectl exec -it -n irc deployment/lounge -- thelounge remove <username>
+```irc
+# Channel registration (requires network account)
+/msg ChanServ REGISTER #channel
+
+# Channel access management
+/msg ChanServ FLAGS #channel user +votirsf  # Give full access
+/msg ChanServ FLAGS #channel user +AO       # Add as admin and founder
+/msg ChanServ FLAGS #channel user +o        # Give operator status
+
+# Channel settings
+/msg ChanServ SET #channel GUARD ON         # Make ChanServ join the channel
+/msg ChanServ SET #channel SECURE ON        # Only registered users can join
+/msg ChanServ SET #channel MLOCK +nt        # Lock channel modes
+
+# View settings
+/msg ChanServ INFO #channel                 # Show channel information
+/msg ChanServ ACCESS #channel LIST          # List users with access
+
+# Op commands
+/msg ChanServ OP #channel                   # Get op status
+/msg ChanServ DEOP #channel                 # Remove op status
+```
+
+### mode cmds
+
+Common channel modes:
+
+- `+t`: Only ops can change topic
+- `+n`: No external messages
+- `+s`: Secret channel (not visible in lists)
+- `+i`: Invite only
+- `+m`: Moderated (only voiced users can speak)
+- `+k password`: Set channel password
+- `+l limit`: Set user limit
+
+Set modes with:
+
+```irc
+/mode #channel +modes
+```
+
+Example:
+
+```irc
+/mode #channel +nt-s
+```
+
+For bans and exceptions:
+
+```irc
+/mode #channel +b *!*@hostname    # Ban users from hostname
+/mode #channel +e *!*@hostname    # Create exception to ban
+/mode #channel +I *!*@hostname    # Allow user to join invite-only channel
 ```
 
 ### halloy client config
