@@ -170,6 +170,14 @@ create network and connect:
 /msg BouncerServ network create -addr irc.libera.chat:+6697 -name libera -username YourNickname -pass YourPassword
 ```
 
+```shell
+network create -addr ircs://irc.libera.chat:6697 -name LiberaChat -nick YourNickname -enabled true -connect-command "PRIVMSG NickServ :IDENTIFY YourPassword"
+```
+
+```shell
+network update LiberaChat -nick NewNickname -auto-away false
+```
+
 to enable the network and connect:
 
 ```shell
