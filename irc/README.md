@@ -2,10 +2,7 @@
 
 ## soju
 
-- Server: soju
-- Port: 6667
-- Username: admin
-- Password: New-Strong-Password-456
+[soju](https://soju.im/) is a user-friendly IRC bouncer that connects to upstream IRC servers on behalf of users, offering features like multi-user support, IRCv3 extensions, chat history playback, and detached channels.
 
 ### via cmd line
 

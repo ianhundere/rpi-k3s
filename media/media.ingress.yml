@@ -5,6 +5,7 @@ metadata:
  name: media-ingress
  annotations:
   nginx.ingress.kubernetes.io/ssl-redirect: 'false'
+  nginx.ingress.kubernetes.io/use-regex: 'true'
 spec:
  ingressClassName: nginx
  rules:
@@ -16,33 +17,33 @@ spec:
           name: transmission
           port:
            number: 80
-        path: /transmission
-        pathType: Prefix
+        path: /transmission(/|$)(.*)
+        pathType: ImplementationSpecific
       - backend:
          service:
           name: sonarr
           port:
            number: 80
-        path: /sonarr
-        pathType: Prefix
+        path: /sonarr(/|$)(.*)
+        pathType: ImplementationSpecific
       - backend:
          service:
           name: jackett
           port:
            number: 80
-        path: /jackett
-        pathType: Prefix
+        path: /jackett(/|$)(.*)
+        pathType: ImplementationSpecific
       - backend:
          service:
           name: radarr
           port:
            number: 80
-        path: /radarr
-        pathType: Prefix
+        path: /radarr(/|$)(.*)
+        pathType: ImplementationSpecific
       - backend:
          service:
           name: soulseek
           port:
            number: 80
-        path: /
+        path: /soulseek(/|$)(.*)
         pathType: ImplementationSpecific
