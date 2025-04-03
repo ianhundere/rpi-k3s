@@ -116,6 +116,59 @@ data:
   CACHE_TIMESTAMP=0
   CACHE_TTL=900  # 15 minutes in seconds
 
+  # Function to update username list from API
+  update_username_file() {
+    log "updating shared username file"
+    
+    # Create a marker to indicate we're working on updating the file
+    echo "updating" > /logs/username_update.marker
+    
+    # API endpoint and credentials
+    API_HOST="quixit.quixit"
+    API_PORT="44301"
+    
+    # Get auth token
+    log "attempting login to API at $API_HOST:$API_PORT"
+    AUTH_RESPONSE=$(curl -s -X POST "http://$API_HOST:$API_PORT/api/login" \
+      -H "Content-Type: application/json" \
+      -d "{\"username\":\"${QUIXIT_USER}\",\"password\":\"${QUIXIT_PW}\"}")
+    
+    if [ -n "$AUTH_RESPONSE" ]; then
+      log "successfully obtained API response"
+      
+      # Get users list
+      log "getting users list from API"
+      USERS_RESPONSE=$(curl -s -X GET "http://$API_HOST:$API_PORT/api/users" \
+        -H "X-Auth: $AUTH_RESPONSE" \
+        -H "Content-Type: application/json")
+      
+      # Extract usernames
+      USERNAMES=$(echo "$USERS_RESPONSE" | grep -o '"username":"[^"]*"' | sed 's/"username":"//g' | sed 's/"//g')
+      
+      if [ -n "$USERNAMES" ]; then
+        log "successfully extracted usernames from API"
+        
+        # Create username file
+        echo "$USERNAMES" > /logs/usernames.txt.new
+        
+        # Replace existing file
+        if [ -s "/logs/usernames.txt.new" ]; then
+          mv /logs/usernames.txt.new /logs/usernames.txt
+          log "updated usernames.txt with API results"
+        else
+          log "new usernames file is empty, API returned no users"
+        fi
+      else
+        log "failed to extract usernames from API response"
+      fi
+    else
+      log "failed to get auth token from API"
+    fi
+    
+    # Remove marker file
+    rm -f /logs/username_update.marker
+  }
+
   # track recently processed files to avoid duplicate processing
   PROCESSED_FILES_DIR="/tmp/processed_files"
   mkdir -p "$PROCESSED_FILES_DIR"
@@ -164,11 +217,45 @@ data:
     return 1
   }
 
+  # helper function to check if a string contains a username (case-sensitive)
+  contains_username() {
+    FILENAME="$1"
+    USERNAME="$2"
+    
+    # Skip empty usernames
+    if [ -z "$USERNAME" ]; then
+      return 1
+    fi
+    
+    # Case-sensitive match for username anywhere in the string
+    if echo "$FILENAME" | grep -q "$USERNAME"; then
+      return 0
+    else
+      return 1
+    fi
+  }
+
   # function to check if a filename contains a username
   check_username_in_filename() {
     FILENAME="$1"
     log "checking if filename contains a username: $FILENAME"
     
+    # First, check if we have a shared username file and use it
+    if [ -f "/logs/usernames.txt" ] && [ -s "/logs/usernames.txt" ]; then
+      log "using shared username file"
+      
+      # Read usernames from file
+      while read -r USERNAME; do
+        if contains_username "$FILENAME" "$USERNAME"; then
+          log "file $FILENAME contains username $USERNAME from shared file"
+          return 0
+        fi
+      done < "/logs/usernames.txt"
+      
+      log "file $FILENAME does not contain any username from shared file"
+    fi
+    
+    # Fallback to API call if shared file isn't available or no match was found
     # check if we need to refresh the cache
     CURRENT_TIME=$(date +%s)
     CACHE_AGE=$((CURRENT_TIME - CACHE_TIMESTAMP))
@@ -181,20 +268,22 @@ data:
       ADMIN_USER="${QUIXIT_USER}"
       ADMIN_PASS="${QUIXIT_PW}"
       
+      log "attempting to connect to api: $API_URL with user: $ADMIN_USER"
+      
       # get auth token
       TOKEN_RESPONSE=$(curl -s -X POST "$API_URL/login" \
-        -H "Content-Type: application/x-www-form-urlencoded" \
+        -H "Content-Type: application/json" \
         -d "{\"username\":\"$ADMIN_USER\",\"password\":\"$ADMIN_PASS\"}" 2>/dev/null)
       
       # check if token was obtained
       if [ -z "$TOKEN_RESPONSE" ]; then
-        log "failed to get auth token, using static fallback list"
-        # fallback to static list if api fails
-        CACHED_USERNAMES="quixit-admin"
-        # add any other known users to the static list
-        log "using static usernames list: $CACHED_USERNAMES"
+        log "failed to get auth token"
+        return 1
       else
+        log "successfully obtained auth token: $TOKEN_RESPONSE"
+        
         # get users list
+        log "fetching users list from api"
         USERS_JSON=$(curl -s -X GET "$API_URL/users" \
           -H "X-Auth: $TOKEN_RESPONSE" \
           -H "Content-Type: application/json" 2>/dev/null)
@@ -204,9 +293,8 @@ data:
         
         # check if we got any usernames
         if [ -z "$USERNAMES" ]; then
-          log "failed to get usernames from api, using static fallback list"
-          CACHED_USERNAMES="quixit-admin"
-          log "using static usernames list: $CACHED_USERNAMES"
+          log "failed to get usernames from api"
+          return 1
         else
           log "successfully retrieved usernames from api"
           CACHED_USERNAMES="$USERNAMES"
@@ -217,6 +305,9 @@ data:
       # update cache timestamp
       CACHE_TIMESTAMP=$CURRENT_TIME
       log "updated username cache timestamp: $CACHE_TIMESTAMP"
+      
+      # Update the shared username file
+      update_username_file
     else
       log "using cached usernames list (age: ${CACHE_AGE}s)"
     fi
@@ -227,11 +318,7 @@ data:
     echo "0" > "$TEMP_RESULT"
     
     echo "$CACHED_USERNAMES" | while read -r USERNAME; do
-      if [ -z "$USERNAME" ]; then
-        continue
-      fi
-      
-      if echo "$FILENAME" | grep -q "_${USERNAME}[.][^.]*$"; then
+      if contains_username "$FILENAME" "$USERNAME"; then
         log "file $FILENAME contains username $USERNAME"
         echo "1" > "$TEMP_RESULT"
         break
@@ -516,16 +603,7 @@ data:
       # Only allow uploads to songs directory
       if echo "$FILE" | grep -q "/$QUIXIT_FOLDER/songs/"; then
         log "Song upload allowed during songs phase"
-        
-        # check if filename contains a username
-        FILENAME=$(basename "$FILE")
-        if ! check_username_in_filename "$FILENAME"; then
-          log "song file does not contain a username in the filename, removing: $FILE"
-          log "filename format should be: track_username.extension (e.g. mysong_quixit-admin.mp3)"
-          rm -f "$FILE"
-          return 1
-        fi
-        
+
         return 0
       else
         log "Not uploading to songs directory during songs phase, removing file: $FILE"
@@ -788,6 +866,21 @@ data:
   done
   log "Initial file scan complete"
 
+  # Create initial username file
+  log "Creating initial username file"
+  update_username_file
+
+  # Set up a background job to update usernames every 15 minutes
+  (
+    while true; do
+      sleep 900  # 15 minutes
+      log "running scheduled username update"
+      update_username_file
+    done
+  ) &
+  USERNAME_UPDATE_PID=$!
+  log "Started username update job with PID: $USERNAME_UPDATE_PID"
+
   # Set up a background job to check for phase transitions every 5 minutes
   (
     while true; do
@@ -866,15 +959,43 @@ data:
                 continue
               fi
               
-              # Additional check for known usernames without API call
-              # This is a more aggressive approach that doesn't wait for the API check
-              if ! echo "$FILENAME" | grep -q -E "_(quixit-admin|zfigz|admin)[.][^.]*$"; then
+              # Check shared username file instead of hardcoded patterns
+              USERNAME_MATCHED=0
+              if [ -f "/logs/usernames.txt" ] && [ -s "/logs/usernames.txt" ]; then
+                FILENAME_BASE=$(basename "$FILE")
+                while read -r USERNAME; do
+                  if [ -z "$USERNAME" ]; then
+                    continue
+                  fi
+                  
+                  if echo "$FILENAME_BASE" | grep -q "_${USERNAME}[.][^.]*$"; then
+                    USERNAME_MATCHED=1
+                    break
+                  fi
+                done < "/logs/usernames.txt"
+              fi
+              
+              # If no username matched and file is older than 5 seconds, remove it
+              if [ $USERNAME_MATCHED -eq 0 ]; then
                 # Check if the file has been around for more than 5 seconds
                 FILE_AGE=$(($(date +%s) - $(date -r "$FILE" +%s)))
                 if [ "$FILE_AGE" -gt 5 ]; then
-                  log "Continuous scanner: Song file does not contain a known username after 5 seconds, removing: $FILE"
-                  rm -f "$FILE"
-                  touch "$MARKER_FILE"
+                  # Use helper function to do a more lenient check
+                  USERNAME_IN_FILENAME=0
+                  while read -r USERNAME; do
+                    if contains_username "$FILENAME_BASE" "$USERNAME"; then
+                      USERNAME_IN_FILENAME=1
+                      break
+                    fi
+                  done < "/logs/usernames.txt"
+                  
+                  if [ $USERNAME_IN_FILENAME -eq 1 ]; then
+                    log "Keeping file with username found in filename: $FILE"
+                  else
+                    log "Continuous scanner: Song file does not contain a known username after 5 seconds, removing: $FILE"
+                    rm -f "$FILE"
+                    touch "$MARKER_FILE"
+                  fi
                 fi
               fi
             fi
@@ -1140,8 +1261,8 @@ data:
   CONTINUOUS_SCANNER_PID=$!
   log "Started continuous scanner with PID: $CONTINUOUS_SCANNER_PID"
 
-  # Update the trap to kill both background processes
-  trap 'kill $BACKGROUND_PID $CONTINUOUS_SCANNER_PID 2>/dev/null; log "Killed background jobs"; exit' INT TERM EXIT
+  # Update the trap to kill all background processes
+  trap 'kill $BACKGROUND_PID $CONTINUOUS_SCANNER_PID $USERNAME_UPDATE_PID 2>/dev/null; log "Killed background jobs"; exit' INT TERM EXIT
 
   # main loop that restarts inotifywait if it exits
   log "Starting main file watch loop"
@@ -1421,7 +1542,10 @@ spec:
       imagePullPolicy: IfNotPresent
       env:
        - name: QUIXIT_HOST
-         value: 'quixit.us'
+         valueFrom:
+          secretKeyRef:
+           name: quixit-admin-credentials
+           key: host
        - name: QUIXIT_USER
          valueFrom:
           secretKeyRef:
