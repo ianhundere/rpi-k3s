@@ -10,7 +10,7 @@ spec:
  selector:
   app: lounge
  ports:
-  - name: http
-    port: 80
-    targetPort: 80
- type: ClusterIP
+  - name: https
+    port: 443
+    targetPort: 443
+

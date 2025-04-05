@@ -8,19 +8,20 @@ data:
   module.exports = {
     public: true,
     host: "0.0.0.0",
-    port: 80,
+    port: 443,
     reverseProxy: true,
     prefetchStorage: true,
     fileUpload: {
       enable: true,
       maxFileSize: 10485760
     },
-    theme: "default",
+    theme: "morning",
     prefetch: true,
     disableAutoaway: false,
-    authenticationTimeout: 7 * 24 * 60 * 60 * 1000, // 7 days
     defaults: {
       host: "irc.libera.chat",
+      name: "chat.${QUIXIT_HOST}",
+      nick: "${QUIXIT_HOST}-user",
       port: 6697,
       tls: true,
       rejectUnauthorized: true,
@@ -37,11 +38,3 @@ data:
     lockNetwork: false,
     useHexIp: true,
   };
-
-# nick: "F-i-G",
-# username: "admin/irc.libera.chat@thelounge",
-# password: "${LIBERA_PW}",
-# join: "#quixit",
-# sasl: true,
-# saslAccount: "admin",
-# saslPassword: "${SOJU_PW}"

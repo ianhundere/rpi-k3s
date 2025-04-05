@@ -36,8 +36,8 @@ spec:
     - name: lounge
       image: ghcr.io/thelounge/thelounge:4.4.3
       ports:
-       - containerPort: 80
-         name: http
+       - containerPort: 443
+         name: https
       volumeMounts:
        - name: irc
          mountPath: /var/opt/thelounge
