@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: lounge
+ namespace: irc
+data:
+ config.js: |
+  module.exports = {
+    public: true,
+    host: "0.0.0.0",
+    port: 80,
+    reverseProxy: true,
+    prefetchStorage: true,
+    fileUpload: {
+      enable: true,
+      maxFileSize: 10485760
+    },
+    theme: "default",
+    prefetch: true,
+    disableAutoaway: false,
+    authenticationTimeout: 7 * 24 * 60 * 60 * 1000, // 7 days
+    defaults: {
+      host: "irc.libera.chat",
+      port: 6697,
+      tls: true,
+      rejectUnauthorized: true,
+      join: "#quixit",
+      maxHistory: 1000,
+      scrollback: 1000,
+    },
+    messageStorage: [{
+      enabled: true,
+      maxHistory: 10000
+    }],
+    transports: ["polling", "websocket"],
+    displayNetwork: true,
+    lockNetwork: false,
+    useHexIp: true,
+  };
+
+# nick: "F-i-G",
+# username: "admin/irc.libera.chat@thelounge",
+# password: "${LIBERA_PW}",
+# join: "#quixit",
+# sasl: true,
+# saslAccount: "admin",
+# saslPassword: "${SOJU_PW}"
