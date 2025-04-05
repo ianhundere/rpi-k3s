@@ -134,6 +134,7 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
     - `touch .env` / copy the below with the correct values:
 
 ```bash
+# do not forget to also use static host mapping so that the host resolves to nginx
 # hosts
 export UNIFI_HOST="blah"
 export FILEBROWSER_HOST="blah"

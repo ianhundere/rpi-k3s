@@ -24,7 +24,6 @@ metadata:
   nginx.ingress.kubernetes.io/enable-cors: 'true'
   nginx.ingress.kubernetes.io/cors-allow-methods: 'GET, PUT, POST, DELETE, PATCH, OPTIONS'
   nginx.ingress.kubernetes.io/cors-allow-headers: 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization'
-  nginx.ingress.kubernetes.io/whitelist-source-range: '${ALLOWED_IP_RANGES}'
   nginx.ingress.kubernetes.io/proxy-connect-timeout: '300'
   nginx.ingress.kubernetes.io/proxy-send-timeout: '300'
   nginx.ingress.kubernetes.io/proxy-read-timeout: '300'
@@ -36,10 +35,10 @@ spec:
  ingressClassName: nginx
  tls:
   - hosts:
-     - ${QUIXIT_HOST}
+     - chat.${QUIXIT_HOST}
     secretName: lounge-cert
  rules:
-  - host: ${QUIXIT_HOST}
+  - host: chat.${QUIXIT_HOST}
     http:
      paths:
       - path: /
@@ -48,4 +47,4 @@ spec:
          service:
           name: lounge
           port:
-           number: 44301
+           number: 443
