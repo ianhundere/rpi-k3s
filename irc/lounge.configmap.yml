@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: lounge
+ namespace: irc
+data:
+ config.js: |
+  module.exports = {
+    public: true,
+    host: "0.0.0.0",
+    port: 443,
+    reverseProxy: true,
+    prefetchStorage: true,
+    fileUpload: {
+      enable: true,
+      maxFileSize: 10485760
+    },
+    theme: "morning",
+    prefetch: true,
+    disableAutoaway: false,
+    defaults: {
+      host: "irc.libera.chat",
+      name: "chat.${QUIXIT_HOST}",
+      nick: "${QUIXIT_HOST}-user",
+      port: 6697,
+      tls: true,
+      rejectUnauthorized: true,
+      join: "#quixit",
+      maxHistory: 1000,
+      scrollback: 1000,
+    },
+    messageStorage: [{
+      enabled: true,
+      maxHistory: 10000
+    }],
+    transports: ["polling", "websocket"],
+    displayNetwork: true,
+    lockNetwork: false,
+    useHexIp: true,
+  };
