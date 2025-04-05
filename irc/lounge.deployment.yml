@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: lounge
+ namespace: irc
+ labels:
+  app: lounge
+spec:
+ replicas: 1
+ selector:
+  matchLabels:
+   app: lounge
+ template:
+  metadata:
+   labels:
+    app: lounge
+  spec:
+   securityContext:
+    fsGroup: 1000
+   initContainers:
+    - name: init-lounge
+      image: busybox:1.35
+      command:
+       [
+        'sh',
+        '-c',
+        'mkdir -p /var/opt/thelounge && cp /tmp/config/config.js /var/opt/thelounge/config.js && chown -R 1000:1000 /var/opt/thelounge',
+       ]
+      volumeMounts:
+       - name: irc
+         mountPath: /var/opt/thelounge
+         subPath: lounge
+       - name: lounge-config
+         mountPath: /tmp/config
+   containers:
+    - name: lounge
+      image: ghcr.io/thelounge/thelounge:4.4.3
+      ports:
+       - containerPort: 443
+         name: https
+      volumeMounts:
+       - name: irc
+         mountPath: /var/opt/thelounge
+         subPath: lounge
+      securityContext:
+       runAsUser: 1000
+       runAsGroup: 1000
+      resources:
+       limits:
+        cpu: 500m
+        memory: 512Mi
+       requests:
+        cpu: 100m
+        memory: 128Mi
+   volumes:
+    - name: irc
+      persistentVolumeClaim:
+       claimName: irc
+    - name: lounge-config
+      configMap:
+       name: lounge
