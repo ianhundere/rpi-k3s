@@ -227,12 +227,15 @@ data:
       return 1
     fi
     
-    # Case-sensitive match for username anywhere in the string
-    if echo "$FILENAME" | grep -q "$USERNAME"; then
+    # Escape special characters in the username for grep
+    ESCAPED_USERNAME=$(echo "$USERNAME" | sed 's/[.[\*^$]/\\&/g')
+    
+    # Basic grep - look for the username
+    if echo "$FILENAME" | grep -q "$ESCAPED_USERNAME"; then
       return 0
-    else
-      return 1
     fi
+    
+    return 1
   }
 
   # function to check if a filename contains a username
@@ -951,14 +954,6 @@ data:
             if find "/srv/quixit/$QUIXIT_FOLDER" -maxdepth 1 -name "SUBMIT_SONGS_BEFORE_*" -type f | grep -q .; then
               FILENAME=$(basename "$FILE")
               
-              # More aggressive check for username pattern
-              if ! echo "$FILENAME" | grep -q "_[a-zA-Z0-9-]\+[.][^.]*$"; then
-                log "Continuous scanner: Song file does not contain a username in the filename, removing: $FILE"
-                rm -f "$FILE"
-                touch "$MARKER_FILE"
-                continue
-              fi
-              
               # Check shared username file instead of hardcoded patterns
               USERNAME_MATCHED=0
               if [ -f "/logs/usernames.txt" ] && [ -s "/logs/usernames.txt" ]; then
@@ -980,6 +975,13 @@ data:
                 # Check if the file has been around for more than 5 seconds
                 FILE_AGE=$(($(date +%s) - $(date -r "$FILE" +%s)))
                 if [ "$FILE_AGE" -gt 5 ]; then
+                  # Skip files that already have the warning suffix
+                  if echo "$FILENAME_BASE" | grep -q "wrong_username_will_delete_if_not_changed"; then
+                    log "File already marked with warning, skipping: $FILE"
+                    touch "$MARKER_FILE"
+                    continue
+                  fi
+                  
                   # Use helper function to do a more lenient check
                   USERNAME_IN_FILENAME=0
                   while read -r USERNAME; do
@@ -992,8 +994,17 @@ data:
                   if [ $USERNAME_IN_FILENAME -eq 1 ]; then
                     log "Keeping file with username found in filename: $FILE"
                   else
-                    log "Continuous scanner: Song file does not contain a known username after 5 seconds, removing: $FILE"
-                    rm -f "$FILE"
+                    log "Continuous scanner: Song file does not contain a known username after 5 seconds, renaming: $FILE"
+                    # Get the extension
+                    EXTENSION=$(echo "$FILENAME_BASE" | grep -o "\.[^.]\+$")
+                    BASENAME_NO_EXT=$(echo "$FILENAME_BASE" | sed "s/$EXTENSION$//")
+                    # Create a new filename that keeps the original extension
+                    NEW_FILENAME_BASE="${BASENAME_NO_EXT}.wrong_username_will_delete_if_not_changed${EXTENSION}"
+                    NEW_FILENAME="$(dirname "$FILE")/$NEW_FILENAME_BASE"
+                    # Rename the file instead of removing it
+                    mv "$FILE" "$NEW_FILENAME"
+                    log "Renamed to: $NEW_FILENAME"
+                    # rm -f "$FILE"
                     touch "$MARKER_FILE"
                   fi
                 fi
@@ -1256,6 +1267,25 @@ data:
       
       # Sleep for a short time before next scan
       sleep 2
+      
+      # Check for files with wrong usernames that need to be removed after 24 hours
+      find /srv/quixit -type f -name "*.wrong_username_will_delete_if_not_changed*" | while read -r WRONG_FILE; do
+        # Skip files with multiple warning suffixes
+        if echo "$WRONG_FILE" | grep -o "wrong_username_will_delete_if_not_changed" | wc -l | grep -q -v "^1$"; then
+          log "File has multiple warning suffixes, skipping cleanup check: $WRONG_FILE"
+          continue
+        fi
+        
+        # Check if this file is older than 24 hours
+        FILE_AGE=$(($(date +%s) - $(date -r "$WRONG_FILE" +%s)))
+        if [ "$FILE_AGE" -gt 86400 ]; then  # 86400 seconds = 24 hours
+          log "Removing file with wrong username after 24 hours: $WRONG_FILE"
+          rm -f "$WRONG_FILE"
+        else
+          HOURS_LEFT=$(( (86400 - FILE_AGE) / 3600 ))
+          log "File with wrong username will be removed in approximately $HOURS_LEFT hours: $WRONG_FILE"
+        fi
+      done
     done
   ) &
   CONTINUOUS_SCANNER_PID=$!
