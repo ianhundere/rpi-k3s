@@ -17,13 +17,12 @@ data:
     },
     theme: "morning",
     prefetch: true,
-    disableAutoaway: false,
     defaults: {
       host: "irc.libera.chat",
-      name: "chat.${QUIXIT_HOST}",
-      nick: "${QUIXIT_HOST}-user",
+      name: "${QUIXIT_HOST}",
       port: 6697,
       tls: true,
+      nick: "quixit%%%",
       rejectUnauthorized: true,
       join: "#quixit",
       maxHistory: 1000,
@@ -34,7 +33,6 @@ data:
       maxHistory: 10000
     }],
     transports: ["polling", "websocket"],
-    displayNetwork: true,
     lockNetwork: false,
     useHexIp: true,
   };
