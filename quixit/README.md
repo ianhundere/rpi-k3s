@@ -16,7 +16,7 @@ quixit operates in sequential phases, with each challenge numbered sequentially 
    - uploads to other locations are automatically removed
    - phase ends automatically on monday at 00:00 or via manual transition
 
-2. **songs phase** (12 days)
+2. **songs phase** (14 days)
    - samples are archived into `SAMPLE_PACK.tar.gz` for download
    - samples directory becomes read-only
    - users download samples and create songs
@@ -35,8 +35,8 @@ quixit operates in sequential phases, with each challenge numbered sequentially 
 - **day 0** - new challenge created
 - **day 7** - sample submission ends, song submission begins (if samples exist)
   - if no samples are uploaded, the sample phase is extended by 7 days
-- **day 19** - deadline for song submissions (12 days after song phase begins)
-- **day 20** - challenge finalized and made read-only
+- **day 21** - deadline for song submissions (14 days after song phase begins)
+- **day 22** - challenge finalized and made read-only
 
 ## automation
 

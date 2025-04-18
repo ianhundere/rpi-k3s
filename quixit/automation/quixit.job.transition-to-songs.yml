@@ -36,8 +36,8 @@ spec:
           MONTH=$(echo $MONTH | sed 's/^0//')
           DAY=$(echo $DAY | sed 's/^0//')
           
-          # Add 7 days
-          DAY=$((DAY + 7))
+          # Add 14 days
+          DAY=$((DAY + 14))
           
           # Handle month rollover
           DAYS_IN_MONTH=31

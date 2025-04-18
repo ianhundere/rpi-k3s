@@ -4,8 +4,8 @@ metadata:
  name: quixit-folder-manager
  namespace: quixit
 spec:
- # Run at 4:05 AM UTC every day (5 minutes after phase checker)
- schedule: '5 4 * * *'
+ # Run at 8:05 AM UTC every day (5 minutes after phase checker)
+ schedule: '5 8 * * *'
  successfulJobsHistoryLimit: 1
  failedJobsHistoryLimit: 1
  concurrencyPolicy: Forbid
@@ -146,8 +146,8 @@ metadata:
  name: quixit-phase-checker
  namespace: quixit
 spec:
- # Run at midnight EST (4 AM UTC) every day
- schedule: '0 4 * * *'
+ # Run at midnight PST (8 AM UTC) every day
+ schedule: '0 8 * * *'
  successfulJobsHistoryLimit: 1
  failedJobsHistoryLimit: 1
  concurrencyPolicy: Forbid
@@ -290,7 +290,7 @@ spec:
                 # transition from samples to songs phase
                 rm -f "$QUIXIT_DIR/QUIXIT_HAS_BEGUN_UPLOAD_SAMPLES_BEFORE_"*.txt
 
-                # calculate song deadline (12 days) using manual calculation that works in all environments
+                # calculate song deadline (14 days) using manual calculation that works in all environments
                 TODAY=$(date +%Y-%m-%d)
                 YEAR=$(echo $TODAY | cut -d'-' -f1)
                 MONTH=$(echo $TODAY | cut -d'-' -f2)
@@ -300,8 +300,8 @@ spec:
                 MONTH=$(echo $MONTH | sed 's/^0//')
                 DAY=$(echo $DAY | sed 's/^0//')
                 
-                # Add 12 days
-                DAY=$((DAY + 12))
+                # Add 14 days
+                DAY=$((DAY + 14))
                 
                 # Handle month rollover
                 DAYS_IN_MONTH=31
