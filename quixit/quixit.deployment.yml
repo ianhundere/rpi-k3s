@@ -33,7 +33,7 @@ data:
   # create welcome file
   echo "WELCOME TO QUIXIT MUSIC COLLABORATION CHALLENGE" > /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
   echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
-  echo "quixit is a regular event that allows everyone to work off of a single pack of audio samples, make a track in 12 days, and then receive constructive criticism from fellow peers on their track." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+  echo "quixit is a regular event that allows everyone to work off of a single pack of audio samples, make a track in 14 days, and then receive constructive criticism from fellow peers on their track." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
   echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
   echo "how it works:" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
   echo "1. upload samples during the sample submission phase" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
@@ -352,7 +352,7 @@ data:
       log "Welcome file missing, recreating it"
       echo "WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE" > /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
-      echo "quixit is a regular event that allows everyone to work off of a single pack of audio samples, make a track in 12 days, and then receive constructive criticism from fellow peers on their track." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
+      echo "quixit is a regular event that allows everyone to work off of a single pack of audio samples, make a track in 14 days, and then receive constructive criticism from fellow peers on their track." >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       echo "" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       echo "how it works:" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
       echo "1. upload samples during the sample submission phase" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
@@ -1091,7 +1091,7 @@ data:
           log "Continuous scanner: Welcome file content has been modified, restoring original content"
           echo "WELCOME TO QUIXIT MUSIC COLLABORATION CHALLENGE" > "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
           echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
-          echo "quixit is a regular event that allows everyone to work off of a single pack of audio samples, make a track in 12 days, and then receive constructive criticism from fellow peers on their track." >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
+          echo "quixit is a regular event that allows everyone to work off of a single pack of audio samples, make a track in 14 days, and then receive constructive criticism from fellow peers on their track." >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
           echo "" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
           echo "how it works:" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
           echo "1. upload samples during the sample submission phase" >> "/srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt"
@@ -1360,7 +1360,7 @@ data:
               log "Welcome file content has been modified, restoring original content"
               echo "WELCOME TO QUIXIT MUSIC COLLABORATION CHALLENGE" > "$FULL_PATH"
               echo "" >> "$FULL_PATH"
-              echo "quixit is a regular event that allows everyone to work off of a single pack of audio samples, make a track in 12 days, and then receive constructive criticism from fellow peers on their track." >> "$FULL_PATH"
+              echo "quixit is a regular event that allows everyone to work off of a single pack of audio samples, make a track in 14 days, and then receive constructive criticism from fellow peers on their track." >> "$FULL_PATH"
               echo "" >> "$FULL_PATH"
               echo "how it works:" >> "$FULL_PATH"
               echo "1. upload samples during the sample submission phase" >> "$FULL_PATH"
