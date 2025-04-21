@@ -17,33 +17,33 @@ spec:
           name: transmission
           port:
            number: 80
-        path: /transmission(/|$)(.*)
-        pathType: ImplementationSpecific
+        path: /transmission
+        pathType: Prefix
       - backend:
          service:
           name: sonarr
           port:
            number: 80
-        path: /sonarr(/|$)(.*)
-        pathType: ImplementationSpecific
+        path: /sonarr
+        pathType: Prefix
       - backend:
          service:
           name: jackett
           port:
            number: 80
-        path: /jackett(/|$)(.*)
-        pathType: ImplementationSpecific
+        path: /jackett
+        pathType: Prefix
       - backend:
          service:
           name: radarr
           port:
            number: 80
-        path: /radarr(/|$)(.*)
-        pathType: ImplementationSpecific
+        path: /radarr
+        pathType: Prefix
       - backend:
          service:
           name: soulseek
           port:
            number: 80
-        path: /soulseek(/|$)(.*)
-        pathType: ImplementationSpecific
+        path: /
+        pathType: Prefix
