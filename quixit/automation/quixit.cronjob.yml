@@ -372,15 +372,14 @@ spec:
                 
                 # create songs folder now that we're in songs phase
                 mkdir -p "$QUIXIT_DIR/songs"
-                chmod 777 "$QUIXIT_DIR/songs"
+                chmod 755 "$QUIXIT_DIR/songs"
                 
                 echo "Transitioned to songs phase, deadline: $SONG_DEADLINE"
                 
               elif [ "$PHASE" = "songs" ]; then
                 echo "Songs phase deadline reached, finalizing Quixit"
                 
-                # finalize quixit
-                rm -f "$QUIXIT_DIR/SUBMIT_SONGS_BEFORE_"*.txt
+                find "$QUIXIT_DIR" -name "SUBMIT_SONGS_BEFORE_*.txt" -type f -delete
                 
                 # check if any songs were uploaded
                 SONGS_FOLDER="$QUIXIT_DIR/songs"
@@ -391,9 +390,28 @@ spec:
                   # mark as incomplete if no songs
                   echo "This Quixit challenge was incomplete. No songs were submitted." > "$QUIXIT_DIR/QUIXIT_INCOMPLETE_NO_SONGS_SUBMITTED.txt"
                 else
-                  # create songs archive
+                  # Log the songs that were found
+                  echo "Found $SONG_COUNT songs:"
+                  find "$SONGS_FOLDER" -type f -printf "%f\n" | while read -r song; do
+                    echo "- $song"
+                  done
+                  
+                  # create songs archive with better error handling
                   cd "$QUIXIT_DIR"
-                  tar -czf ALL_SONGS.tar.gz songs/
+                  if ! tar -czf ALL_SONGS.tar.gz songs/; then
+                    echo "Error: Failed to create songs archive"
+                    exit 1
+                  fi
+                  
+                  # Verify the archive was created and contains files
+                  if [ ! -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
+                    echo "Error: Songs archive is empty or was not created"
+                    exit 1
+                  fi
+                  
+                  # List contents of the archive to verify
+                  echo "Verifying archive contents:"
+                  tar -tvf ALL_SONGS.tar.gz
                   
                   # remove songs directory after creating archive
                   if [ -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
