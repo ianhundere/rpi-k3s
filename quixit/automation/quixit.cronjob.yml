@@ -360,7 +360,29 @@ spec:
                 
                 # create sample pack
                 cd "$QUIXIT_DIR"
-                tar -czf SAMPLE_PACK.tar.gz samples/
+                echo "Creating sample pack from $QUIXIT_DIR/samples"
+                echo "Files to be included in sample pack:"
+                find samples/ -type f | sort
+                SAMPLE_COUNT=$(find samples/ -type f | wc -l)
+                echo "Found $SAMPLE_COUNT samples to pack"
+                
+                # create sample pack with error handling
+                if ! tar -czvf SAMPLE_PACK.tar.gz samples/; then
+                  echo "Error: Failed to create sample pack"
+                  exit 1
+                fi
+                
+                # verify the archive was created and contains files
+                if [ ! -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
+                  echo "Error: Sample pack is empty or was not created"
+                  exit 1
+                fi
+                
+                # list contents of the archive to verify
+                echo "Verifying sample pack contents:"
+                tar -tvf SAMPLE_PACK.tar.gz
+                ARCHIVE_COUNT=$(tar -tvf SAMPLE_PACK.tar.gz | grep -v "/$" | wc -l)
+                echo "Archive contains $ARCHIVE_COUNT files"
                 
                 # remove samples folder after creating tar file
                 if [ -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
