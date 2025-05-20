@@ -40,7 +40,7 @@ spec:
                   name: soulseek
                   key: key
             - name: PROTONVPN_SERVER
-              value: "IS#21"
+              value: "FI#14"
             - name: DEBUG
               value: "0"
             - name: KILL_SWITCH
