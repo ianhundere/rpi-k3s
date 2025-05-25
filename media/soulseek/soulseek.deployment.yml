@@ -112,9 +112,6 @@ spec:
             - name: media-data
               mountPath: /data/Soulseek Downloads
               subPath: downloads/soulseek
-            - name: media-data
-              mountPath: /data/Soulseek Shared Folder
-              subPath: library/
             - name: music-data
               mountPath: /data/Soulseek Shared Folder/music
       dnsPolicy: None
