@@ -1,129 +1,113 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: transmission
-  name: transmission
-  namespace: media
+ labels:
+  app: transmission
+ name: transmission
+ namespace: media
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  revisionHistoryLimit: 3
-  selector:
-    matchLabels:
-      app: transmission
-  template:
-    metadata:
-      labels:
-        app: transmission
-    spec:
-      hostname: transmission
-      initContainers:
-        - name: sysctl-setup
-          image: busybox
-          command:
-            [
-              "sh",
-              "-c",
-              "sysctl -w net.ipv4.conf.all.rp_filter=2 && sysctl -w net.ipv6.conf.all.disable_ipv6=1",
-            ]
-          securityContext:
-            privileged: true
-        - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:7.5.3
-          restartPolicy: Always
-          env:
-            - name: WIREGUARD_PRIVATE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: transmission
-                  key: key
-            - name: PROTONVPN_SERVER
-              value: "IS#11"
-            - name: DEBUG
-              value: "0"
-            - name: KILL_SWITCH
-              value: "1"
-          securityContext:
-            capabilities:
-              add:
-                - NET_ADMIN
-          command: ["/bin/bash", "-c"]
-          args:
-            - |
-              /usr/bin/protonwire connect --service --p2p --kill-switch --check-interval 60 &
-              __check_connection() {
-                protonwire healthcheck --silent --service-status-file
-              }
-              __config_and_renew_port_forward() {
-                while true; do
-                  natpmpc -a 1 0 udp 60 -g 10.2.0.1 >/dev/null || {
-                    echo "[ERROR   ][NATPMP] Command natpmpc has failed! Retrying in 3 seconds..."
-                    sleep 3
-                    break
-                  }
-                  natpmpc -a 1 0 tcp 60 -g 10.2.0.1 |
-                    grep -oP 'public\ port\ \K\w+' >/tmp/protonvpn-port-forward.txt
-                  echo "NATPMP_PORT=$(cat /tmp/protonvpn-port-forward.txt)" >/tmp/natpmp.env
-                  echo "[SUCCESS ][NATPMP] Port forward successful! Will renew in 45 seconds..."
-                  echo "[INFO    ][NATPMP] Port forward enabled at port: $(cat /tmp/protonvpn-port-forward.txt)"
-                  sleep 45
-                done
-              }
-              until __check_connection; do
-                echo "[ERROR   ][NATPMP] VPN connection NOT established! Retrying in 10 seconds..."
-                sleep 10
-              done
-              echo "[SUCCESS ][NATPMP] VPN connection established! Configuring it now..."
-              __config_and_renew_port_forward
-          ports:
-            - containerPort: 8000
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              memory: 128Mi
-      containers:
-        - env:
-            - name: PUID
-              value: "1000"
-            - name: PGID
-              value: "1000"
-          image: linuxserver/transmission:4.0.6
-          imagePullPolicy: IfNotPresent
-          name: transmission
-          ports:
-            - name: http
-              containerPort: 9091
-              protocol: TCP
-          resources:
-            requests:
-              cpu: 1
-              memory: 1Gi
-            limits:
-              memory: 1Gi
-          volumeMounts:
-            - mountPath: /config
-              name: media-config
-              subPath: transmission
-            - mountPath: /downloads/incomplete
-              name: media-data
-              subPath: incomplete/transmission
-            - mountPath: /downloads/complete
-              name: media-data
-              subPath: downloads/transmission
-      dnsPolicy: None
-      dnsConfig:
-        nameservers: ["1.1.1.1", "1.0.0.1"]
-      restartPolicy: Always
-      volumes:
-        - name: media-config
-          persistentVolumeClaim:
-            claimName: media-config
-        - name: media-data
-          persistentVolumeClaim:
-            claimName: media-data
-      nodeSelector:
-        kubernetes.io/arch: arm64
+ replicas: 1
+ strategy:
+  type: Recreate
+ revisionHistoryLimit: 3
+ selector:
+  matchLabels:
+   app: transmission
+ template:
+  metadata:
+   labels:
+    app: transmission
+  spec:
+   hostname: transmission
+   initContainers:
+    - name: sysctl-setup
+      image: busybox
+      command:
+       [
+        'sh',
+        '-c',
+        'sysctl -w net.ipv4.conf.all.rp_filter=2 && sysctl -w net.ipv6.conf.all.disable_ipv6=1 && sysctl -w net.ipv4.ip_forward=1',
+       ]
+      securityContext:
+       privileged: true
+   containers:
+    - name: gluetun
+      image: qmcgaw/gluetun:v3.40.0
+      securityContext:
+       capabilities:
+        add:
+         - NET_ADMIN
+       privileged: true
+      env:
+       - name: VPN_SERVICE_PROVIDER
+         value: protonvpn
+       - name: VPN_TYPE
+         value: wireguard
+       - name: WIREGUARD_PRIVATE_KEY
+         valueFrom:
+          secretKeyRef:
+           name: transmission
+           key: key
+       - name: WIREGUARD_ENDPOINT_IP
+         value: '138.199.6.178'
+       - name: SERVER_COUNTRIES
+         value: 'Switzerland'
+       - name: VPN_PORT_FORWARDING
+         value: 'on'
+       - name: FIREWALL
+         value: 'yes'
+       - name: HEALTHCHECK_TARGET
+         value: 'ip.me:443'
+      ports:
+       - containerPort: 9091
+         protocol: TCP
+      volumeMounts:
+       - mountPath: /dev/net/tun
+         name: tun-device
+      resources:
+       requests:
+        cpu: 100m
+        memory: 256Mi
+       limits:
+        memory: 256Mi
+    - env:
+       - name: PUID
+         value: '1000'
+       - name: PGID
+         value: '1000'
+       - name: TRANSMISSION_RPC_HOST_WHITELIST
+         value: '*'
+       - name: TRANSMISSION_BIND_ADDRESS_IPV4
+         value: '0.0.0.0'
+       - name: TRANSMISSION_PEER_SOCKET_TOS
+         value: 'lowcost'
+      image: linuxserver/transmission:4.0.6
+      imagePullPolicy: IfNotPresent
+      name: transmission
+      resources:
+       requests:
+        cpu: 800m
+        memory: 1Gi
+       limits:
+        memory: 1Gi
+      volumeMounts:
+       - mountPath: /config
+         name: media-config
+         subPath: transmission
+       - mountPath: /downloads/incomplete
+         name: media-data
+         subPath: incomplete/transmission
+       - mountPath: /downloads/complete
+         name: media-data
+         subPath: downloads/transmission
+   restartPolicy: Always
+   volumes:
+    - name: media-config
+      persistentVolumeClaim:
+       claimName: media-config
+    - name: media-data
+      persistentVolumeClaim:
+       claimName: media-data
+    - name: tun-device
+      hostPath:
+       path: /dev/net/tun
