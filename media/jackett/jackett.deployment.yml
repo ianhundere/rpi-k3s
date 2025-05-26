@@ -1,102 +1,102 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: jackett
-  name: jackett
-  namespace: media
+ labels:
+  app: jackett
+ name: jackett
+ namespace: media
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  revisionHistoryLimit: 3
-  selector:
-    matchLabels:
-      app: jackett
-  template:
-    metadata:
-      labels:
-        app: jackett
-    spec:
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 50
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - amd64
-      hostname: jackett
-      initContainers:
-        - name: sysctl-setup
-          image: busybox
-          command:
-            [
-              "sh",
-              "-c",
-              "sysctl -w net.ipv4.conf.all.rp_filter=2 && sysctl -w net.ipv6.conf.all.disable_ipv6=1",
-            ]
-          securityContext:
-            privileged: true
-        - name: protonwire
-          image: ghcr.io/tprasadtp/protonwire:7.5.3
-          restartPolicy: Always
-          env:
-            - name: WIREGUARD_PRIVATE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: jackett
-                  key: key
-            - name: PROTONVPN_SERVER
-              value: "CH-LT#2"
-            - name: DEBUG
-              value: "0"
-            - name: KILL_SWITCH
-              value: "1"
-          securityContext:
-            capabilities:
-              add:
-                - NET_ADMIN
-          ports:
-            - containerPort: 8000
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              memory: 128Mi
-      containers:
-        - env:
-            - name: PUID
-              value: "1000"
-            - name: PGID
-              value: "1000"
-          image: linuxserver/jackett:0.22.1576
-          imagePullPolicy: IfNotPresent
-          name: jackett
-          ports:
-            - containerPort: 9117
-              name: http
-              protocol: TCP
-          resources:
-            requests:
-              cpu: 1
-              memory: 1Gi
-            limits:
-              memory: 1Gi
-          volumeMounts:
-            - mountPath: /config
-              name: media-config
-              subPath: jackett
-      dnsPolicy: None
-      dnsConfig:
-        nameservers: ["1.1.1.1", "1.0.0.1"]
-      restartPolicy: Always
-      volumes:
-        - name: media-config
-          persistentVolumeClaim:
-            claimName: media-config
-      nodeSelector:
-        kubernetes.io/arch: arm64
+ replicas: 1
+ strategy:
+  type: Recreate
+ revisionHistoryLimit: 3
+ selector:
+  matchLabels:
+   app: jackett
+ template:
+  metadata:
+   labels:
+    app: jackett
+  spec:
+   hostname: jackett
+   initContainers:
+    - name: sysctl-setup
+      image: busybox
+      command:
+       [
+        'sh',
+        '-c',
+        'sysctl -w net.ipv4.conf.all.rp_filter=2 && sysctl -w net.ipv6.conf.all.disable_ipv6=1',
+       ]
+      securityContext:
+       privileged: true
+   containers:
+    - name: gluetun
+      image: qmcgaw/gluetun:v3.40.0
+      securityContext:
+       capabilities:
+        add:
+         - NET_ADMIN
+       privileged: true
+      env:
+       - name: VPN_SERVICE_PROVIDER
+         value: protonvpn
+       - name: VPN_TYPE
+         value: wireguard
+       - name: WIREGUARD_PRIVATE_KEY
+         valueFrom:
+          secretKeyRef:
+           name: jackett
+           key: key
+       - name: WIREGUARD_ENDPOINT_IP
+         value: '185.159.158.202'
+       - name: SERVER_HOSTNAMES
+         value: 'node-is-01.protonvpn.net'
+       - name: VPN_PORT_FORWARDING
+         value: 'off'
+       - name: FIREWALL
+         value: 'yes'
+       - name: HEALTHCHECK_TARGET
+         value: 'ip.me:443'
+      volumeMounts:
+       - mountPath: /dev/net/tun
+         name: tun-device
+      resources:
+       requests:
+        cpu: 100m
+        memory: 256Mi
+       limits:
+        memory: 256Mi
+    - env:
+       - name: PUID
+         value: '1000'
+       - name: PGID
+         value: '1000'
+      image: linuxserver/jackett:0.22.1576
+      imagePullPolicy: IfNotPresent
+      name: jackett
+      ports:
+       - containerPort: 9117
+         name: http
+         protocol: TCP
+      resources:
+       requests:
+        cpu: 1
+        memory: 1Gi
+       limits:
+        memory: 1Gi
+      volumeMounts:
+       - mountPath: /config
+         name: media-config
+         subPath: jackett
+   dnsPolicy: None
+   dnsConfig:
+    nameservers: ['1.1.1.1', '1.0.0.1']
+   restartPolicy: Always
+   volumes:
+    - name: media-config
+      persistentVolumeClaim:
+       claimName: media-config
+    - name: tun-device
+      hostPath:
+       path: /dev/net/tun

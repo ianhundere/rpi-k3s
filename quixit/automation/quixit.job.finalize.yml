@@ -39,51 +39,69 @@ spec:
           done
           
           # create songs archive with error handling
-          cd "$QUIXIT_DIR"
-          if ! tar -czf ALL_SONGS.tar.gz songs/; then
-            echo "Error: Failed to create songs archive"
-            exit 1
-          fi
-          
-          # Verify the archive was created and contains files
-          if [ ! -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
-            echo "Error: Songs archive is empty or was not created"
-            exit 1
-          fi
-          
-          # List contents of the archive to verify
-          echo "Verifying archive contents:"
-          tar -tvf ALL_SONGS.tar.gz
-          
-          # remove songs directory after creating archive
-          if [ -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
-            echo "Songs archive created successfully, removing songs folder"
-            rm -rf "$QUIXIT_DIR/songs"
+          if [ -d "$SONGS_FOLDER" ] && [ "$SONG_COUNT" -gt 0 ]; then
+            echo "Files to be included in songs archive:"
+            find "$SONGS_FOLDER" -type f -print # print absolute paths for clarity
+            (cd "$SONGS_FOLDER" && tar -czf "../ALL_SONGS.tar.gz" .)
+            if [ $? -ne 0 ]; then
+                echo "Error: Failed to create songs archive"
+                # exit 1 # decide on error handling, for now log and continue if appropriate
+            else
+                # Verify the archive was created and contains files
+                if [ ! -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
+                    echo "Error: Songs archive is empty or was not created"
+                    # exit 1 # decide on error handling
+                else
+                    echo "Verifying archive contents:"
+                    tar -tvf "$QUIXIT_DIR/ALL_SONGS.tar.gz"
+                    ARCHIVE_COUNT=$(tar -tvf "$QUIXIT_DIR/ALL_SONGS.tar.gz" | grep -v "/$" | wc -l)
+                    echo "Archive contains $ARCHIVE_COUNT songs"
+                    # remove songs directory after creating archive
+                    if [ "$ARCHIVE_COUNT" -gt 0 ]; then # only remove if archive has content
+                        echo "Songs archive created successfully, removing songs folder"
+                        rm -rf "$SONGS_FOLDER"
+                    else
+                        echo "Warning: Songs archive is empty or verification failed, keeping songs folder"
+                        # exit 1 # decide on error handling
+                    fi
+                fi
+            fi
+          elif [ "$SONG_COUNT" -eq 0 ]; then
+            echo "No songs found in $SONGS_FOLDER to pack. Marking as incomplete."
+            # Create an incomplete marker if no songs were submitted.
+            echo "This Quixit challenge was incomplete. No songs were submitted." > "$QUIXIT_DIR/QUIXIT_INCOMPLETE_NO_SONGS_SUBMITTED.txt"
+            # Skip creating completion indicator if no songs, or handle as per requirements
           else
-            echo "Warning: Songs archive creation may have failed, keeping songs folder"
-            exit 1
+            echo "Songs directory $SONGS_FOLDER does not exist."
+            # exit 1 # decide on error handling
           fi
-          
-          # create completion indicator with improved content
-          COMPLETION_DATE=$(date +"%Y-%m-%d")
-          echo "QUIXIT #$QUIXIT_NUMBER - COMPLETED" > "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
-          echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
-          echo "This quixit challenge is now complete!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
-          echo "Completed on: $COMPLETION_DATE" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
-          echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
-          echo "You can download:" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
-          echo "- SAMPLE_PACK.tar.gz - All samples used in this challenge" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
-          echo "- ALL_SONGS.tar.gz - All submitted tracks" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
-          echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
-          echo "Thank you for participating!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
-          
-          # update current quixit number file
-          echo "$QUIXIT_NUMBER" > "/srv/quixit/current_quixit_number.txt"
-          chmod 444 "/srv/quixit/current_quixit_number.txt"
-          
-          echo "Successfully finalized Quixit #$QUIXIT_NUMBER"
+
+          # create completion indicator only if songs were archived successfully
+          if [ -f "$QUIXIT_DIR/ALL_SONGS.tar.gz" ] && [ -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ] && [ ! -f "$QUIXIT_DIR/QUIXIT_INCOMPLETE_NO_SONGS_SUBMITTED.txt" ]; then
+            COMPLETION_DATE=$(date +"%Y-%m-%d")
+            echo "QUIXIT #$QUIXIT_NUMBER - COMPLETED" > "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "This quixit challenge is now complete!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "Completed on: $COMPLETION_DATE" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "You can download:" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "- SAMPLE_PACK.tar.gz - All samples used in this challenge" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "- ALL_SONGS.tar.gz - All submitted tracks" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            echo "Thank you for participating!" >> "$QUIXIT_DIR/QUIXIT_COMPLETED.txt"
+            
+            # update current quixit number file
+            echo "$QUIXIT_NUMBER" > "/srv/quixit/current_quixit_number.txt"
+            chmod 444 "/srv/quixit/current_quixit_number.txt"
+            
+            echo "Successfully finalized Quixit #$QUIXIT_NUMBER"
+          elif [ -f "$QUIXIT_DIR/QUIXIT_INCOMPLETE_NO_SONGS_SUBMITTED.txt" ]; then
+            echo "Quixit #$QUIXIT_NUMBER marked as incomplete because no songs were submitted."
+          else
+            echo "Skipping creation of completion indicator due to issues with song archiving or no songs."
+          fi
         else
-          echo "Error: Not in songs phase or no phase indicator file found"
+          echo "Error: Not in songs phase or no phase indicator file found for Quixit #$QUIXIT_NUMBER"
           exit 1
         fi
       volumeMounts:
