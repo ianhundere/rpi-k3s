@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+ name: calibre
+ namespace: media
+ annotations:
+  nginx.ingress.kubernetes.io/ssl-redirect: 'false'
+  nginx.ingress.kubernetes.io/proxy-body-size: 50m
+spec:
+ ingressClassName: nginx
+ rules:
+  - host: ${CALIBRE_HOST}
+    http:
+     paths:
+      - path: /
+        pathType: Prefix
+        backend:
+         service:
+          name: calibre
+          port:
+           number: 8083
