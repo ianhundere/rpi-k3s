@@ -2,9 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: calibre
-  namespace: calibre
+  namespace: media
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: calibre
@@ -30,13 +32,15 @@ spec:
               value: "UTC"
             - name: DOCKER_MODS
               value: linuxserver/mods:universal-calibre
+            - name: CALIBRE_PORT
+              value: "8083"
           volumeMounts:
-            - name: calibre
+            - name: media-config
               mountPath: /config
-              subPath: config
-            - name: calibre
+              subPath: calibre/config
+            - name: media-config
               mountPath: /books
-              subPath: library
+              subPath: calibre/library
           resources:
             requests:
               memory: "1Gi"
@@ -48,15 +52,19 @@ spec:
             httpGet:
               path: /
               port: http
-            initialDelaySeconds: 60
-            periodSeconds: 10
+            initialDelaySeconds: 300
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
           readinessProbe:
             httpGet:
               path: /
               port: http
-            initialDelaySeconds: 30
-            periodSeconds: 10
+            initialDelaySeconds: 240
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 5
       volumes:
-        - name: calibre
+        - name: media-config
           persistentVolumeClaim:
-            claimName: calibre
+            claimName: media-config
