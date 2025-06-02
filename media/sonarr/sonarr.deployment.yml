@@ -1,58 +1,60 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: sonarr
-  name: sonarr
-  namespace: media
+ labels:
+  app: sonarr
+ name: sonarr
+ namespace: media
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  revisionHistoryLimit: 3
-  selector:
-    matchLabels:
-      app: sonarr
-  template:
-    metadata:
-      labels:
-        app: sonarr
-    spec:
-      containers:
-        - env:
-            - name: PUID
-              value: "1000"
-            - name: PGID
-              value: "1000"
-          image: linuxserver/sonarr:4.0.10
-          imagePullPolicy: IfNotPresent
-          name: sonarr
-          ports:
-            - containerPort: 8989
-              name: http
-              protocol: TCP
-          resources:
-            requests:
-              cpu: 1
-              memory: 1Gi
-            limits:
-              memory: 1Gi
-          volumeMounts:
-            - mountPath: /config
-              name: media-config
-              subPath: sonarr
-            - mountPath: /downloads/complete
-              name: media-data
-              subPath: downloads/transmission
-            - mountPath: /tv
-              name: media-data
-              subPath: library/tv
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      volumes:
-        - name: media-config
-          persistentVolumeClaim:
-            claimName: media-config
-        - name: media-data
-          persistentVolumeClaim:
-            claimName: media-data
+ replicas: 1
+ strategy:
+  type: Recreate
+ revisionHistoryLimit: 3
+ selector:
+  matchLabels:
+   app: sonarr
+ template:
+  metadata:
+   labels:
+    app: sonarr
+  spec:
+   containers:
+    - env:
+       - name: PUID
+         value: '1000'
+       - name: PGID
+         value: '1000'
+      image: linuxserver/sonarr:4.0.10
+      imagePullPolicy: IfNotPresent
+      name: sonarr
+      ports:
+       - containerPort: 8989
+         name: http
+         protocol: TCP
+      resources:
+       requests:
+        cpu: 1
+        memory: 1Gi
+       limits:
+        memory: 1Gi
+      volumeMounts:
+       - mountPath: /config
+         name: media-config
+         subPath: sonarr
+       - mountPath: /downloads/complete
+         name: media-data
+         subPath: downloads/qbittorrent
+       - mountPath: /tv
+         name: media-data
+         subPath: library/tv
+   dnsPolicy: ClusterFirst
+   restartPolicy: Always
+   volumes:
+    - name: media-config
+      persistentVolumeClaim:
+       claimName: media-config
+    - name: media-data
+      persistentVolumeClaim:
+       claimName: media-data
+   nodeSelector:
+    kubernetes.io/arch: arm64

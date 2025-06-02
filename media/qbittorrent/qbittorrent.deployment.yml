@@ -1,9 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: qbittorrent-config
+ namespace: media
+data:
+ qBittorrent.conf: |
+  [Preferences]
+  WebUI\Address=0.0.0.0
+  WebUI\ServerDomains=*
+  WebUI\HostHeaderValidation=false
+  WebUI\Port=9091
+  WebUI\LocalHostAuth=false
+  WebUI\AuthSubnetWhitelistEnabled=true
+  WebUI\AuthSubnetWhitelist=0.0.0.0/0
+  Downloads\SavePath=/downloads/complete
+  Downloads\TempPath=/downloads/incomplete
+  Downloads\PreAllocation=true
+  Downloads\UseIncompleteExtension=true
+  Downloads\TempPathEnabled=true
+
+  [BitTorrent]
+  Session\DefaultSavePath=/downloads/complete
+  Session\TempPath=/downloads/incomplete
+  Session\TempPathEnabled=true
+  Session\AddTorrentPaused=false
+  Session\ForceKnownHost=true
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
  labels:
-  app: transmission
- name: transmission
+  app: qbittorrent
+ name: qbittorrent
  namespace: media
 spec:
  replicas: 1
@@ -12,13 +40,13 @@ spec:
  revisionHistoryLimit: 3
  selector:
   matchLabels:
-   app: transmission
+   app: qbittorrent
  template:
   metadata:
    labels:
-    app: transmission
+    app: qbittorrent
   spec:
-   hostname: transmission
+   hostname: qbittorrent
    initContainers:
     - name: sysctl-setup
       image: busybox
@@ -46,7 +74,7 @@ spec:
        - name: WIREGUARD_PRIVATE_KEY
          valueFrom:
           secretKeyRef:
-           name: transmission
+           name: qbittorrent
            key: key
        - name: WIREGUARD_ENDPOINT_IP
          value: '138.199.6.178'
@@ -75,15 +103,13 @@ spec:
          value: '1000'
        - name: PGID
          value: '1000'
-       - name: TRANSMISSION_RPC_HOST_WHITELIST
-         value: '*'
-       - name: TRANSMISSION_BIND_ADDRESS_IPV4
-         value: '0.0.0.0'
-       - name: TRANSMISSION_PEER_SOCKET_TOS
-         value: 'lowcost'
-      image: linuxserver/transmission:4.0.6
+       - name: TZ
+         value: 'America/New_York'
+       - name: WEBUI_PORT
+         value: '9091'
+      image: linuxserver/qbittorrent:latest
       imagePullPolicy: IfNotPresent
-      name: transmission
+      name: qbittorrent
       resources:
        requests:
         cpu: 800m
@@ -93,14 +119,21 @@ spec:
       volumeMounts:
        - mountPath: /config
          name: media-config
-         subPath: transmission
+         subPath: qbittorrent
        - mountPath: /downloads/incomplete
          name: media-data
-         subPath: incomplete/transmission
+         subPath: incomplete/qbittorrent
        - mountPath: /downloads/complete
          name: media-data
-         subPath: downloads/transmission
+         subPath: downloads/qbittorrent
+       - mountPath: /config/qBittorrent/qBittorrent.conf
+         name: qbittorrent-config-volume
+         subPath: qBittorrent.conf
+         readOnly: true
    restartPolicy: Always
+   dnsPolicy: None
+   dnsConfig:
+    nameservers: ['1.1.1.1', '1.0.0.1']
    volumes:
     - name: media-config
       persistentVolumeClaim:
@@ -111,3 +144,8 @@ spec:
     - name: tun-device
       hostPath:
        path: /dev/net/tun
+    - name: qbittorrent-config-volume
+      configMap:
+       name: qbittorrent-config
+   nodeSelector:
+    kubernetes.io/arch: arm64

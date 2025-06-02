@@ -1,58 +1,60 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: radarr
-  name: radarr
-  namespace: media
+ labels:
+  app: radarr
+ name: radarr
+ namespace: media
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  revisionHistoryLimit: 3
-  selector:
-    matchLabels:
-      app: radarr
-  template:
-    metadata:
-      labels:
-        app: radarr
-    spec:
-      containers:
-        - env:
-            - name: PUID
-              value: "1000"
-            - name: PGID
-              value: "1000"
-          image: linuxserver/radarr:5.15.1
-          imagePullPolicy: IfNotPresent
-          name: radarr
-          ports:
-            - containerPort: 7878
-              name: http
-              protocol: TCP
-          resources:
-            requests:
-              cpu: 1
-              memory: 1Gi
-            limits:
-              memory: 1Gi
-          volumeMounts:
-            - mountPath: /config
-              name: media-config
-              subPath: radarr
-            - mountPath: /downloads/complete
-              name: media-data
-              subPath: downloads/transmission
-            - mountPath: /movies
-              name: media-data
-              subPath: library/movies
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      volumes:
-        - name: media-config
-          persistentVolumeClaim:
-            claimName: media-config
-        - name: media-data
-          persistentVolumeClaim:
-            claimName: media-data
+ replicas: 1
+ strategy:
+  type: Recreate
+ revisionHistoryLimit: 3
+ selector:
+  matchLabels:
+   app: radarr
+ template:
+  metadata:
+   labels:
+    app: radarr
+  spec:
+   containers:
+    - env:
+       - name: PUID
+         value: '1000'
+       - name: PGID
+         value: '1000'
+      image: linuxserver/radarr:5.15.1
+      imagePullPolicy: IfNotPresent
+      name: radarr
+      ports:
+       - containerPort: 7878
+         name: http
+         protocol: TCP
+      resources:
+       requests:
+        cpu: 1
+        memory: 1Gi
+       limits:
+        memory: 1Gi
+      volumeMounts:
+       - mountPath: /config
+         name: media-config
+         subPath: radarr
+       - mountPath: /downloads/complete
+         name: media-data
+         subPath: downloads/qbittorrent
+       - mountPath: /movies
+         name: media-data
+         subPath: library/movies
+   dnsPolicy: ClusterFirst
+   restartPolicy: Always
+   volumes:
+    - name: media-config
+      persistentVolumeClaim:
+       claimName: media-config
+    - name: media-data
+      persistentVolumeClaim:
+       claimName: media-data
+   nodeSelector:
+    kubernetes.io/arch: arm64
