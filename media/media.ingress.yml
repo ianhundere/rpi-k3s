@@ -6,6 +6,7 @@ metadata:
  annotations:
   nginx.ingress.kubernetes.io/ssl-redirect: 'false'
   nginx.ingress.kubernetes.io/use-regex: 'true'
+  nginx.ingress.kubernetes.io/proxy-body-size: '0'
 spec:
  ingressClassName: nginx
  rules:
@@ -40,6 +41,26 @@ spec:
            number: 80
         path: /radarr
         pathType: Prefix
+      - backend:
+         service:
+          name: qbittorrent
+          port:
+           number: 80
+        path: /qbittorrent
+        pathType: Prefix
+  - host: qbt.media.tools
+    http:
+     paths:
+      - backend:
+         service:
+          name: qbittorrent
+          port:
+           number: 80
+        path: /
+        pathType: Prefix
+  - host: soulseek.media.tools
+    http:
+     paths:
       - backend:
          service:
           name: soulseek
