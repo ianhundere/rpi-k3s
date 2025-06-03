@@ -13,6 +13,8 @@ data:
   WebUI\LocalHostAuth=false
   WebUI\AuthSubnetWhitelistEnabled=true
   WebUI\AuthSubnetWhitelist=0.0.0.0/0
+  WebUI\AlternativePath=/vuetorrent
+  WebUI\UseAlternativeWebUI=true
   Downloads\SavePath=/downloads/complete
   Downloads\TempPath=/downloads/incomplete
   Downloads\PreAllocation=true
@@ -107,6 +109,8 @@ spec:
          value: 'America/New_York'
        - name: WEBUI_PORT
          value: '9091'
+       - name: DOCKER_MODS
+         value: 'ghcr.io/vuetorrent/vuetorrent-lsio-mod:latest'
       image: linuxserver/qbittorrent:latest
       imagePullPolicy: IfNotPresent
       name: qbittorrent
