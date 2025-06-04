@@ -152,7 +152,7 @@ export FILEBROWSER_USER="blah"
 export FILEBROWSER_PW="blah"
 export MONGO_PASS="blah"
 export SOULSEEK_VPN_KEY=$(echo -n "blah" | base64)
-export TRANSMISSION_VPN_KEY=$(echo -n "blah" | base64)
+export QBITTORRENT_VPN_KEY=$(echo -n "blah" | base64)
 export JACKETT_VPN_KEY=$(echo -n "blah" | base64)
 export TS_CLIENT_ID="blah"
 export TS_CLIENT_SECRET="blah"
@@ -186,7 +186,7 @@ export TS_CLIENT_SECRET="blah"
 2. install cert-manager
     - `helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version <latest_vers> --set startupapicheck.timeout=5m --set installCRDs=true --set webhook.hostNetwork=true --set webhook.securePort=10260`
 3. configure the certificate issuers
-   <sub>be sure to forward port 80 for the cert challenge</sub>
+   *(be sure to forward port 80 for the cert challenge)*
 
 ### staging
 
@@ -273,11 +273,10 @@ EOF
     - `kubectl apply -f media/media-data.pvc.yml`
 3. apply ingress
     - `envsubst < media/media.ingress.yml | kubectl apply -f -`
-4. create secret for vpn
+4. create secret for vpn (contains keys for qBittorrent, Jackett, and Soulseek)
     - `envsubst < media/vpn_secret.yml | kubectl apply -f -`
-5. apply transmission resources
-    - `kubectl apply -f media/transmission/transmission.service.yml`
-    - `kubectl apply -f media/transmission/transmission.deployment.yml`
+5. apply qBittorrent resources
+    - `kubectl apply -f media/qbittorrent/qbittorrent.deployment.yml`
 6. create a file called `ServerConfig.json` with the following in `<nfs_path>/jackett/Jackett`:
 
     - ```bash
@@ -319,7 +318,7 @@ EOF
     - add indexers to jackett
     - keep notes of the category #s as those are used in radarr and sonarr
 13. configuring radarr and sonarr
-    - configure the connection to transmission in settings under `Download Client` > `+` (add transmission) using the hostname and port `transmission.media:80`
+    - configure the connection to qBittorrent in settings under `Download Client` > `+` (add qBittorrent) using the hostname and port `qbittorrent.media:9091`
     - add indexers in settings under `Indexers` > `+` (add indexer)
         - add the URL / `http://media.tools/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
 
