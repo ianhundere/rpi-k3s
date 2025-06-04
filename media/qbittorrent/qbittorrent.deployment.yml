@@ -79,20 +79,12 @@ spec:
          value: 'America/New_York'
        - name: WEBUI_PORT
          value: '9091'
-       - name: DOCKER_MODS
-         value: 'ghcr.io/vuetorrent/vuetorrent-lsio-mod:v2.25.0'
        - name: WEBUI_ADDRESS
          value: '0.0.0.0'
-       - name: HOST_WHITELIST_ENABLED
-         value: 'true'
-       - name: HOST_WHITELIST
-         value: '*'
-       - name: ALTERNATE_WEBUI_ENABLED
-         value: 'true'
-       - name: ALTERNATE_WEBUI_PATH
-         value: '/vuetorrent'
        - name: UMASK
          value: '022'
+       - name: DOCKER_MODS
+         value: 'ghcr.io/vuetorrent/vuetorrent-lsio-mod:2.25.0'
       image: linuxserver/qbittorrent:5.1.0
       imagePullPolicy: IfNotPresent
       name: qbittorrent
