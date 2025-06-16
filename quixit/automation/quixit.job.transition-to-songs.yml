@@ -99,50 +99,36 @@ spec:
           chmod 777 "$QUIXIT_DIR/songs"
           
           # create sample pack
-          SAMPLES_FOLDER="$QUIXIT_DIR/samples"
-          echo "Creating sample pack from $SAMPLES_FOLDER"
-          SAMPLE_COUNT=$(find "$SAMPLES_FOLDER" -type f | wc -l)
+          cd "$QUIXIT_DIR"
+          echo "Creating sample pack from $QUIXIT_DIR/samples"
+          echo "Files to be included in sample pack:"
+          find samples/ -type f | sort
+          SAMPLE_COUNT=$(find samples/ -type f | wc -l)
           echo "Found $SAMPLE_COUNT samples to pack"
-
-          if [ -d "$SAMPLES_FOLDER" ] && [ "$SAMPLE_COUNT" -gt 0 ]; then
-            echo "Files to be included in sample pack:"
-            find "$SAMPLES_FOLDER" -type f -print # print absolute paths for clarity
-            (cd "$SAMPLES_FOLDER" && tar -czvf "../SAMPLE_PACK.tar.gz" .)
-            if [ $? -ne 0 ]; then
-                echo "Error: Failed to create sample pack"
-                # exit 1 # decide on error handling
-            else
-                # verify the archive was created and contains files
-                if [ ! -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
-                    echo "Error: Sample pack is empty or was not created"
-                    # exit 1 # decide on error handling
-                else
-                    echo "Verifying sample pack contents:"
-                    tar -tvf "$QUIXIT_DIR/SAMPLE_PACK.tar.gz"
-                    ARCHIVE_COUNT=$(tar -tvf "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" | grep -v "/$" | wc -l)
-                    echo "Archive contains $ARCHIVE_COUNT files"
-                    # remove samples directory after creating sample pack
-                    if [ "$ARCHIVE_COUNT" -gt 0 ]; then # only remove if archive has content
-                        echo "Sample pack created successfully, removing samples folder"
-                        rm -rf "$SAMPLES_FOLDER"
-                    else
-                        echo "Warning: Sample pack is empty or verification failed, keeping samples folder"
-                        # exit 1 # decide on error handling
-                    fi
-                fi
-            fi
-          elif [ "$SAMPLE_COUNT" -eq 0 ]; then
-            echo "No samples found in $SAMPLES_FOLDER to pack. Extending sample phase by 7 days is handled by cronjob, this job will not create an empty pack."
-            # If no samples, this job effectively does nothing further with sample packing.
-            # The cronjob quixit-phase-checker handles extending the sample phase if no samples are found at deadline.
-            # We might want to reconsider if this manual job should also create an empty pack or have different logic.
-            # For now, it will just not create the pack and not remove the samples folder.
-          else
-            echo "Samples directory $SAMPLES_FOLDER does not exist."
-            # exit 1 # decide on error handling
+          
+          # create sample pack with error handling
+          if ! tar -czvf SAMPLE_PACK.tar.gz samples/; then
+            echo "Error: Failed to create sample pack"
+            exit 1
+          fi
+          
+          # verify the archive was created and contains files
+          if [ ! -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
+            echo "Error: Sample pack is empty or was not created"
+            exit 1
+          fi
+          
+          # list contents of the archive to verify
+          echo "Verifying sample pack contents:"
+          tar -tvf SAMPLE_PACK.tar.gz
+          ARCHIVE_COUNT=$(tar -tvf SAMPLE_PACK.tar.gz | grep -v "/$" | wc -l)
+          echo "Archive contains $ARCHIVE_COUNT files"
+          
+          # remove samples directory after creating sample pack
+          if [ -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
+            rm -rf "$QUIXIT_DIR/samples"
           fi
         else
-          echo "Error: Not in samples phase or no phase indicator file found for Quixit #$QUIXIT_NUMBER"
           exit 1
         fi
       volumeMounts:
