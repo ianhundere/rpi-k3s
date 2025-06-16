@@ -359,39 +359,37 @@ spec:
                 chmod 444 "/srv/quixit/current_quixit_number.txt"
                 
                 # create sample pack
+                cd "$QUIXIT_DIR"
                 echo "Creating sample pack from $QUIXIT_DIR/samples"
-                SAMPLE_COUNT=$(find "$QUIXIT_DIR/samples" -type f | wc -l)
+                echo "Files to be included in sample pack:"
+                find samples/ -type f | sort
+                SAMPLE_COUNT=$(find samples/ -type f | wc -l)
                 echo "Found $SAMPLE_COUNT samples to pack"
                 
                 # create sample pack with error handling
-                if [ -d "$QUIXIT_DIR/samples" ] && [ "$SAMPLE_COUNT" -gt 0 ]; then
-                  echo "Files to be included in sample pack:"
-                  find "$QUIXIT_DIR/samples" -type f -print
-                  (cd "$QUIXIT_DIR/samples" && tar -czvf "../SAMPLE_PACK.tar.gz" .)
-                  if [ $? -ne 0 ]; then
-                    echo "Error: Failed to create sample pack"
-                  else
-                    # verify the archive was created and contains files
-                    if [ ! -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
-                      echo "Error: Sample pack is empty or was not created"
-                    else
-                      echo "Verifying sample pack contents:"
-                      tar -tvf "$QUIXIT_DIR/SAMPLE_PACK.tar.gz"
-                      ARCHIVE_COUNT=$(tar -tvf "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" | grep -v "/$" | wc -l)
-                      echo "Archive contains $ARCHIVE_COUNT files"
-                      # remove samples folder after creating tar file
-                      if [ "$ARCHIVE_COUNT" -gt 0 ]; then
-                        echo "Sample pack created successfully, removing samples folder"
-                        rm -rf "$QUIXIT_DIR/samples"
-                      else
-                        echo "Warning: Sample pack is empty or verification failed, keeping samples folder"
-                      fi
-                    fi
-                  fi
-                elif [ "$SAMPLE_COUNT" -eq 0 ]; then
-                    echo "No samples found in $QUIXIT_DIR/samples to pack."
+                if ! tar -czvf SAMPLE_PACK.tar.gz samples/; then
+                  echo "Error: Failed to create sample pack"
+                  exit 1
+                fi
+                
+                # verify the archive was created and contains files
+                if [ ! -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
+                  echo "Error: Sample pack is empty or was not created"
+                  exit 1
+                fi
+                
+                # list contents of the archive to verify
+                echo "Verifying sample pack contents:"
+                tar -tvf SAMPLE_PACK.tar.gz
+                ARCHIVE_COUNT=$(tar -tvf SAMPLE_PACK.tar.gz | grep -v "/$" | wc -l)
+                echo "Archive contains $ARCHIVE_COUNT files"
+                
+                # remove samples folder after creating tar file
+                if [ -s "$QUIXIT_DIR/SAMPLE_PACK.tar.gz" ]; then
+                  echo "Sample pack created successfully, removing samples folder"
+                  rm -rf "$QUIXIT_DIR/samples"
                 else
-                    echo "Samples directory $QUIXIT_DIR/samples does not exist."
+                  echo "Warning: Sample pack creation may have failed, keeping samples folder"
                 fi
                 
                 # create songs folder now that we're in songs phase
@@ -421,34 +419,28 @@ spec:
                   done
                   
                   # create songs archive with better error handling
-                  if [ -d "$SONGS_FOLDER" ] && [ "$SONG_COUNT" -gt 0 ]; then
-                    echo "Files to be included in songs archive:"
-                    find "$SONGS_FOLDER" -type f -print
-                    (cd "$SONGS_FOLDER" && tar -czf "../ALL_SONGS.tar.gz" .)
-                    if [ $? -ne 0 ]; then
-                        echo "Error: Failed to create songs archive"
-                    else
-                        # Verify the archive was created and contains files
-                        if [ ! -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
-                            echo "Error: Songs archive is empty or was not created"
-                        else
-                            echo "Verifying archive contents:"
-                            tar -tvf "$QUIXIT_DIR/ALL_SONGS.tar.gz"
-                            ARCHIVE_COUNT=$(tar -tvf "$QUIXIT_DIR/ALL_SONGS.tar.gz" | grep -v "/$" | wc -l)
-                            echo "Archive contains $ARCHIVE_COUNT songs"
-                            # remove songs directory after creating archive
-                            if [ "$ARCHIVE_COUNT" -gt 0 ]; then
-                                echo "Songs archive created successfully, removing songs folder"
-                                rm -rf "$SONGS_FOLDER"
-                            else
-                                echo "Warning: Songs archive is empty or verification failed, keeping songs folder"
-                            fi
-                        fi
-                    fi
-                  elif [ "$SONG_COUNT" -eq 0 ]; then
-                    echo "No songs found in $SONGS_FOLDER to pack."
+                  cd "$QUIXIT_DIR"
+                  if ! tar -czf ALL_SONGS.tar.gz songs/; then
+                    echo "Error: Failed to create songs archive"
+                    exit 1
+                  fi
+                  
+                  # Verify the archive was created and contains files
+                  if [ ! -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
+                    echo "Error: Songs archive is empty or was not created"
+                    exit 1
+                  fi
+                  
+                  # List contents of the archive to verify
+                  echo "Verifying archive contents:"
+                  tar -tvf ALL_SONGS.tar.gz
+                  
+                  # remove songs directory after creating archive
+                  if [ -s "$QUIXIT_DIR/ALL_SONGS.tar.gz" ]; then
+                    echo "Songs archive created successfully, removing songs folder"
+                    rm -rf "$QUIXIT_DIR/songs"
                   else
-                    echo "Songs directory $SONGS_FOLDER does not exist."
+                    echo "Warning: Songs archive creation may have failed, keeping songs folder"
                   fi
                   
                   # create completion indicator
