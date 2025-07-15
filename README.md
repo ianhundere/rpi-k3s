@@ -31,6 +31,7 @@ These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM, a Beelink Mini 
       ```
 
 11. configure poe hat fan control via `/boot/config.txt` and use `/opt/vc/bin/vcgencmd measure_temp` to check temp (the config may be diff depending on poe hat used):
+
     - ```[all]
          dtoverlay=i2c-fan,emc2301`
       ```
@@ -88,7 +89,7 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
 1. ssh to master node
     - `ssh pi@kube-master`
 2. if you're not root, you'll want to enable the ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`. you'll also want to tell k3s not to deploy its default load balancer, servicelb, and proxy, traefik, since we'll install metallb as load balancer and nginx as proxy manually later on. finally we want to run the k3s installer
-    - `export K3S_KUBECONFIG_MODE="644"; export INSTALL_K3S_EXEC="--disable servicelb --disable traefik --kubelet-arg=container-log-max-files=5 --kubelet-arg=container-log-max-size=50Mi --kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80"; curl -sfL https://get.k3s.io | sh -`
+    - `export K3S_KUBECONFIG_MODE="644"; export INSTALL_K3S_EXEC="--disable servicelb --disable traefik --kubelet-arg=container-log-max-files=5 --kubelet-arg=container-log-max-size=50Mi --kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80 --cluster-init"; curl -sfL https://get.k3s.io | sh -`
 3. verify the master is up
     - `sudo systemctl status k3s`
     - `kubectl get nodes -o wide`
@@ -102,7 +103,7 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
 
 <sub>for my x86 worker node, a beelink mini s with an n5095, i had to install:
 
--   `apt-get install apparmor apparmor-utils`</sub>
+- `apt-get install apparmor apparmor-utils`</sub>
 
 1. ssh to work node
     - `ssh pi@kube-worker1`
@@ -339,17 +340,17 @@ EOF
 
 1. apply system-upgrade-controller
 
--   `kubectl apply -f system-upgrade/system-upgrade-controller.yml`
+- `kubectl apply -f system-upgrade/system-upgrade-controller.yml`
 
 2. taint the master node to allow the controller to run:
 
--   `kubectl taint node kube-master CriticalAddonsOnly=true:NoExecute`
+- `kubectl taint node kube-master CriticalAddonsOnly=true:NoExecute`
 
 3. confirm taint(s): - `kubectl get node kube-master -o=jsonpath='{.spec.taints}'`
 
 4. when ready to update the images used in the `system-upgrade/config.yml` file and then apply:
 
--   `kubectl apply -f system-upgrade/config.yml`
+- `kubectl apply -f system-upgrade/config.yml`
 
 ## install ninjam-server
 
@@ -366,16 +367,6 @@ EOF
 1. apply soulseek
     - `envsubst < soulseek/soulseek.service.yml | kubectl apply -f -`
     - `kubectl apply -f soulseek/soulseek.deployment.yml`
-
-## install changedetection
-
-1. apply changedetection
-    - `kubectl apply -f changedetection/change.ns.yml`
-    - `kubectl apply -f changedetection/change.pvc.yml`
-    - `envsubst < changedetection/change.service.yml | kubectl apply -f -`
-    - `kubectl apply -f changedetection/selenium.service.yml`
-    - `kubectl apply -f changedetection/selenium.deployment.yml`
-    - `kubectl apply -f changedetection/change.deployment.yml`
 
 ## install tailscale
 
@@ -418,5 +409,5 @@ make a copy of `/var/lib/rancher/k3s/server/`
 
 ## debugging
 
--   `journalctl -u k3s.service -e` last logs of the server
--   `journalctl -u k3s-agent.service -e` last logs of the agent
+- `journalctl -u k3s.service -e` last logs of the server
+- `journalctl -u k3s-agent.service -e` last logs of the agent
