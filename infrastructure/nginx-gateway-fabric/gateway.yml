@@ -1,0 +1,123 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: shared-gateway
+  namespace: nginx-gateway
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: "192.168.3.240"
+spec:
+  gatewayClassName: nginx
+  listeners:
+  # filebrowser - share.clusterian.pw
+  - name: share-clusterian-pw-http
+    hostname: share.clusterian.pw
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: share-clusterian-pw-https
+    hostname: share.clusterian.pw
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: All
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: filebrowser-cert
+        namespace: filebrowser
+  # plex - media.clusterian.pw
+  - name: media-clusterian-pw-http
+    hostname: media.clusterian.pw
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: media-clusterian-pw-https
+    hostname: media.clusterian.pw
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: All
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: plex-cert
+        namespace: media
+  # unifi - unifi.clusterian.pw
+  - name: unifi-clusterian-pw-http
+    hostname: unifi.clusterian.pw
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: unifi-clusterian-pw-https
+    hostname: unifi.clusterian.pw
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: All
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: unifi-cert
+        namespace: unifi
+  # quixit - quixit.us
+  - name: quixit-us-http
+    hostname: quixit.us
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: quixit-us-https
+    hostname: quixit.us
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: All
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: quixit-cert
+        namespace: quixit
+  # media tools - HTTP only (internal)
+  - name: calibre-media-tools-http
+    hostname: calibre.media.tools
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: media-tools-http
+    hostname: media.tools
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: qbt-media-tools-http
+    hostname: qbt.media.tools
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: soulseek-media-tools-http
+    hostname: soulseek.media.tools
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All

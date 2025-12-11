@@ -194,36 +194,27 @@ if cluster is lost:
 
 ## install metallb - k8s load balancer
 
-1. apply the metallb manifest which includes the namespace, controller deployment, speaker daemonset and necessary service accounts for the controller and speaker, along with the RBAC permissions that everything need to function
-    - `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v<latest_vers>/config/manifests/metallb-native.yaml`
-2. apply the `CRDs` which will indicate what protocol (e.g. `layer2`) and IPs to use.
-    - `envsubst < metallb/config.yml | kubectl apply -f -`
+> **automated via flux**: metallb is deployed automatically via flux. see `infrastructure/metallb/` for configuration.
 
 ## install gateway api & nginx gateway fabric - web proxy
 
 > **Note**: As of November 2025, [ingress-nginx is deprecated](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) with support ending March 2026. This cluster uses the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) with [NGINX Gateway Fabric](https://docs.nginx.com/nginx-gateway-fabric/) as the modern replacement.
 
-1. [install helm](https://helm.sh/docs/intro/install/)
-2. install Gateway API CRDs
-    - `kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml`
-    - `kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/experimental-install.yaml`
-3. install NGINX Gateway Fabric
-    - `envsubst < provision-cluster/nginx-gateway-fabric/nginx-gateway-fabric.values.yml | helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric --namespace nginx-gateway --create-namespace --values -`
-4. verify installation
-    - `kubectl get pods -n nginx-gateway`
-    - `kubectl get gatewayclass`
-    - `kubectl get svc -n nginx-gateway`
+> **automated via flux**: nginx-gateway-fabric is deployed automatically via flux using an OCIRepository. see `infrastructure/nginx-gateway-fabric/` for configuration.
+
+**verify installation:**
+```bash
+kubectl get pods -n nginx-gateway
+kubectl get gatewayclass
+kubectl get svc -n nginx-gateway
+flux get helmreleases -n nginx-gateway
+```
 
 ## install cert-manager
 
-1. add the cert-manager repo / update repo
-    - `helm repo add jetstack https://charts.jetstack.io; helm repo update`
-2. install cert-manager
-    - `helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version <latest_vers> --values provision-cluster/cert-manager/cert-manager.values.yml`
-3. configure the certificate issuers
-   *(be sure to forward port 80 for the cert challenge)*
+> **automated via flux**: cert-manager is deployed automatically via flux. see `infrastructure/cert-manager/` for configuration.
 
-> **Note**: cert-manager v1.12+ supports Gateway API. With Gateway API, certificates are referenced directly in Gateway specs rather than using Ingress annotations.
+> **Note**: cert-manager v1.12+ supports Gateway API. With Gateway API, certificates are referenced directly in Gateway specs rather than using Ingress annotations. be sure to forward port 80 for http01 cert challenges.
 
 ### staging
 
@@ -362,16 +353,14 @@ EOF
 
 ## install nfs-provisioner
 
-<sub>this is an optional step if you'd like the creation of persistent volume claims to be automated.</sub>
+> **automated via flux**: nfs-provisioner (3 instances for video, music, and config storage) is deployed automatically via flux. see `infrastructure/nfs-provisioner/` for configuration.
 
-1. add the nfs-provisioner repo
-    - `helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner`
-2. ensure the correct values are present in the `nfs-provisioner/*.values.yml` file(s)
-3. install nfs-provisioner for each respective nfs path:
-    - `envsubst < nfs-provisioner/video.storage.values.yml | helm install nfs-subdir-external-provisioner-video nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --namespace nfs-provisioner --values -`
-    - `nfs-provisioner/rpik3s-config.storage.values.yml | helm install nfs-subdir-external-provisioner-rpik3s nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --namespace nfs-provisioner --values -`
-    - `nfs-provisioner/music.storage.values.yml | helm install nfs-subdir-external-provisioner-music nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --namespace nfs-provisioner --values -`
-4. finally, apply pvcs w/ the appropriate `storageClass` (e.g. `nfs-rpik3s` / `nfs-video` / `nfs-music`) and watch them provision automatically
+**storage classes available:**
+- `nfs-video` - for video storage
+- `nfs-music` - for music storage
+- `nfs-rpik3s` - for config storage
+
+apply pvcs with the appropriate `storageClass` and they will provision automatically.
 
 ## install [system-upgrade-controller](https://docs.k3s.io/upgrades/automated)
 

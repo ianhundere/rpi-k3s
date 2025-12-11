@@ -1,0 +1,25 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # helm repositories
+  - sources/jetstack.yml
+  - sources/nginx-stable.yml
+  - sources/nfs-subdir.yml
+  - sources/tailscale.yml
+  - sources/nginx-gateway-oci.yml
+  # cert-manager
+  - cert-manager/namespace.yml
+  - cert-manager/release.yml
+  # metallb
+  - metallb/namespace.yml
+  - metallb/config.yml
+  # nginx-gateway-fabric
+  - nginx-gateway-fabric/namespace.yml
+  - nginx-gateway-fabric/release.yml
+  - nginx-gateway-fabric/gateway.yml
+  # nfs-provisioner
+  - nfs-provisioner/namespace.yml
+  - nfs-provisioner/video-storage.yml
+  - nfs-provisioner/music-storage.yml
+  - nfs-provisioner/config-storage.yml
