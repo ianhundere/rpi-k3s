@@ -1,0 +1,5 @@
+service:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: "${METAL_LB_IP1}"

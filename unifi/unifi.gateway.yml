@@ -1,0 +1,80 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-shared-gateway-cert
+  namespace: unifi
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    namespace: nginx-gateway
+  to:
+  - group: ""
+    kind: Secret
+    name: unifi-cert
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: unifi-http-redirect
+  namespace: unifi
+spec:
+  hostnames:
+  - unifi.clusterian.pw
+  parentRefs:
+  - name: shared-gateway
+    namespace: nginx-gateway
+    sectionName: unifi-clusterian-pw-http
+  rules:
+  - filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: unifi-https
+  namespace: unifi
+spec:
+  hostnames:
+  - unifi.clusterian.pw
+  parentRefs:
+  - name: shared-gateway
+    namespace: nginx-gateway
+    sectionName: unifi-clusterian-pw-https
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
+        - name: X-Frame-Options
+          value: "DENY"
+        - name: X-Content-Type-Options
+          value: "nosniff"
+        - name: Referrer-Policy
+          value: "strict-origin-when-cross-origin"
+        remove:
+        - "Server"
+    backendRefs:
+    - name: unifi-controller
+      port: 8443
+---
+apiVersion: gateway.nginx.org/v1alpha1
+kind: UpstreamSettingsPolicy
+metadata:
+  name: unifi-upstream-settings
+  namespace: unifi
+spec:
+  targetRefs:
+  - group: ''
+    kind: Service
+    name: unifi-controller
+  zoneSize: 256k
