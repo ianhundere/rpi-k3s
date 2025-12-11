@@ -172,22 +172,31 @@ export TS_CLIENT_SECRET="blah"
 2. apply the `CRDs` which will indicate what protocol (e.g. `layer2`) and IPs to use.
     - `envsubst < metallb/config.yml | kubectl apply -f -`
 
-## install nginx - web proxy
+## install gateway api & nginx gateway fabric - web proxy
+
+> **Note**: As of November 2025, [ingress-nginx is deprecated](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) with support ending March 2026. This cluster uses the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) with [NGINX Gateway Fabric](https://docs.nginx.com/nginx-gateway-fabric/) as the modern replacement.
 
 1. [install helm](https://helm.sh/docs/intro/install/)
-2. add the nginx repo / update repo
-    - `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx; helm repo update`
-3. install nginx
-    - `helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace`
+2. install Gateway API CRDs
+    - `kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml`
+    - `kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/experimental-install.yaml`
+3. install NGINX Gateway Fabric
+    - `envsubst < provision-cluster/nginx-gateway-fabric/nginx-gateway-fabric.values.yml | helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric --namespace nginx-gateway --create-namespace --values -`
+4. verify installation
+    - `kubectl get pods -n nginx-gateway`
+    - `kubectl get gatewayclass`
+    - `kubectl get svc -n nginx-gateway`
 
 ## install cert-manager
 
 1. add the cert-manager repo / update repo
     - `helm repo add jetstack https://charts.jetstack.io; helm repo update`
 2. install cert-manager
-    - `helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version <latest_vers> --set startupapicheck.timeout=5m --set installCRDs=true --set webhook.hostNetwork=true --set webhook.securePort=10260`
+    - `helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version <latest_vers> --values provision-cluster/cert-manager/cert-manager.values.yml`
 3. configure the certificate issuers
    *(be sure to forward port 80 for the cert challenge)*
+
+> **Note**: cert-manager v1.12+ supports Gateway API. With Gateway API, certificates are referenced directly in Gateway specs rather than using Ingress annotations.
 
 ### staging
 
@@ -237,10 +246,10 @@ EOF
     - `kubectl apply -f unifi/unifi.ns.yml`
 2. apply pvc
     - `kubectl apply -f unifi/unifi.pvc.yml`
-3. apply service, statefulset and ingress resources
+3. apply service, statefulset and gateway resources
     - `envsubst < unifi/unifi.service.yml | kubectl apply -f -`
     - `kubectl apply -f unifi/unifi.statefulset.yml`
-    - `envsubst < unifi/unifi.ingress.yml | kubectl apply -f -`
+    - `kubectl apply -f unifi/unifi.gateway.yml`
 4. allow internal access by sshing to router (e.g. edgerouterx example below)
     - `configure`
     - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
@@ -255,10 +264,10 @@ EOF
     - `kubectl apply -f filebrowser/filebrowser.ns.yml`
 2. apply pvc
     - `kubectl apply -f filebrowser.pvc.yml`
-3. apply service, deployment and ingress resources
+3. apply service, deployment and gateway resources
     - `envsubst < filebrowser/filebrowser.service.yml | kubectl apply -f -`
     - `kubectl apply -f filebrowser/filebrowser.deployment.yml`
-    - `envsubst < filebrowser/filebrowser.ingress.yml | kubectl apply -f -`
+    - `kubectl apply -f filebrowser/filebrowser.gateway.yml`
 4. allow internal access by sshing to router
     - `configure`
     - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
@@ -272,8 +281,9 @@ EOF
 2. apply pvc(s)
     - `kubectl apply -f media/media-config.pvc.yml`
     - `kubectl apply -f media/media-data.pvc.yml`
-3. apply ingress
-    - `envsubst < media/media.ingress.yml | kubectl apply -f -`
+3. apply gateway resources
+    - `kubectl apply -f media/media.gateway.yml`
+    - `kubectl apply -f media/plex/plex.gateway.yml`
 4. create secret for vpn (contains keys for qBittorrent, Jackett, and Soulseek)
     - `envsubst < media/vpn_secret.yml | kubectl apply -f -`
 5. apply qBittorrent resources
@@ -357,7 +367,6 @@ EOF
 1. apply ninjam-server
     - `kubectl apply -f ninjam-server/ninjam.pvc.yml`
     - `envsubst < ninjam-server/ninjam.service.yml | kubectl apply -f -`
-    - `envsubst < ninjam-server/ninjam.ingress.yml | kubectl apply -f -`
     - `envsubst < ninjam-server/ninjam.configmap.yml | kubectl apply -f -`
     - `kubectl apply -f ninjam-server/ninjam.deployment.yml`
     - `kubectl apply -f ninjam-server/ninjam.cronjob.yml`
