@@ -1,0 +1,11 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: OCIRepository
+metadata:
+  name: nginx-gateway-fabric
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: oci://ghcr.io/nginx/charts/nginx-gateway-fabric
+  ref:
+    tag: 2.2.2
