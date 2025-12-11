@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-vars
+  namespace: flux-system
+data:
+  # hostnames
+  UNIFI_HOST: "unifi.clusterian.pw"
+  FILEBROWSER_HOST: "share.clusterian.pw"
+  CALIBRE_HOST: "calibre.clusterian.pw"
+  PLEX_HOST: "media.clusterian.pw"
+  QUIXIT_HOST: "quixit.us"
+
+  # infra IPs
+  METAL_LB_IP1: "192.168.3.240"
+  METAL_LB_IP2: "192.168.3.241"
+  METAL_LB_IP11: "192.168.3.250"
+  ALLOWED_IP_RANGES: "192.168.3.0/24,10.0.0.0/8"
+  NFS_IP: "192.168.3.85"

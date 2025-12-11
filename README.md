@@ -2,6 +2,8 @@
 
 These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM, a Beelink Mini S with a N5095 CPU and 8GB RAM and Synology ds723+.
 
+> **note**: as of december 2025, this cluster uses flux cd for gitops. the manual `envsubst` deployment sections below are deprecated but kept for reference. see [gitops with flux](#gitops-with-flux) for current deployment workflow.
+
 ## initial setup
 
 1. download latest vers of raspberry pi OS (e.g. <https://www.raspberrypi.com/software/operating-systems/>)
@@ -128,42 +130,67 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
 4. you can either simply edit the `config` file and locate `127.0.0.1` and replace it with the IP address of the master node or use `sed`
     - `sed -i '' 's/127\.0\.0\.1/192\.168\.1\.1/g' ~/.kube/config`
 
-## install envsubst / create .env file
+## gitops with flux
 
-1. install envsubst; check your local os and follow accordingly
-2. create `.env`
-    - `touch .env` / copy the below with the correct values:
+> **note**: this cluster uses [flux cd](https://fluxcd.io) for gitops. all deployments are automated from this git repo. secrets are encrypted with [sops](https://github.com/getsops/sops) and [age](https://github.com/FiloSottile/age).
 
+### bootstrap flux (one-time setup)
+
+1. install flux cli
+    - `curl -s https://fluxcd.io/install.sh | sudo bash`
+2. bootstrap flux to cluster (requires github token)
+    - `export GITHUB_TOKEN=$(gh auth token)`
+    - `flux bootstrap github --owner=ianhundere --repository=rpi-k3s --branch=main --path=clusters/rpi-k3s --personal --components-extra=image-reflector-controller,image-automation-controller`
+3. install age and sops
+    - arch: `sudo pacman -S age sops`
+    - debian/ubuntu: `sudo apt install age sops`
+    - mac: `brew install age sops`
+4. generate age key (backup this file!)
+    - `mkdir -p ~/.config/sops/age`
+    - `age-keygen -o ~/.config/sops/age/keys.txt`
+5. create age secret in cluster
+    - `cat ~/.config/sops/age/keys.txt | kubectl create secret generic sops-age --namespace=flux-system --from-file=age.agekey=/dev/stdin`
+
+### managing secrets
+
+**view/edit secrets:**
 ```bash
-# do not forget to also use static host mapping so that the host resolves to nginx
-# hosts
-export UNIFI_HOST="blah"
-export FILEBROWSER_HOST="blah"
-export PLEX_HOST="blah"
+# edit secrets (opens in $EDITOR, auto-encrypts on save)
+sops config/cluster-secrets.enc.yaml
 
-# internal ips
-export METAL_LB_IP1="blah"
-export METAL_LB_IP11="blah"
-export NFS_IP="blah"
-
-# secrets
-export NINJAM_USER="blah"
-export NINJAM_PASSWORD="blah"
-export FILEBROWSER_USER="blah"
-export FILEBROWSER_PW="blah"
-export MONGO_PASS="blah"
-export SOULSEEK_VPN_KEY=$(echo -n "blah" | base64)
-export QBITTORRENT_VPN_KEY=$(echo -n "blah" | base64)
-export JACKETT_VPN_KEY=$(echo -n "blah" | base64)
-export TS_CLIENT_ID="blah"
-export TS_CLIENT_SECRET="blah"
-
+# view decrypted secrets
+sops -d config/cluster-secrets.enc.yaml
 ```
 
-3. make sure to source `.env` when a k8s resource needs creds:
-    - `source .env`
-4. example cmds:
-    - `envsubst < media/unifi/unifi.statefulset.yml | kubectl apply -f -`
+**deploy workflow:**
+```bash
+# 1. edit manifests or secrets
+sops config/cluster-secrets.enc.yaml
+
+# 2. commit and push
+git add -A
+git commit -m "update: whatever you changed"
+git push
+
+# 3. flux automatically applies changes within 1 minute
+# (or force sync)
+flux reconcile kustomization flux-system --with-source
+```
+
+**check flux status:**
+```bash
+flux get all -A
+flux get kustomizations
+kubectl get pods -n flux-system
+```
+
+### disaster recovery
+
+if cluster is lost:
+1. restore age private key from backup (`~/.config/sops/age/keys.txt`)
+2. bootstrap flux to new cluster (step 2 above)
+3. create age secret in new cluster (step 5 above)
+4. flux will restore all resources automatically from git
 
 ## install metallb - k8s load balancer
 
