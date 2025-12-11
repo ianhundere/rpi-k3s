@@ -72,7 +72,7 @@ spec:
          value: '1000'
        - name: PGID
          value: '1000'
-      image: linuxserver/jackett:0.22.1576
+      image: linuxserver/jackett:0.24.429
       imagePullPolicy: IfNotPresent
       name: jackett
       ports:
