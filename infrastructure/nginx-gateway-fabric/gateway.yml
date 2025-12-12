@@ -30,14 +30,14 @@ spec:
         name: filebrowser-cert
         namespace: filebrowser
   # plex - media.clusterian.pw
-  - name: media-clusterian-pw-http
+  - name: plex-http
     hostname: ${PLEX_HOST}
     port: 80
     protocol: HTTP
     allowedRoutes:
       namespaces:
         from: All
-  - name: media-clusterian-pw-https
+  - name: plex-https
     hostname: ${PLEX_HOST}
     port: 443
     protocol: HTTPS
