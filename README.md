@@ -258,98 +258,42 @@ spec:
 EOF
 ```
 
-## install unifi-controller
+## deployed applications
 
-1. create namespace
-    - `kubectl apply -f unifi/unifi.ns.yml`
-2. apply pvc
-    - `kubectl apply -f unifi/unifi.pvc.yml`
-3. apply service, statefulset and gateway resources
-    - `envsubst < unifi/unifi.service.yml | kubectl apply -f -`
-    - `kubectl apply -f unifi/unifi.statefulset.yml`
-    - `kubectl apply -f unifi/unifi.gateway.yml`
-4. allow internal access by sshing to router (e.g. edgerouterx example below)
-    - `configure`
-    - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
-    - `commit`
-    - `save`
-5. allow external access by forwarding `443` for nginx on router
-    - TCP `443` / GUI
+> **automated via flux**: all applications are deployed automatically via flux. see `apps/` directory for manifests.
 
-## install filebrowser
+**current deployments:**
+- **filebrowser** (share.clusterian.pw) - file management interface
+- **unifi** (unifi.clusterian.pw) - network controller (uses nginx sidecar proxy for backend TLS)
+- **quixit** (quixit.us) - web application
+- **media** namespace:
+  - **plex** (media.clusterian.pw) - routes to NAS
+  - qbittorrent, jackett, sonarr, radarr, calibre, soulseek (deployed via old media/ configs, not yet migrated to flux)
 
-1. create namespace
-    - `kubectl apply -f filebrowser/filebrowser.ns.yml`
-2. apply pvc
-    - `kubectl apply -f filebrowser.pvc.yml`
-3. apply service, deployment and gateway resources
-    - `envsubst < filebrowser/filebrowser.service.yml | kubectl apply -f -`
-    - `kubectl apply -f filebrowser/filebrowser.deployment.yml`
-    - `kubectl apply -f filebrowser/filebrowser.gateway.yml`
-4. allow internal access by sshing to router
-    - `configure`
-    - `set system static-host-mapping host-name <sub-domain> inet ${METAL_LB_IP1}`
-    - `commit`
-    - `save`
+**application notes:**
+- unifi uses an nginx sidecar proxy to handle self-signed backend TLS certificates
+- plex service uses EndpointSlice to route traffic to NAS (${NFS_IP})
+- all public-facing apps use Let's Encrypt TLS certificates via cert-manager
+- media tools are accessible via internal hostnames (*.media.tools)
 
-## install media apps (ps i have since moved plex to my nas)
+## legacy media apps configuration
 
-1. create namespace
-    - `kubectl apply -f media/media.ns.yml`
-2. apply pvc(s)
-    - `kubectl apply -f media/media-config.pvc.yml`
-    - `kubectl apply -f media/media-data.pvc.yml`
-3. apply gateway resources
-    - `kubectl apply -f media/media.gateway.yml`
-    - `kubectl apply -f media/plex/plex.gateway.yml`
-4. create secret for vpn (contains keys for qBittorrent, Jackett, and Soulseek)
-    - `envsubst < media/vpn_secret.yml | kubectl apply -f -`
-5. apply qBittorrent resources
-    - `kubectl apply -f media/qbittorrent/qbittorrent.deployment.yml`
-6. create a file called `ServerConfig.json` with the following in `<nfs_path>/jackett/Jackett`:
+> **note**: the following apps are currently deployed via the old `media/` directory structure and not yet migrated to flux. they remain functional.
 
-    - ```bash
-        {
-            "BasePathOverride": "/jackett"
-        }
-      ```
+**deployed media apps:**
+- qbittorrent - torrent client (accessible at media.tools/qbittorrent and qbt.media.tools)
+- jackett - indexer proxy (accessible at media.tools/jackett)
+- sonarr - tv show automation (accessible at media.tools/sonarr)
+- radarr - movie automation (accessible at media.tools/radarr)
+- calibre - ebook management (accessible at calibre.media.tools)
+- soulseek - music sharing (accessible at soulseek.media.tools)
 
-7. apply jackett resources
-
-    - `kubectl apply -f media/jackett/jackett.service.yml`
-    - `envsubst < media/jackett/jackett.deployment.yml | kubectl apply -f -`
-
-8. create a file called `config.xml` with the following in `<nfs_path>/sonarr/`:
-
-    - ```bash
-        <Config>
-        <UrlBase>/sonarr</UrlBase>
-        </Config>
-      ```
-
-9. apply sonarr resources
-
-    - `kubectl apply -f media/sonarr/sonarr.service.yml -n media`
-    - `kubectl apply -f media/sonarr/sonarr.deployment.yml -n media`
-
-10. create a file called `config.xml` with the following in `<nfs_path>/radarr/`:
-
-    - ```bash
-        <Config>
-        <UrlBase>/radarr</UrlBase>
-        </Config>
-      ```
-
-11. apply radarr resources
-    - `kubectl apply -f media/radarr/radarr.service.yml -n media`
-    - `kubectl apply -f media/radarr/radarr.deployment -n media`
-12. configuring jackett
-    - add indexers to jackett
-    - keep notes of the category #s as those are used in radarr and sonarr
-13. configuring radarr and sonarr
-    - configure the connection to qBittorrent in settings under `Download Client` > `+` (add qBittorrent) using the hostname and port `qbittorrent.media:9091`
-    - add indexers in settings under `Indexers` > `+` (add indexer)
-        - add the URL / `http://media.tools/jackett/api/v2.0/indexers/<name>/results/torznab/`, API key (found in jackett) and categories (e.g. `2000` for movies and `5000` for tv)
+**configuration notes:**
+- jackett requires `ServerConfig.json` in `<nfs_path>/jackett/Jackett` with `{"BasePathOverride": "/jackett"}`
+- sonarr requires `config.xml` in `<nfs_path>/sonarr/` with `<Config><UrlBase>/sonarr</UrlBase></Config>`
+- radarr requires `config.xml` in `<nfs_path>/radarr/` with `<Config><UrlBase>/radarr</UrlBase></Config>`
+- radarr/sonarr connect to qbittorrent at `qbittorrent.media:9091`
+- indexers use jackett API at `http://media.tools/jackett/api/v2.0/indexers/<name>/results/torznab/`
 
 ## install nfs-provisioner
 
@@ -362,36 +306,14 @@ EOF
 
 apply pvcs with the appropriate `storageClass` and they will provision automatically.
 
-## install [system-upgrade-controller](https://docs.k3s.io/upgrades/automated)
+## k3s system upgrade controller
 
-1. apply system-upgrade-controller
+> **note**: [system-upgrade-controller](https://docs.k3s.io/upgrades/automated) is available in `system-upgrade/` directory for automated k3s cluster upgrades. not currently deployed via flux.
 
-- `kubectl apply -f system-upgrade/system-upgrade-controller.yml`
-
-2. taint the master node to allow the controller to run:
-
-- `kubectl taint node kube-master CriticalAddonsOnly=true:NoExecute`
-
-3. confirm taint(s): - `kubectl get node kube-master -o=jsonpath='{.spec.taints}'`
-
-4. when ready to update the images used in the `system-upgrade/config.yml` file and then apply:
-
-- `kubectl apply -f system-upgrade/config.yml`
-
-## install ninjam-server
-
-1. apply ninjam-server
-    - `kubectl apply -f ninjam-server/ninjam.pvc.yml`
-    - `envsubst < ninjam-server/ninjam.service.yml | kubectl apply -f -`
-    - `envsubst < ninjam-server/ninjam.configmap.yml | kubectl apply -f -`
-    - `kubectl apply -f ninjam-server/ninjam.deployment.yml`
-    - `kubectl apply -f ninjam-server/ninjam.cronjob.yml`
-
-## install soulseek
-
-1. apply soulseek
-    - `envsubst < soulseek/soulseek.service.yml | kubectl apply -f -`
-    - `kubectl apply -f soulseek/soulseek.deployment.yml`
+to use:
+1. taint master node: `kubectl taint node kube-master CriticalAddonsOnly=true:NoExecute`
+2. apply controller: `kubectl apply -f system-upgrade/system-upgrade-controller.yml`
+3. update version in `system-upgrade/config.yml` and apply: `kubectl apply -f system-upgrade/config.yml`
 
 ## install tailscale
 
