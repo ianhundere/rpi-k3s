@@ -1,9 +1,0 @@
-image:
-  repository: tailscale/tailscale
-  pullPolicy: IfNotPresent
-  tag: v1.78.1@sha256:c80eb698d5057b04d826b5ae2004d4c464ae28f6
-oauth:
-  clientId: "${TS_CLIENT_ID}"
-  clientSecret: "${TS_CLIENT_SECRET}"
-apiServerProxyConfig:
-  mode: "true"
