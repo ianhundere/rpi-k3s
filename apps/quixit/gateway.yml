@@ -1,0 +1,102 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-shared-gateway-cert
+  namespace: quixit
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    namespace: nginx-gateway
+  to:
+  - group: ""
+    kind: Secret
+    name: quixit-cert
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: quixit-http-redirect
+  namespace: quixit
+spec:
+  hostnames:
+  - ${QUIXIT_HOST}
+  parentRefs:
+  - name: shared-gateway
+    namespace: nginx-gateway
+    sectionName: quixit-us-http
+  rules:
+  - filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: quixit-https
+  namespace: quixit
+spec:
+  hostnames:
+  - ${QUIXIT_HOST}
+  parentRefs:
+  - name: shared-gateway
+    namespace: nginx-gateway
+    sectionName: quixit-us-https
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
+        - name: X-Frame-Options
+          value: "DENY"
+        - name: X-Content-Type-Options
+          value: "nosniff"
+        - name: Referrer-Policy
+          value: "strict-origin-when-cross-origin"
+        - name: Access-Control-Allow-Origin
+          value: "*"
+        - name: Access-Control-Allow-Methods
+          value: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
+        - name: Access-Control-Allow-Headers
+          value: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+        - name: Permissions-Policy
+          value: "camera=(), microphone=(), geolocation=()"
+        - name: Content-Security-Policy
+          value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+    backendRefs:
+    - name: quixit
+      port: 44301
+---
+apiVersion: gateway.nginx.org/v1alpha1
+kind: ClientSettingsPolicy
+metadata:
+  name: quixit-client-settings
+  namespace: quixit
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: quixit-https
+  body:
+    maxSize: "50m"
+    timeout: 60s
+---
+apiVersion: gateway.nginx.org/v1alpha1
+kind: UpstreamSettingsPolicy
+metadata:
+  name: quixit-upstream-settings
+  namespace: quixit
+spec:
+  targetRefs:
+  - group: ''
+    kind: Service
+    name: quixit
+  zoneSize: 256k
