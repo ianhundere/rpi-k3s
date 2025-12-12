@@ -3,10 +3,9 @@ kind: Kustomization
 namespace: media
 resources:
   - namespace.yml
-  - plex-service.yml
-  - plex-gateway.yml
   - gateway.yml
   # media apps
+  - plex/
   - qbittorrent/
   - jackett/
   - sonarr/

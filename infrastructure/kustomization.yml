@@ -23,5 +23,5 @@ resources:
   - nfs-provisioner/video-storage.yml
   - nfs-provisioner/music-storage.yml
   - nfs-provisioner/config-storage.yml
-  # system-upgrade-controller
-  - system-upgrade-controller/
+  # system-upgrade-controller (commented out - requires master node taint)
+  # - system-upgrade-controller/

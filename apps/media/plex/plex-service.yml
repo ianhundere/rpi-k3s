@@ -20,7 +20,7 @@ metadata:
     kubernetes.io/service-name: plex
 addressType: IPv4
 ports:
-  - name: "plex"
+  - name: http
     appProtocol: http
     protocol: TCP
     port: 32400
