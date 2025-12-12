@@ -65,7 +65,7 @@ spec:
           value: "same-site"
     backendRefs:
     - name: plex
-      port: 32400
+      port: 80
 ---
 apiVersion: gateway.nginx.org/v1alpha1
 kind: UpstreamSettingsPolicy

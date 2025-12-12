@@ -6,3 +6,10 @@ resources:
   - plex-service.yml
   - plex-gateway.yml
   - gateway.yml
+  # media apps
+  - qbittorrent/
+  - jackett/
+  - sonarr/
+  - radarr/
+  - calibre/
+  - soulseek/
