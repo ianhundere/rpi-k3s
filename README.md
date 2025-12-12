@@ -154,6 +154,7 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
 ### managing secrets
 
 **view/edit secrets:**
+
 ```bash
 # edit secrets (opens in $EDITOR, auto-encrypts on save)
 sops config/cluster-secrets.enc.yaml
@@ -163,6 +164,7 @@ sops -d config/cluster-secrets.enc.yaml
 ```
 
 **deploy workflow:**
+
 ```bash
 # 1. edit manifests or secrets
 sops config/cluster-secrets.enc.yaml
@@ -178,6 +180,7 @@ flux reconcile kustomization flux-system --with-source
 ```
 
 **check flux status:**
+
 ```bash
 flux get all -A
 flux get kustomizations
@@ -187,6 +190,7 @@ kubectl get pods -n flux-system
 ### disaster recovery
 
 if cluster is lost:
+
 1. restore age private key from backup (`~/.config/sops/age/keys.txt`)
 2. bootstrap flux to new cluster (step 2 above)
 3. create age secret in new cluster (step 5 above)
@@ -203,6 +207,7 @@ if cluster is lost:
 > **automated via flux**: nginx-gateway-fabric is deployed automatically via flux using an OCIRepository. see `infrastructure/nginx-gateway-fabric/` for configuration.
 
 **verify installation:**
+
 ```bash
 kubectl get pods -n nginx-gateway
 kubectl get gatewayclass
@@ -265,6 +270,7 @@ EOF
 ### flux-managed apps
 
 **public-facing (with HTTPS/TLS):**
+
 - **filebrowser** (share.clusterian.pw) - file management interface
   - see: `apps/filebrowser/`
 - **unifi** (unifi.clusterian.pw) - network controller
@@ -276,27 +282,31 @@ EOF
   - see: `apps/quixit/`
 - **plex** (media.clusterian.pw) - media server routing
   - uses EndpointSlice to route traffic to NAS (${NFS_IP})
-  - see: `apps/media/plex-*`
+  - see: `apps/media/plex/`
+
+**internal media apps (HTTP only):**
+
+- **qbittorrent** - torrent client (media.tools/qbittorrent, qbt.media.tools)
+  - see: `apps/media/qbittorrent/`
+- **jackett** - indexer proxy (media.tools/jackett)
+  - see: `apps/media/jackett/`
+- **sonarr** - tv automation (media.tools/sonarr)
+  - see: `apps/media/sonarr/`
+- **radarr** - movie automation (media.tools/radarr)
+  - see: `apps/media/radarr/`
+- **calibre** - ebook management (calibre.media.tools)
+  - see: `apps/media/calibre/`
+- **soulseek** - music sharing (soulseek.media.tools)
+  - see: `apps/media/soulseek/`
 
 **application notes:**
+
 - all public-facing apps use Let's Encrypt TLS certificates via cert-manager
 - unifi's nginx sidecar accepts self-signed certs with `proxy_ssl_verify off`
 - gateway API with NGINX Gateway Fabric handles all HTTP/HTTPS routing
 
-### legacy media apps (not yet in flux)
+**media apps configuration notes:**
 
-> **note**: these apps run in the `media` namespace but use old manual deployment configs in `media/` directory
-
-- qbittorrent - torrent client (media.tools/qbittorrent, qbt.media.tools)
-- jackett - indexer proxy (media.tools/jackett)
-- sonarr - tv automation (media.tools/sonarr)
-- radarr - movie automation (media.tools/radarr)
-- calibre - ebook management (calibre.media.tools)
-- soulseek - music sharing (soulseek.media.tools)
-
-**to migrate these to flux:** move configs from `media/*/` to `apps/media/`, update kustomization.yml
-
-**legacy media apps configuration notes:**
 - jackett: requires `ServerConfig.json` in `<nfs_path>/jackett/Jackett` with `{"BasePathOverride": "/jackett"}`
 - sonarr: requires `config.xml` in `<nfs_path>/sonarr/` with `<Config><UrlBase>/sonarr</UrlBase></Config>`
 - radarr: requires `config.xml` in `<nfs_path>/radarr/` with `<Config><UrlBase>/radarr</UrlBase></Config>`
@@ -308,6 +318,7 @@ EOF
 > **automated via flux**: nfs-provisioner (3 instances for video, music, and config storage) is deployed automatically via flux. see `infrastructure/nfs-provisioner/` for configuration.
 
 **storage classes available:**
+
 - `nfs-video` - for video storage
 - `nfs-music` - for music storage
 - `nfs-rpik3s` - for config storage
@@ -316,18 +327,35 @@ apply pvcs with the appropriate `storageClass` and they will provision automatic
 
 ## k3s system upgrade controller
 
-> **automated via flux**: [system-upgrade-controller](https://docs.k3s.io/upgrades/automated) is deployed via flux. see `infrastructure/system-upgrade-controller/` for configuration.
+> **automated via flux**: [system-upgrade-controller](https://docs.k3s.io/upgrades/automated) can be deployed via flux. see `infrastructure/system-upgrade-controller/` for configuration.
 
 **controller status:**
-- deployed but pending (requires master node taint to schedule)
+
+- currently disabled in `infrastructure/kustomization.yml` (commented out)
+- requires master node taint to schedule successfully
 - upgrade Plans are commented out in kustomization.yml (apply manually when ready to upgrade)
 
-**to perform k3s upgrade:**
-1. taint master node to allow controller: `kubectl taint node kube-master CriticalAddonsOnly=true:NoExecute`
-2. verify controller is running: `kubectl get pods -n system-upgrade`
-3. update version in `infrastructure/system-upgrade-controller/config.yml`
-4. uncomment config.yml in kustomization.yml and commit
-5. flux will apply the upgrade Plans automatically
+**to enable and perform k3s upgrade:**
+
+1. taint master node to allow controller scheduling:
+
+   ```bash
+   kubectl taint node kube-master node-role.kubernetes.io/master:NoSchedule-
+   kubectl taint node kube-master CriticalAddonsOnly=true:NoExecute
+   ```
+
+2. uncomment system-upgrade-controller in `infrastructure/kustomization.yml` and commit
+3. flux will deploy the controller automatically
+4. verify controller is running: `kubectl get pods -n system-upgrade`
+5. update version in `infrastructure/system-upgrade-controller/config.yml`
+6. uncomment config.yml in kustomization.yml and commit
+7. flux will apply the upgrade Plans and k3s will upgrade automatically
+
+**to disable after upgrade:**
+
+- re-comment system-upgrade-controller in `infrastructure/kustomization.yml`
+- delete the deployment: `kubectl delete deployment -n system-upgrade system-upgrade-controller`
+- re-apply original master taint: `kubectl taint node kube-master node-role.kubernetes.io/master:NoSchedule`
 
 ## tailscale
 

@@ -94,7 +94,7 @@ spec:
         namespace: quixit
   # media tools - HTTP only (internal)
   - name: calibre-media-tools-http
-    hostname: ${CALIBRE_HOST}
+    hostname: calibre.media.tools
     port: 80
     protocol: HTTP
     allowedRoutes:
