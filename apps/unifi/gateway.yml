@@ -63,7 +63,7 @@ spec:
           value: "strict-origin-when-cross-origin"
     backendRefs:
     - name: unifi-controller
-      port: 8443
+      port: 8080
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha3
 kind: BackendTLSPolicy
