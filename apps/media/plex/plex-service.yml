@@ -27,3 +27,5 @@ ports:
 endpoints:
   - addresses:
       - "${NFS_IP}"
+    conditions:
+      ready: true
