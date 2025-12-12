@@ -1,7 +1,12 @@
-# agent config
+# k3s agent configuration
+# reference: https://docs.k3s.io/installation/configuration
+# this file serves as a reference for the k3s agent installation command
+
+# kubelet configuration
 kubelet-arg:
+  # container log management
   - "container-log-max-files=5"
   - "container-log-max-size=50Mi"
+  # image garbage collection thresholds
   - "image-gc-high-threshold=85"
   - "image-gc-low-threshold=80"
-  - "feature-gates=SidecarContainers=true"

@@ -1,9 +1,23 @@
-# server config
+# k3s server configuration
+# reference: https://docs.k3s.io/installation/configuration
+# this file serves as a reference for the k3s server installation command
+
+# disable built-in components (we use metallb and nginx-gateway-fabric via flux)
+disable:
+  - servicelb  # using metallb for load balancing
+  - traefik    # using nginx-gateway-fabric for ingress
+
+# enable embedded etcd for ha
+cluster-init: true
+
+# kubeconfig permissions
+write-kubeconfig-mode: "644"
+
+# kubelet configuration
 kubelet-arg:
+  # container log management
   - "container-log-max-files=5"
   - "container-log-max-size=50Mi"
+  # image garbage collection thresholds
   - "image-gc-high-threshold=85"
   - "image-gc-low-threshold=80"
-  - "feature-gates=SidecarContainers=true"
-
-write-kubeconfig-mode: 644
