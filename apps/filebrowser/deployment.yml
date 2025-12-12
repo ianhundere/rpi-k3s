@@ -47,12 +47,12 @@ spec:
             - name: FILEBROWSER_USER
               valueFrom:
                 secretKeyRef:
-                  name: cluster-secrets
+                  name: filebrowser-credentials
                   key: FILEBROWSER_USER
             - name: FILEBROWSER_PW
               valueFrom:
                 secretKeyRef:
-                  name: cluster-secrets
+                  name: filebrowser-credentials
                   key: FILEBROWSER_PW
           volumeMounts:
             - name: filebrowser
