@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: calibre
+  namespace: media
+  annotations:
+    tailscale.com/hostname: "calibre"
+    tailscale.com/expose: "true"
+spec:
+  selector:
+    app: calibre
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8083
+  type: ClusterIP
