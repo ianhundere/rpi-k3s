@@ -260,40 +260,48 @@ EOF
 
 ## deployed applications
 
-> **automated via flux**: all applications are deployed automatically via flux. see `apps/` directory for manifests.
+> **automated via flux**: applications in `apps/` are deployed automatically via flux. infrastructure components in `infrastructure/` are also flux-managed.
 
-**current deployments:**
+### flux-managed apps
+
+**public-facing (with HTTPS/TLS):**
 - **filebrowser** (share.clusterian.pw) - file management interface
-- **unifi** (unifi.clusterian.pw) - network controller (uses nginx sidecar proxy for backend TLS)
-- **quixit** (quixit.us) - web application
-- **media** namespace:
-  - **plex** (media.clusterian.pw) - routes to NAS
-  - qbittorrent, jackett, sonarr, radarr, calibre, soulseek (deployed via old media/ configs, not yet migrated to flux)
+  - see: `apps/filebrowser/`
+- **unifi** (unifi.clusterian.pw) - network controller
+  - uses nginx sidecar proxy to handle self-signed backend TLS certificates
+  - see: `apps/unifi/`
+- **quixit** (quixit.us) - music collaboration challenge platform
+  - automated phase transitions via cronjobs, file-watcher sidecar
+  - see: `apps/quixit/` and [quixit/README.md](quixit/README.md) for details
+  - see: `apps/quixit/`
+- **plex** (media.clusterian.pw) - media server routing
+  - uses EndpointSlice to route traffic to NAS (${NFS_IP})
+  - see: `apps/media/plex-*`
 
 **application notes:**
-- unifi uses an nginx sidecar proxy to handle self-signed backend TLS certificates
-- plex service uses EndpointSlice to route traffic to NAS (${NFS_IP})
 - all public-facing apps use Let's Encrypt TLS certificates via cert-manager
-- media tools are accessible via internal hostnames (*.media.tools)
+- unifi's nginx sidecar accepts self-signed certs with `proxy_ssl_verify off`
+- gateway API with NGINX Gateway Fabric handles all HTTP/HTTPS routing
 
-## legacy media apps configuration
+### legacy media apps (not yet in flux)
 
-> **note**: the following apps are currently deployed via the old `media/` directory structure and not yet migrated to flux. they remain functional.
+> **note**: these apps run in the `media` namespace but use old manual deployment configs in `media/` directory
 
-**deployed media apps:**
-- qbittorrent - torrent client (accessible at media.tools/qbittorrent and qbt.media.tools)
-- jackett - indexer proxy (accessible at media.tools/jackett)
-- sonarr - tv show automation (accessible at media.tools/sonarr)
-- radarr - movie automation (accessible at media.tools/radarr)
-- calibre - ebook management (accessible at calibre.media.tools)
-- soulseek - music sharing (accessible at soulseek.media.tools)
+- qbittorrent - torrent client (media.tools/qbittorrent, qbt.media.tools)
+- jackett - indexer proxy (media.tools/jackett)
+- sonarr - tv automation (media.tools/sonarr)
+- radarr - movie automation (media.tools/radarr)
+- calibre - ebook management (calibre.media.tools)
+- soulseek - music sharing (soulseek.media.tools)
 
-**configuration notes:**
-- jackett requires `ServerConfig.json` in `<nfs_path>/jackett/Jackett` with `{"BasePathOverride": "/jackett"}`
-- sonarr requires `config.xml` in `<nfs_path>/sonarr/` with `<Config><UrlBase>/sonarr</UrlBase></Config>`
-- radarr requires `config.xml` in `<nfs_path>/radarr/` with `<Config><UrlBase>/radarr</UrlBase></Config>`
-- radarr/sonarr connect to qbittorrent at `qbittorrent.media:9091`
-- indexers use jackett API at `http://media.tools/jackett/api/v2.0/indexers/<name>/results/torznab/`
+**to migrate these to flux:** move configs from `media/*/` to `apps/media/`, update kustomization.yml
+
+**legacy media apps configuration notes:**
+- jackett: requires `ServerConfig.json` in `<nfs_path>/jackett/Jackett` with `{"BasePathOverride": "/jackett"}`
+- sonarr: requires `config.xml` in `<nfs_path>/sonarr/` with `<Config><UrlBase>/sonarr</UrlBase></Config>`
+- radarr: requires `config.xml` in `<nfs_path>/radarr/` with `<Config><UrlBase>/radarr</UrlBase></Config>`
+- connections: radarr/sonarr connect to qbittorrent at `qbittorrent.media:9091`
+- indexers: use jackett API at `http://media.tools/jackett/api/v2.0/indexers/<name>/results/torznab/`
 
 ## install nfs-provisioner
 
@@ -308,19 +316,24 @@ apply pvcs with the appropriate `storageClass` and they will provision automatic
 
 ## k3s system upgrade controller
 
-> **note**: [system-upgrade-controller](https://docs.k3s.io/upgrades/automated) is available in `system-upgrade/` directory for automated k3s cluster upgrades. not currently deployed via flux.
+> **automated via flux**: [system-upgrade-controller](https://docs.k3s.io/upgrades/automated) is deployed via flux. see `infrastructure/system-upgrade-controller/` for configuration.
 
-to use:
-1. taint master node: `kubectl taint node kube-master CriticalAddonsOnly=true:NoExecute`
-2. apply controller: `kubectl apply -f system-upgrade/system-upgrade-controller.yml`
-3. update version in `system-upgrade/config.yml` and apply: `kubectl apply -f system-upgrade/config.yml`
+**controller status:**
+- deployed but pending (requires master node taint to schedule)
+- upgrade Plans are commented out in kustomization.yml (apply manually when ready to upgrade)
 
-## install tailscale
+**to perform k3s upgrade:**
+1. taint master node to allow controller: `kubectl taint node kube-master CriticalAddonsOnly=true:NoExecute`
+2. verify controller is running: `kubectl get pods -n system-upgrade`
+3. update version in `infrastructure/system-upgrade-controller/config.yml`
+4. uncomment config.yml in kustomization.yml and commit
+5. flux will apply the upgrade Plans automatically
 
-1. add repo / update
-    - `helm repo add tailscale https://pkgs.tailscale.com/helmcharts; helm repo update`
-2. install tailscale
-    - `envsubst < provision-cluster/tailscale/tailscale.values.yml | helm upgrade tailscale-operator tailscale/tailscale-operator -n tailscale --values -`
+## tailscale
+
+> **automated via flux**: tailscale operator is deployed via flux. see `infrastructure/tailscale/` for configuration.
+
+provides vpn access to cluster resources. configuration in `infrastructure/tailscale/`.
 
 ## automatic cert rotation/renewal
 
