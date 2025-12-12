@@ -4,20 +4,20 @@ metadata:
   name: shared-gateway
   namespace: nginx-gateway
   annotations:
-    metallb.universe.tf/loadBalancerIPs: "192.168.3.240"
+    metallb.universe.tf/loadBalancerIPs: ${METAL_LB_IP1}
 spec:
   gatewayClassName: nginx
   listeners:
   # filebrowser - share.clusterian.pw
   - name: share-clusterian-pw-http
-    hostname: share.clusterian.pw
+    hostname: ${FILEBROWSER_HOST}
     port: 80
     protocol: HTTP
     allowedRoutes:
       namespaces:
         from: All
   - name: share-clusterian-pw-https
-    hostname: share.clusterian.pw
+    hostname: ${FILEBROWSER_HOST}
     port: 443
     protocol: HTTPS
     allowedRoutes:
@@ -31,14 +31,14 @@ spec:
         namespace: filebrowser
   # plex - media.clusterian.pw
   - name: media-clusterian-pw-http
-    hostname: media.clusterian.pw
+    hostname: ${PLEX_HOST}
     port: 80
     protocol: HTTP
     allowedRoutes:
       namespaces:
         from: All
   - name: media-clusterian-pw-https
-    hostname: media.clusterian.pw
+    hostname: ${PLEX_HOST}
     port: 443
     protocol: HTTPS
     allowedRoutes:
@@ -52,14 +52,14 @@ spec:
         namespace: media
   # unifi - unifi.clusterian.pw
   - name: unifi-clusterian-pw-http
-    hostname: unifi.clusterian.pw
+    hostname: ${UNIFI_HOST}
     port: 80
     protocol: HTTP
     allowedRoutes:
       namespaces:
         from: All
   - name: unifi-clusterian-pw-https
-    hostname: unifi.clusterian.pw
+    hostname: ${UNIFI_HOST}
     port: 443
     protocol: HTTPS
     allowedRoutes:
@@ -73,14 +73,14 @@ spec:
         namespace: unifi
   # quixit - quixit.us
   - name: quixit-us-http
-    hostname: quixit.us
+    hostname: ${QUIXIT_HOST}
     port: 80
     protocol: HTTP
     allowedRoutes:
       namespaces:
         from: All
   - name: quixit-us-https
-    hostname: quixit.us
+    hostname: ${QUIXIT_HOST}
     port: 443
     protocol: HTTPS
     allowedRoutes:
@@ -94,7 +94,7 @@ spec:
         namespace: quixit
   # media tools - HTTP only (internal)
   - name: calibre-media-tools-http
-    hostname: calibre.media.tools
+    hostname: ${CALIBRE_HOST}
     port: 80
     protocol: HTTP
     allowedRoutes:
