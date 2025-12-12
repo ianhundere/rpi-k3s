@@ -61,8 +61,6 @@ spec:
           value: "nosniff"
         - name: Referrer-Policy
           value: "strict-origin-when-cross-origin"
-        remove:
-        - "Server"
     backendRefs:
     - name: filebrowser
       port: 44301
