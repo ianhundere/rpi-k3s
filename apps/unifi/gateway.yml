@@ -65,6 +65,20 @@ spec:
     - name: unifi-controller
       port: 8443
 ---
+apiVersion: gateway.networking.k8s.io/v1alpha3
+kind: BackendTLSPolicy
+metadata:
+  name: unifi-backend-tls
+  namespace: unifi
+spec:
+  targetRefs:
+  - group: ''
+    kind: Service
+    name: unifi-controller
+  validation:
+    wellKnownCACertificates: System
+    hostname: unifi-controller.unifi.svc.cluster.local
+---
 apiVersion: gateway.nginx.org/v1alpha1
 kind: UpstreamSettingsPolicy
 metadata:
