@@ -5,6 +5,7 @@ resources:
   - namespace.yml
   - secret.yml
   - configmap.yml
+  - nginx-proxy-configmap.yml
   - deployment.yml
   - service.yml
   - pvc.yml

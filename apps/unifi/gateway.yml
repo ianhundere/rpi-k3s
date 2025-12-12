@@ -1,8 +1,11 @@
-# KNOWN ISSUE: UniFi requires HTTPS backend (port 8443) but NGINX Gateway Fabric v2.2.2
-# doesn't fully support BackendTLSPolicy yet, causing redirect loops when using HTTP (port 8080).
-# The old ingress-nginx used 'backend-protocol: HTTPS' annotation which has no Gateway API equivalent yet.
-# Workaround: Use kubectl port-forward or wait for NGINX GF to support BackendTLSPolicy.
-# Reference: https://gateway-api.sigs.k8s.io/geps/gep-1897/
+# SOLUTION: UniFi uses HTTPS backend (port 8443) with self-signed cert.
+# Gateway API BackendTLSPolicy requires CA cert validation, but UniFi's cert changes on each deployment.
+# We use an nginx sidecar proxy that accepts the self-signed cert (proxy_ssl_verify off)
+# and exposes HTTP on port 8080 for the Gateway to connect to.
+# References:
+# - https://github.com/linuxserver/docker-unifi-network-application
+# - https://docs.nginx.com/nginx-gateway-fabric/traffic-security/secure-backend/
+# - https://gateway-api.sigs.k8s.io/geps/gep-1897/
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
@@ -69,20 +72,6 @@ spec:
     backendRefs:
     - name: unifi-controller
       port: 8080
----
-apiVersion: gateway.networking.k8s.io/v1alpha3
-kind: BackendTLSPolicy
-metadata:
-  name: unifi-backend-tls
-  namespace: unifi
-spec:
-  targetRefs:
-  - group: ''
-    kind: Service
-    name: unifi-controller
-  validation:
-    wellKnownCACertificates: System
-    hostname: unifi-controller.unifi.svc.cluster.local
 ---
 apiVersion: gateway.nginx.org/v1alpha1
 kind: UpstreamSettingsPolicy

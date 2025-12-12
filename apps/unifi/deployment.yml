@@ -25,6 +25,9 @@ spec:
         - name: mongo-init-script
           configMap:
             name: unifi-controller-mongo-init-script
+        - name: nginx-proxy-config
+          configMap:
+            name: unifi-nginx-proxy-config
       initContainers:
         - name: unifi-db
           image: docker.io/mongo:3.6.23
@@ -86,3 +89,17 @@ spec:
               memory: 1.250Gi
             limits:
               memory: 1.250Gi
+        - name: nginx-proxy
+          image: nginx:alpine
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: nginx-proxy-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 32Mi
