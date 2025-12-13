@@ -214,8 +214,7 @@ flux get helmreleases -n nginx-gateway
 ## install cert-manager
 
 > **automated via flux**: cert-manager is deployed automatically via flux. see `infrastructure/cert-manager/` for configuration.
-
-> **Note**: cert-manager v1.12+ supports Gateway API. With Gateway API, certificates are referenced directly in Gateway specs rather than using Ingress annotations. be sure to forward port 80 for http01 cert challenges.
+> **note**: cert-manager v1.12+ supports Gateway API. With Gateway API, certificates are referenced directly in Gateway specs rather than using Ingress annotations. be sure to forward port 80 for http01 cert challenges.
 
 ### staging
 
