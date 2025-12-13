@@ -2,8 +2,6 @@
 
 These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM, a Beelink Mini S with a N5095 CPU and 8GB RAM and Synology ds723+.
 
-> **note**: as of december 2025, this cluster uses flux cd for gitops. the manual `envsubst` deployment sections below are deprecated but kept for reference. see [gitops with flux](#gitops-with-flux) for current deployment workflow.
-
 ## initial setup
 
 1. download latest vers of raspberry pi OS (e.g. <https://www.raspberrypi.com/software/operating-systems/>)
@@ -202,9 +200,7 @@ if cluster is lost:
 
 ## install gateway api & nginx gateway fabric - web proxy
 
-> **Note**: As of November 2025, [ingress-nginx is deprecated](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) with support ending March 2026. This cluster uses the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) with [NGINX Gateway Fabric](https://docs.nginx.com/nginx-gateway-fabric/) as the modern replacement.
-
-> **automated via flux**: nginx-gateway-fabric is deployed automatically via flux using an OCIRepository. see `infrastructure/nginx-gateway-fabric/` for configuration.
+> **note**: this cluster uses the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) with [NGINX Gateway Fabric](https://docs.nginx.com/nginx-gateway-fabric/) deployed via flux using an OCIRepository. see `infrastructure/nginx-gateway-fabric/` for configuration.
 
 **verify installation:**
 
