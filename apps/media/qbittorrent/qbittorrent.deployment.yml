@@ -20,18 +20,6 @@ spec:
   spec:
    hostname: qbittorrent
    initContainers:
-    - name: disable-vuetorrent
-      image: busybox
-      command:
-       [
-        'sh',
-        '-c',
-        "sed -i 's/WebUI\\\\AlternativeUIEnabled=true/WebUI\\\\AlternativeUIEnabled=false/' /config/qBittorrent/qBittorrent.conf",
-       ]
-      volumeMounts:
-       - mountPath: /config
-         name: media-config
-         subPath: qbittorrent
     - name: sysctl-setup
       image: busybox
       command:

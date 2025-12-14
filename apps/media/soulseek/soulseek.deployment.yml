@@ -112,5 +112,6 @@ spec:
     - name: tun-device
       hostPath:
        path: /dev/net/tun
+       type: CharDevice
    nodeSelector:
     kubernetes.io/arch: amd64

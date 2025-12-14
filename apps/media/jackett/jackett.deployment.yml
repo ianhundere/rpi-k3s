@@ -100,3 +100,4 @@ spec:
     - name: tun-device
       hostPath:
        path: /dev/net/tun
+       type: CharDevice
