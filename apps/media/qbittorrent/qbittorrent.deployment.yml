@@ -20,6 +20,18 @@ spec:
   spec:
    hostname: qbittorrent
    initContainers:
+    - name: disable-vuetorrent
+      image: busybox
+      command:
+       [
+        'sh',
+        '-c',
+        "sed -i 's/WebUI\\\\AlternativeUIEnabled=true/WebUI\\\\AlternativeUIEnabled=false/' /config/qBittorrent/qBittorrent.conf",
+       ]
+      volumeMounts:
+       - mountPath: /config
+         name: media-config
+         subPath: qbittorrent
     - name: sysctl-setup
       image: busybox
       command:
@@ -83,8 +95,6 @@ spec:
          value: '0.0.0.0'
        - name: UMASK
          value: '022'
-       - name: DOCKER_MODS
-         value: 'ghcr.io/vuetorrent/vuetorrent-lsio-mod:2.25.0'
       image: linuxserver/qbittorrent:5.1.0
       imagePullPolicy: IfNotPresent
       name: qbittorrent
