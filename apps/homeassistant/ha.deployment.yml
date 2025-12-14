@@ -18,7 +18,7 @@ spec:
    dnsPolicy: ClusterFirst
    containers:
     - name: ha
-      image: ghcr.io/home-assistant/home-assistant:2025.5.3
+      image: ghcr.io/home-assistant/home-assistant:2025.12.3
       imagePullPolicy: IfNotPresent
       securityContext:
        privileged: true
