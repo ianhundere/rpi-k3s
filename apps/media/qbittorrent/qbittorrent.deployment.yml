@@ -83,7 +83,9 @@ spec:
          value: '0.0.0.0'
        - name: UMASK
          value: '022'
-      image: linuxserver/qbittorrent:5.1.0
+       - name: DOCKER_MODS
+         value: 'ghcr.io/vuetorrent/vuetorrent-lsio-mod:2.31.1'
+      image: linuxserver/qbittorrent:5.1.4
       imagePullPolicy: IfNotPresent
       name: qbittorrent
       resources:
