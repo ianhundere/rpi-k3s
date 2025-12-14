@@ -55,8 +55,19 @@ spec:
       port: 80
   - matches:
     - path:
+        type: Exact
+        value: /qbit
+    filters:
+    - type: RequestRedirect
+      requestRedirect:
+        path:
+          type: ReplaceFullPath
+          replaceFullPath: /qbit/
+        statusCode: 301
+  - matches:
+    - path:
         type: PathPrefix
-        value: /qbittorrent
+        value: /qbit/
     filters:
     - type: URLRewrite
       urlRewrite:
@@ -65,6 +76,54 @@ spec:
           replacePrefixMatch: /
     backendRefs:
     - name: qbittorrent
+      port: 80
+  - matches:
+    - path:
+        type: Exact
+        value: /soulseek
+    filters:
+    - type: RequestRedirect
+      requestRedirect:
+        path:
+          type: ReplaceFullPath
+          replaceFullPath: /soulseek/
+        statusCode: 301
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /soulseek/
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: soulseek
+      port: 80
+  - matches:
+    - path:
+        type: Exact
+        value: /calibre
+    filters:
+    - type: RequestRedirect
+      requestRedirect:
+        path:
+          type: ReplaceFullPath
+          replaceFullPath: /calibre/
+        statusCode: 301
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /calibre/
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: calibre
       port: 80
 ---
 apiVersion: gateway.networking.k8s.io/v1
