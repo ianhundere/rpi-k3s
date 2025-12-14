@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   # helm repositories
   - sources/jetstack.yml
-  - sources/nginx-stable.yml
   - sources/nfs-subdir.yml
   - sources/tailscale.yml
   - sources/nginx-gateway-oci.yml
