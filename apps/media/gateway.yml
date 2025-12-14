@@ -70,19 +70,6 @@ spec:
   - matches:
     - path:
         type: PathPrefix
-        value: /qbittorrent
-    filters:
-    - type: URLRewrite
-      urlRewrite:
-        path:
-          type: ReplacePrefixMatch
-          replacePrefixMatch: /
-    backendRefs:
-    - name: qbittorrent
-      port: 80
-  - matches:
-    - path:
-        type: PathPrefix
         value: /
     backendRefs:
     - name: qbittorrent
