@@ -17,7 +17,7 @@ spec:
   spec:
    containers:
     - name: zwave
-      image: zwavejs/zwave-js-ui:10.5.0
+      image: zwavejs/zwave-js-ui:11.7.0
       imagePullPolicy: IfNotPresent
       securityContext:
        allowPrivilegeEscalation: true

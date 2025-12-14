@@ -1618,7 +1618,7 @@ spec:
     spec:
       containers:
         - name: quixit
-          image: filebrowser/filebrowser:v2.32.0
+          image: filebrowser/filebrowser:v2.52.0
           imagePullPolicy: IfNotPresent
           env:
             - name: QUIXIT_HOST
