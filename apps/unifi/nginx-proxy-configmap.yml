@@ -11,7 +11,7 @@ data:
 
     http {
         server {
-            listen 8080;
+            listen 9080;
 
             location / {
                 proxy_pass https://localhost:8443;
