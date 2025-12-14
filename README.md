@@ -195,9 +195,9 @@ flux suspend kustomization media
 flux resume kustomization media  # when done
 
 # or suspend entire git source (stops all syncs)
-flux get sources git  # find source name
-flux suspend source git <name>
-flux resume source git <name>  # when done
+flux get sources git  # list sources
+flux suspend source git flux-system
+flux resume source git flux-system  # when done
 
 # check what's suspended (READY=False)
 flux get kustomizations
