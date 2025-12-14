@@ -185,6 +185,27 @@ flux get kustomizations
 kubectl get pods -n flux-system
 ```
 
+### suspend flux for local testing
+
+when testing changes locally without git commits overwriting your work:
+
+```bash
+# suspend a specific app/namespace
+flux suspend kustomization media
+flux resume kustomization media  # when done
+
+# or suspend entire git source (stops all syncs)
+flux get sources git  # find source name
+flux suspend source git <name>
+flux resume source git <name>  # when done
+
+# check what's suspended (READY=False)
+flux get kustomizations
+flux get sources git
+```
+
+suspending kustomizations is safer - only affects that app. suspending git source stops all flux syncs from the repo.
+
 ### disaster recovery
 
 if cluster is lost:
