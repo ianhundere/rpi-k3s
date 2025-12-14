@@ -8,16 +8,16 @@ metadata:
 data:
   init-filebrowser.sh: |
     #!/usr/bin/env sh
-    /filebrowser config init
-    /filebrowser config set \
+    /bin/filebrowser config init
+    /bin/filebrowser config set \
         --port 44301 \
         --address 0.0.0.0 \
         --baseurl "/" \
         --root "/srv" \
         --branding.name "hi, welcome." \
         --branding.disableExternal
-    /filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin
-    exec /filebrowser --port 44301 --disable-exec
+    /bin/filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin
+    exec /bin/filebrowser --port 44301 --disable-exec
 ---
 apiVersion: apps/v1
 kind: Deployment

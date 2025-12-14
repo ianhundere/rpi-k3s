@@ -12,9 +12,9 @@ data:
     # Create logs directory
     mkdir -p /logs
 
-    /filebrowser config init --database /database/filebrowser.db
+    /bin/filebrowser config init --database /database/filebrowser.db
 
-    /filebrowser config set \
+    /bin/filebrowser config set \
         --database /database/filebrowser.db \
         --port 44301 \
         --address 0.0.0.0 \
@@ -52,11 +52,11 @@ data:
     echo "https://www.paypal.com/donate/?hosted_button_id=T73SWSVDGBFH8" >> /srv/quixit/WELCOME_TO_QUIXIT_MUSIC_COLLABORATION_CHALLENGE.txt
 
     # create or update admin user
-    /filebrowser users add "${QUIXIT_USER}" "${QUIXIT_PW}" --perm.admin --database /database/filebrowser.db || \
-    /filebrowser users update "${QUIXIT_USER}" --password "${QUIXIT_PW}" --database /database/filebrowser.db
+    /bin/filebrowser users add "${QUIXIT_USER}" "${QUIXIT_PW}" --perm.admin --database /database/filebrowser.db || \
+    /bin/filebrowser users update "${QUIXIT_USER}" --password "${QUIXIT_PW}" --database /database/filebrowser.db
 
     # set default permissions for new users
-    /filebrowser config set \
+    /bin/filebrowser config set \
         --database /database/filebrowser.db \
         --scope "/quixit" \
         --perm.admin=false \
@@ -69,7 +69,7 @@ data:
         --perm.download=true
 
     # start filebrowser
-    exec /filebrowser --port 44301 --database /database/filebrowser.db --log "/logs/filebrowser.log"
+    exec /bin/filebrowser --port 44301 --database /database/filebrowser.db --log "/logs/filebrowser.log"
   wrapper.sh: |
     #!/bin/sh
 
