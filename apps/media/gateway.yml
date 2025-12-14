@@ -122,6 +122,13 @@ spec:
         path:
           type: ReplacePrefixMatch
           replacePrefixMatch: /
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        set:
+        - name: X-Script-Name
+          value: /calibre
+        - name: X-Scheme
+          value: http
     backendRefs:
     - name: calibre
       port: 80
