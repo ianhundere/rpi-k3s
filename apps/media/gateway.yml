@@ -35,13 +35,6 @@ spec:
   - matches:
     - path:
         type: PathPrefix
-        value: /transmission
-    backendRefs:
-    - name: transmission
-      port: 80
-  - matches:
-    - path:
-        type: PathPrefix
         value: /sonarr
     backendRefs:
     - name: sonarr
@@ -63,13 +56,7 @@ spec:
   - matches:
     - path:
         type: PathPrefix
-        value: /qbittorrent
-    filters:
-    - type: URLRewrite
-      urlRewrite:
-        path:
-          type: ReplacePrefixMatch
-          replacePrefixMatch: /
+        value: /
     backendRefs:
     - name: qbittorrent
       port: 80
