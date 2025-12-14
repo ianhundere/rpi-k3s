@@ -1616,6 +1616,8 @@ spec:
       labels:
         app: quixit
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: quixit
           image: filebrowser/filebrowser:v2.52.0

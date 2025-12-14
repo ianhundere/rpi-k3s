@@ -8,16 +8,17 @@ metadata:
 data:
   init-filebrowser.sh: |
     #!/usr/bin/env sh
-    /bin/filebrowser config init
+    /bin/filebrowser config init --database /database/filebrowser.db
     /bin/filebrowser config set \
+        --database /database/filebrowser.db \
         --port 44301 \
         --address 0.0.0.0 \
         --baseurl "/" \
         --root "/srv" \
         --branding.name "hi, welcome." \
         --branding.disableExternal
-    /bin/filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin
-    exec /bin/filebrowser --port 44301 --disable-exec
+    /bin/filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin --database /database/filebrowser.db
+    exec /bin/filebrowser --port 44301 --disable-exec --database /database/filebrowser.db
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -39,6 +40,8 @@ spec:
       labels:
         app: filebrowser
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: filebrowser
           image: filebrowser/filebrowser:v2.52.0
@@ -59,8 +62,8 @@ spec:
               mountPath: /srv
               subPath: files
             - name: filebrowser
-              mountPath: /database.db
-              subPath: database.db
+              mountPath: /database
+              subPath: database
             - name: filebrowser-scripts
               mountPath: /scripts
           ports:
