@@ -71,7 +71,7 @@ spec:
           value: "strict-origin-when-cross-origin"
     backendRefs:
     - name: unifi-controller
-      port: 8080
+      port: 9080
 ---
 apiVersion: gateway.nginx.org/v1alpha1
 kind: UpstreamSettingsPolicy

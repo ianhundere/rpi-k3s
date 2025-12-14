@@ -92,7 +92,7 @@ spec:
         - name: nginx-proxy
           image: nginx:alpine
           ports:
-            - containerPort: 8080
+            - containerPort: 9080
           volumeMounts:
             - name: nginx-proxy-config
               mountPath: /etc/nginx/nginx.conf
