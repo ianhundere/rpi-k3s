@@ -7,3 +7,4 @@ resources:
   - unifi/
   - ninjam-server/
   - homeassistant/
+  - irc/
