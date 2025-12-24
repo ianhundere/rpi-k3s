@@ -5,10 +5,8 @@ metadata:
   namespace: irc
 data:
   config: |
-    hostname irc.${QUIXIT_HOST}
+    hostname soju
     listen irc+insecure://0.0.0.0:6667
-    listen ircs://0.0.0.0:6697
-    tls /etc/ssl/soju/tls.crt /etc/ssl/soju/tls.key
     listen ident://0.0.0.0:113
     listen unix+admin:/var/lib/soju/control.sock
     db sqlite3 /var/lib/soju/soju.db

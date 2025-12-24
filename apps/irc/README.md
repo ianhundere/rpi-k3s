@@ -8,17 +8,18 @@ This deploys [soju](https://soju.im/), a user-friendly IRC bouncer that connects
 - IRCv3 extensions support
 - Chat history playback
 - Detached channels
-- TLS/SSL support
 
 Users can connect to soju using IRC clients like [senpai](https://sr.ht/~taiite/senpai/) (TUI client).
+
+**Note**: This setup is configured for Tailscale-only access without TLS. Tailscale provides encryption, so no additional TLS is needed.
 
 ## Architecture
 
 - **Soju bouncer**: Runs in the cluster, manages persistent IRC connections
 - **IRC clients**: Run locally (e.g., senpai, weechat, irssi) and connect to soju
-- **TLS certificates**: Managed by cert-manager with Let's Encrypt
 - **Storage**: Persistent volume for IRC logs and database
-- **Access**: Exposed via Tailscale for secure remote access
+- **Access**: Exposed via Tailscale (hostname: `soju`) for secure remote access
+- **Encryption**: Provided by Tailscale, no additional TLS needed
 
 ## Deployment
 
@@ -60,14 +61,14 @@ kubectl exec -it -n irc deployment/soju -- \
 
 ### Senpai (TUI Client)
 
-Create `~/.config/senpai/senpai.scfg`:
+Connect via Tailscale. Create `~/.config/senpai/senpai.scfg`:
 
 ```scfg
-address irc.quixit.us:6697
+address soju:6667
 nickname YourNick
 username admin@laptop
 password YourSojuPassword
-tls true
+tls false
 
 # Optional: Specify network
 # username admin/libera@laptop
@@ -84,6 +85,8 @@ username admin/libera@laptop
 # For another network
 username admin/irc.esper.net@laptop
 ```
+
+**Note**: Make sure your device is connected to Tailscale to access the `soju` hostname.
 
 ## Management
 
@@ -205,18 +208,6 @@ kubectl exec -n irc deployment/soju -- \
   sojuctl -config /etc/soju/config user run admin network status
 ```
 
-#### Certificate Issues
-
-```bash
-# Check certificate status
-kubectl get certificate -n irc
-
-# Describe certificate
-kubectl describe certificate soju-tls -n irc
-
-# Check secret
-kubectl get secret soju-tls -n irc -o yaml
-```
 
 ## Channel Management with ChanServ
 
@@ -248,9 +239,10 @@ The soju service is exposed via Tailscale with hostname `soju`. You can connect 
 
 ```bash
 # From any Tailscale-connected device
-irc://soju:6667          # Insecure (within Tailnet)
-ircs://soju:6697         # TLS/SSL
+irc://soju:6667          # IRC (encrypted by Tailscale)
 ```
+
+No TLS configuration needed - Tailscale provides the encryption layer.
 
 ## References
 
