@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: soju
+  namespace: irc
+  labels:
+    app: soju
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: soju
+  template:
+    metadata:
+      labels:
+        app: soju
+    spec:
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: remove-socket
+          image: busybox:1.35
+          command: ['sh', '-c', 'rm -f /var/lib/soju/control.sock']
+          volumeMounts:
+            - name: irc
+              mountPath: /var/lib/soju
+      containers:
+        - name: soju
+          image: codeberg.org/emersion/soju:latest
+          args: ['-config', '/etc/soju/config']
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+          ports:
+            - name: irc
+              containerPort: 6667
+            - name: irc-tls
+              containerPort: 6697
+            - name: ident
+              containerPort: 113
+          volumeMounts:
+            - name: irc
+              mountPath: /var/lib/soju
+              subPath: soju
+            - name: soju
+              mountPath: /etc/soju
+            - name: tls-certs
+              mountPath: /etc/ssl/soju
+          readinessProbe:
+            tcpSocket:
+              port: 6667
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 6667
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      volumes:
+        - name: irc
+          persistentVolumeClaim:
+            claimName: irc
+        - name: soju
+          configMap:
+            name: soju
+        - name: tls-certs
+          secret:
+            secretName: soju-tls
