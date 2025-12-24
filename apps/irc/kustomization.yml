@@ -5,6 +5,5 @@ resources:
   - namespace.yml
   - pvc.yml
   - soju-configmap.yml
-  - soju-certificate.yml
   - soju-deployment.yml
   - soju-service.yml
