@@ -26,6 +26,7 @@ spec:
           volumeMounts:
             - name: irc
               mountPath: /var/lib/soju
+              subPath: soju
       containers:
         - name: soju
           image: codeberg.org/emersion/soju:latest
