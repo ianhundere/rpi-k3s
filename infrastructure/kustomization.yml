@@ -22,5 +22,5 @@ resources:
   - nfs-provisioner/video-storage.yml
   - nfs-provisioner/music-storage.yml
   - nfs-provisioner/config-storage.yml
-  # system-upgrade-controller (commented out - requires master node taint)
-  - system-upgrade-controller/
+  # system-upgrade-controller - uncomment when ready to upgrade k3s
+  # - system-upgrade-controller/
