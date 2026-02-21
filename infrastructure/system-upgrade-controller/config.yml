@@ -13,6 +13,18 @@ spec:
         operator: In
         values:
           - "true"
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/etcd"
+      operator: "Exists"
+      effect: "NoExecute"
+    - key: "CriticalAddonsOnly"
+      operator: "Exists"
   serviceAccountName: system-upgrade
   upgrade:
     image: rancher/k3s-upgrade
@@ -31,6 +43,9 @@ spec:
     matchExpressions:
       - key: node-role.kubernetes.io/control-plane
         operator: DoesNotExist
+  drain:
+    force: true
+    skipWaitForDeleteTimeout: 60
   prepare:
     args:
       - prepare
