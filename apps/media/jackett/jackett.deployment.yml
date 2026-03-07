@@ -48,10 +48,6 @@ spec:
           secretKeyRef:
            name: jackett
            key: key
-       - name: WIREGUARD_ENDPOINT_IP
-         value: '185.159.158.202'
-       - name: SERVER_HOSTNAMES
-         value: 'node-is-01.protonvpn.net'
        - name: VPN_PORT_FORWARDING
          value: 'off'
        - name: FIREWALL
