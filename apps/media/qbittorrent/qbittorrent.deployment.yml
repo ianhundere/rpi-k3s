@@ -54,8 +54,8 @@ spec:
          value: 'on'
        - name: FIREWALL
          value: 'yes'
-       - name: HEALTHCHECK_TARGET
-         value: 'ip.me:443'
+       - name: HEALTH_TARGET_ADDRESSES
+         value: 'cloudflare.com:443,github.com:443'
       ports:
        - containerPort: 9091
          protocol: TCP
