@@ -48,8 +48,6 @@ spec:
           secretKeyRef:
            name: qbittorrent
            key: key
-       - name: WIREGUARD_ENDPOINT_IP
-         value: '138.199.6.178'
        - name: SERVER_COUNTRIES
          value: 'Switzerland'
        - name: VPN_PORT_FORWARDING

@@ -48,8 +48,6 @@ spec:
           secretKeyRef:
            name: soulseek
            key: key
-       - name: WIREGUARD_ENDPOINT_IP
-         value: '185.90.60.210'
        - name: SERVER_COUNTRIES
          value: 'Finland'
        - name: VPN_PORT_FORWARDING
