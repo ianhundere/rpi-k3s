@@ -29,7 +29,6 @@ spec:
       certificateRefs:
       - kind: Secret
         name: filebrowser-cert
-        namespace: filebrowser
   # plex - media.clusterian.pw
   - name: plex-http
     hostname: ${PLEX_HOST}
@@ -50,7 +49,6 @@ spec:
       certificateRefs:
       - kind: Secret
         name: plex-cert
-        namespace: media
   # unifi - unifi.clusterian.pw
   - name: unifi-clusterian-pw-http
     hostname: ${UNIFI_HOST}
@@ -71,7 +69,6 @@ spec:
       certificateRefs:
       - kind: Secret
         name: unifi-cert
-        namespace: unifi
   # quixit - quixit.us
   - name: quixit-us-http
     hostname: ${QUIXIT_HOST}
@@ -92,7 +89,6 @@ spec:
       certificateRefs:
       - kind: Secret
         name: quixit-cert
-        namespace: quixit
   # media tools - HTTP only (internal)
   - name: calibre-media-tools-http
     hostname: calibre.media.tools
