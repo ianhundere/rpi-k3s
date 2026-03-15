@@ -4,6 +4,7 @@ metadata:
   name: shared-gateway
   namespace: nginx-gateway
   annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     metallb.universe.tf/loadBalancerIPs: ${METAL_LB_IP1}
 spec:
   gatewayClassName: nginx

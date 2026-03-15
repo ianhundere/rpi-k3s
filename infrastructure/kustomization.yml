@@ -10,6 +10,7 @@ resources:
   # cert-manager
   - cert-manager/namespace.yml
   - cert-manager/release.yml
+  - cert-manager/clusterissuer.yml
   # metallb
   - metallb/namespace.yml
   - metallb/config.yml
