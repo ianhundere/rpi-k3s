@@ -235,48 +235,16 @@ flux get helmreleases -n nginx-gateway
 ## install cert-manager
 
 > **automated via flux**: cert-manager is deployed automatically via flux. see `infrastructure/cert-manager/` for configuration.
-> **note**: cert-manager v1.12+ supports Gateway API. With Gateway API, certificates are referenced directly in Gateway specs rather than using Ingress annotations. be sure to forward port 80 for http01 cert challenges.
 
-### staging
+cert-manager is configured with Gateway API support (`enableGatewayAPI: true` in Helm values). the `letsencrypt-prod` ClusterIssuer uses `http01.gatewayHTTPRoute` solver referencing the shared-gateway. the Gateway is annotated with `cert-manager.io/cluster-issuer: letsencrypt-prod`, so cert-manager's gateway-shim auto-creates Certificate resources for each HTTPS listener and handles renewal.
 
-```bash
-$ cat <<EOF | kubectl apply -f -
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-staging
-spec:
-  acme:
-    email: <EMAIL>
-    server: https://acme-staging-v02.api.letsencrypt.org/directory
-    privateKeySecretRef:
-      name: letsencrypt-staging
-    solvers:
-    - http01:
-        ingress:
-          ingressClassName: nginx
-EOF
-```
+**important**: cert-manager's gateway-shim does not support cross-namespace `certificateRefs`. all TLS secrets must live in the Gateway's namespace (`nginx-gateway`). be sure to forward port 80 for HTTP-01 cert challenges.
 
-### prod
+**verify certificates:**
 
 ```bash
-$ cat <<EOF | kubectl apply -f -
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-prod
-spec:
-  acme:
-    email: <EMAIL>
-    server: https://acme-v02.api.letsencrypt.org/directory
-    privateKeySecretRef:
-      name: letsencrypt-prod
-    solvers:
-    - http01:
-        ingress:
-          ingressClassName: nginx
-EOF
+kubectl get certificates -n nginx-gateway
+kubectl get orders,challenges -n nginx-gateway
 ```
 
 ## deployed applications
@@ -316,7 +284,8 @@ EOF
 
 **application notes:**
 
-- all public-facing apps use Let's Encrypt TLS certificates via cert-manager
+- all public-facing apps use Let's Encrypt TLS certificates via cert-manager (auto-renewed via gateway-shim)
+- TLS secrets live in the `nginx-gateway` namespace (cert-manager gateway-shim requirement)
 - unifi's nginx sidecar accepts self-signed certs with `proxy_ssl_verify off`
 - gateway API with NGINX Gateway Fabric handles all HTTP/HTTPS routing
 
