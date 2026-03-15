@@ -24,6 +24,8 @@ spec:
     remediation:
       retries: 3
   values:
+    config:
+      enableGatewayAPI: true
     startupapicheck:
       timeout: 5m
     crds:
