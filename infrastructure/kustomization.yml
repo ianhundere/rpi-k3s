@@ -23,5 +23,9 @@ resources:
   - nfs-provisioner/video-storage.yml
   - nfs-provisioner/music-storage.yml
   - nfs-provisioner/config-storage.yml
+  # image-automation
+  - image-automation/imagerepositories.yml
+  - image-automation/imagepolicies.yml
+  - image-automation/imageupdateautomation.yml
   # system-upgrade-controller - uncomment when ready to upgrade k3s
   # - system-upgrade-controller/

@@ -32,7 +32,7 @@ spec:
        privileged: true
    containers:
     - name: gluetun
-      image: qmcgaw/gluetun:v3.41.1
+      image: qmcgaw/gluetun:v3.41.1 # {"$imagepolicy": "flux-system:gluetun"}
       securityContext:
        capabilities:
         add:
@@ -83,7 +83,7 @@ spec:
          value: '022'
        - name: DOCKER_MODS
          value: 'ghcr.io/vuetorrent/vuetorrent-lsio-mod:2.31.1'
-      image: linuxserver/qbittorrent:5.1.4
+      image: linuxserver/qbittorrent:5.1.4 # {"$imagepolicy": "flux-system:qbittorrent"}
       imagePullPolicy: IfNotPresent
       name: qbittorrent
       resources:

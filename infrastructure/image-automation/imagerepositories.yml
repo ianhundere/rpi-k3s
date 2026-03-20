@@ -1,0 +1,103 @@
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: filebrowser
+  namespace: flux-system
+spec:
+  image: filebrowser/filebrowser
+  interval: 30m0s
+  exclusionList:
+    - "^latest$"
+    - "^develop"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: unifi-network-application
+  namespace: flux-system
+spec:
+  image: lscr.io/linuxserver/unifi-network-application
+  interval: 15m0s
+  exclusionList:
+    - "^latest$"
+    - "^develop"
+    - "-ls\\d+$"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: calibre-web
+  namespace: flux-system
+spec:
+  image: lscr.io/linuxserver/calibre-web
+  interval: 15m0s
+  exclusionList:
+    - "^latest$"
+    - "^develop"
+    - "-ls\\d+$"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: radarr
+  namespace: flux-system
+spec:
+  image: linuxserver/radarr
+  interval: 30m0s
+  exclusionList:
+    - "^latest$"
+    - "^develop"
+    - "^nightly"
+    - "-ls\\d+$"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: sonarr
+  namespace: flux-system
+spec:
+  image: linuxserver/sonarr
+  interval: 30m0s
+  exclusionList:
+    - "^latest$"
+    - "^develop"
+    - "-ls\\d+$"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: gluetun
+  namespace: flux-system
+spec:
+  image: qmcgaw/gluetun
+  interval: 30m0s
+  exclusionList:
+    - "^latest$"
+    - "^develop"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: qbittorrent
+  namespace: flux-system
+spec:
+  image: linuxserver/qbittorrent
+  interval: 30m0s
+  exclusionList:
+    - "^latest$"
+    - "^develop"
+    - "-ls\\d+$"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: jackett
+  namespace: flux-system
+spec:
+  image: linuxserver/jackett
+  interval: 30m0s
+  exclusionList:
+    - "^latest$"
+    - "^develop"
+    - "-ls\\d+$"

@@ -32,7 +32,7 @@ spec:
        privileged: true
    containers:
     - name: gluetun
-      image: qmcgaw/gluetun:v3.41.1
+      image: qmcgaw/gluetun:v3.41.1 # {"$imagepolicy": "flux-system:gluetun"}
       securityContext:
        capabilities:
         add:
