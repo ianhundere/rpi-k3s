@@ -42,6 +42,26 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+      initContainers:
+        - name: fix-permissions
+          image: alpine:3.19
+          command:
+            - sh
+            - -c
+            - |
+              echo "Fixing permissions on /srv and /database..."
+              chown -R 1000:1000 /srv /database
+              chmod -R 755 /srv /database
+              echo "Permissions fixed successfully"
+          volumeMounts:
+            - name: filebrowser
+              mountPath: /srv
+              subPath: files
+            - name: filebrowser
+              mountPath: /database
+              subPath: database
+          securityContext:
+            runAsUser: 0
       containers:
         - name: filebrowser
           image: filebrowser/filebrowser:v2.59.0
