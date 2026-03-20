@@ -1,0 +1,29 @@
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: flux-image-updates
+  namespace: flux-system
+spec:
+  interval: 15m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: fluxcdbot@users.noreply.github.com
+        name: fluxcdbot
+      messageTemplate: |-
+        chore(images): update container images
+
+        {{- range .Changed.Changes}}
+        - {{.OldValue}} -> {{.NewValue}}
+        {{- end}}
+    push:
+      branch: flux-image-updates
+  update:
+    path: ./apps

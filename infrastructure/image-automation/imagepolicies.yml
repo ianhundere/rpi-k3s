@@ -1,0 +1,96 @@
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: filebrowser
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: filebrowser
+  policy:
+    semver:
+      range: ">=v2.0.0 <v3.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: unifi-network-application
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: unifi-network-application
+  policy:
+    semver:
+      range: ">=10.0.0 <11.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: calibre-web
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: calibre-web
+  policy:
+    semver:
+      range: ">=0.6.0 <0.7.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: radarr
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: radarr
+  policy:
+    semver:
+      range: ">=6.0.0 <7.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: sonarr
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: sonarr
+  policy:
+    semver:
+      range: ">=4.0.0 <5.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: gluetun
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: gluetun
+  policy:
+    semver:
+      range: ">=v3.0.0 <v4.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: qbittorrent
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: qbittorrent
+  policy:
+    semver:
+      range: ">=5.0.0 <6.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: jackett
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: jackett
+  policy:
+    semver:
+      range: ">=0.24.0 <0.25.0"

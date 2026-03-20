@@ -24,7 +24,7 @@ spec:
          value: '1000'
        - name: PGID
          value: '1000'
-      image: linuxserver/radarr:6.0.4
+      image: linuxserver/radarr:6.0.4 # {"$imagepolicy": "flux-system:radarr"}
       imagePullPolicy: IfNotPresent
       name: radarr
       ports:
