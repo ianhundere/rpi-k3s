@@ -13,14 +13,14 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Ensure label exists
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: gh label create image-update --description "Automated image updates" --color "0E8A16" --force
       - name: Create or update PR
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           existing_pr=$(gh pr list --head flux-image-updates --json number --jq '.[0].number')
           if [ -n "$existing_pr" ]; then
