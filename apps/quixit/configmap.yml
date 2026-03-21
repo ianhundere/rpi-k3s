@@ -41,7 +41,7 @@ data:
   DB_MIN_CONNS: "5"
 
   # SMTP Email (Story 9.7) — disabled until Resend API key is configured
-  SMTP_ENABLED: "false"
+  SMTP_ENABLED: "true"
   SMTP_HOST: "smtp.resend.com"
   SMTP_PORT: "587"
   SMTP_USER: "resend"
