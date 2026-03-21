@@ -1,13 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: quixit
+namespace: tufkin
 resources:
   - namespace.yml
   - secret.yml
   - ghcr-secret.yml
   - configmap.yml
-  - postgres.yml
   - pvc.yml
+  - postgres.yml
   - deployment.yml
   - service.yml
   - gateway.yml

@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tufkin
+  namespace: tufkin
+  labels:
+    app: tufkin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tufkin
+  template:
+    metadata:
+      labels:
+        app: tufkin
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      initContainers:
+        - name: migrate
+          image: ghcr.io/ianhundere/tufkin:0.11.1
+          command: ["/usr/local/bin/migrate"]
+          args:
+            - "-path"
+            - "/app/migrations"
+            - "-database"
+            - "postgresql://$(TUFKIN_DB_USER):$(TUFKIN_DB_PASSWORD)@$(TUFKIN_DB_HOST):$(TUFKIN_DB_PORT)/$(TUFKIN_DB_NAME)?sslmode=$(TUFKIN_DB_SSLMODE)"
+            - "up"
+          envFrom:
+            - configMapRef:
+                name: tufkin-config
+          env:
+            - name: TUFKIN_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tufkin-credentials
+                  key: db-password
+      containers:
+        - name: tufkin
+          image: ghcr.io/ianhundere/tufkin:0.11.1
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: tufkin-config
+          env:
+            - name: TUFKIN_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tufkin-credentials
+                  key: db-password
+            - name: TUFKIN_JWT_SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: tufkin-credentials
+                  key: jwt-session-secret
+            - name: TUFKIN_SECURITY_IP_HASH_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: tufkin-credentials
+                  key: ip-hash-salt
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
