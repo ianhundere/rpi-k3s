@@ -12,12 +12,15 @@ data:
   # Storage
   STORAGE_ROOT: "/var/quixit"
 
-  # tufkin OAuth 2.1 (cluster-internal communication)
-  TUFKIN_ISSUER: "http://tufkin.tufkin.svc.cluster.local:8080"
-  TUFKIN_CLIENT_ID: "quixit-web"
+  # tufkin OAuth 2.1
+  # Issuer must match JWT iss claim (external URL set in tufkin configmap)
+  TUFKIN_ISSUER: "https://${TUFKIN_HOST}"
+  TUFKIN_CLIENT_ID: "${TUFKIN_CLIENT_ID}"
+  # Server-to-server: use internal cluster DNS (no external DNS needed)
   TUFKIN_JWKS_URL: "http://tufkin.tufkin.svc.cluster.local:8080/.well-known/jwks.json"
-  TUFKIN_AUTHORIZATION_ENDPOINT: "http://tufkin.tufkin.svc.cluster.local:8080/api/oauth/authorize"
   TUFKIN_TOKEN_ENDPOINT: "http://tufkin.tufkin.svc.cluster.local:8080/api/oauth/token"
+  # Browser-facing: must use external URL (user's browser redirects here)
+  TUFKIN_AUTHORIZATION_ENDPOINT: "https://${TUFKIN_HOST}/api/oauth/authorize"
 
   # OAuth callback
   QUIXIT_OAUTH_REDIRECT_URI: "https://quixit.us/auth/callback"
