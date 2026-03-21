@@ -40,7 +40,7 @@ spec:
                   key: db-password
       containers:
         - name: quixit
-          image: ghcr.io/ianhundere/quixit:0.4.6 # {"$imagepolicy": "flux-system:quixit"}
+          image: ghcr.io/ianhundere/quixit:0.4.7 # {"$imagepolicy": "flux-system:quixit"}
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -61,6 +61,12 @@ spec:
                 secretKeyRef:
                   name: quixit-credentials
                   key: session-secret
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: quixit-credentials
+                  key: smtp-password
+                  optional: true
           volumeMounts:
             - name: quixit-storage
               mountPath: /var/quixit
