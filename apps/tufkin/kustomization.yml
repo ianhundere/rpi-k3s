@@ -10,5 +10,4 @@ resources:
   - postgres.yml
   - deployment.yml
   - service.yml
-  - mailpit.yml
   - gateway.yml
