@@ -65,6 +65,11 @@ spec:
                 secretKeyRef:
                   name: tufkin-credentials
                   key: smtp-password
+            - name: TUFKIN_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: tufkin-credentials
+                  key: admin-token
           livenessProbe:
             httpGet:
               path: /api/health
