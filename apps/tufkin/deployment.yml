@@ -19,7 +19,7 @@ spec:
         - name: ghcr-secret
       initContainers:
         - name: migrate
-          image: ghcr.io/ianhundere/tufkin:0.14.0-rc4
+          image: ghcr.io/ianhundere/tufkin:0.14.0-rc5
           command: ["/usr/local/bin/migrate"]
           args:
             - "-path"
@@ -38,7 +38,7 @@ spec:
                   key: db-password
       containers:
         - name: tufkin
-          image: ghcr.io/ianhundere/tufkin:0.14.0-rc4
+          image: ghcr.io/ianhundere/tufkin:0.14.0-rc5
           ports:
             - containerPort: 8080
           envFrom:
@@ -60,6 +60,11 @@ spec:
                 secretKeyRef:
                   name: tufkin-credentials
                   key: ip-hash-salt
+            - name: TUFKIN_EMAIL_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tufkin-credentials
+                  key: smtp-password
           livenessProbe:
             httpGet:
               path: /api/health
