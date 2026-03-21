@@ -12,20 +12,19 @@ data:
   # Storage
   STORAGE_ROOT: "/var/quixit"
 
-  # tufkin OAuth 2.1 (issuer must match token iss claim = external URL)
-  TUFKIN_ISSUER: "https://${TUFKIN_HOST}"
-  TUFKIN_CLIENT_ID: "${TUFKIN_CLIENT_ID}"
-  # Internal cluster URLs for server-to-server communication
+  # tufkin OAuth 2.1 (cluster-internal communication)
+  TUFKIN_ISSUER: "http://tufkin.tufkin.svc.cluster.local:8080"
+  TUFKIN_CLIENT_ID: "quixit-web"
   TUFKIN_JWKS_URL: "http://tufkin.tufkin.svc.cluster.local:8080/.well-known/jwks.json"
-  TUFKIN_AUTHORIZATION_ENDPOINT: "https://${TUFKIN_HOST}/api/oauth/authorize"
+  TUFKIN_AUTHORIZATION_ENDPOINT: "http://tufkin.tufkin.svc.cluster.local:8080/api/oauth/authorize"
   TUFKIN_TOKEN_ENDPOINT: "http://tufkin.tufkin.svc.cluster.local:8080/api/oauth/token"
 
   # OAuth callback
-  QUIXIT_OAUTH_REDIRECT_URI: "https://${QUIXIT_HOST}/auth/callback"
-  QUIXIT_FRONTEND_URL: "https://${QUIXIT_HOST}"
+  QUIXIT_OAUTH_REDIRECT_URI: "https://quixit.us/auth/callback"
+  QUIXIT_FRONTEND_URL: "https://quixit.us"
 
   # CORS
-  QUIXIT_CORS_ORIGINS: "https://${QUIXIT_HOST}"
+  QUIXIT_CORS_ORIGINS: "https://quixit.us"
 
   # Session
   QUIXIT_SESSION_EXPIRY: "3600"
