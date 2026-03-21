@@ -40,7 +40,7 @@ spec:
                   key: db-password
       containers:
         - name: quixit
-          image: ghcr.io/ianhundere/quixit-backend:latest
+          image: ghcr.io/ianhundere/quixit:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
