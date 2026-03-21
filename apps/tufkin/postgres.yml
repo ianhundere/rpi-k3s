@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tufkin-postgres
+  namespace: tufkin
+  labels:
+    app: tufkin-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tufkin-postgres
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: tufkin-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: tufkin
+            - name: POSTGRES_DB
+              value: tufkin
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tufkin-credentials
+                  key: db-password
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "tufkin"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "tufkin"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: tufkin-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tufkin-postgres
+  namespace: tufkin
+  labels:
+    app: tufkin-postgres
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: tufkin-postgres

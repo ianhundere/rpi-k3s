@@ -8,3 +8,4 @@ resources:
   - ninjam-server/
   - homeassistant/
   - irc/
+  - tufkin/
