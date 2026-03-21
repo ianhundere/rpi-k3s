@@ -19,7 +19,7 @@ spec:
         - name: ghcr-secret
       initContainers:
         - name: migrate
-          image: ghcr.io/ianhundere/tufkin:0.14.0-rc12
+          image: ghcr.io/ianhundere/tufkin:0.14.0-rc13
           command: ["/usr/local/bin/migrate"]
           args:
             - "-path"
@@ -38,7 +38,7 @@ spec:
                   key: db-password
       containers:
         - name: tufkin
-          image: ghcr.io/ianhundere/tufkin:0.14.0-rc12
+          image: ghcr.io/ianhundere/tufkin:0.14.0-rc13
           ports:
             - containerPort: 8080
           envFrom:
