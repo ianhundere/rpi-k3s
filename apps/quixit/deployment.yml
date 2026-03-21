@@ -18,6 +18,8 @@ spec:
       labels:
         app: quixit
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       initContainers:
         - name: wait-for-postgres
           image: postgres:15-alpine
