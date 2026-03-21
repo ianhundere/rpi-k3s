@@ -34,7 +34,7 @@ spec:
                   key: db-password
           volumeMounts:
             - name: postgres-data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
           livenessProbe:
             exec:
               command: ["pg_isready", "-U", "tufkin"]
