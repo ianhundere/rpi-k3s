@@ -20,6 +20,7 @@ data:
   # Server-to-server: use internal cluster DNS (no external DNS needed)
   TUFKIN_JWKS_URL: "http://tufkin.tufkin.svc.cluster.local:8080/.well-known/jwks.json"
   TUFKIN_TOKEN_ENDPOINT: "http://tufkin.tufkin.svc.cluster.local:8080/api/oauth/token"
+  TUFKIN_USERINFO_ENDPOINT: "http://tufkin.tufkin.svc.cluster.local:8080/api/userinfo"
   # Browser-facing: must use external URL (user's browser redirects here)
   TUFKIN_AUTHORIZATION_ENDPOINT: "https://${TUFKIN_HOST}/api/oauth/authorize"
 
