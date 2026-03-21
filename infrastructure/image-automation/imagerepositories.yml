@@ -101,3 +101,25 @@ spec:
     - "^latest$"
     - "^develop"
     - "-ls\\d+$"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: quixit
+  namespace: flux-system
+spec:
+  image: ghcr.io/ianhundere/quixit
+  interval: 5m0s
+  exclusionList:
+    - "^latest$"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: tufkin
+  namespace: flux-system
+spec:
+  image: ghcr.io/ianhundere/tufkin
+  interval: 5m0s
+  exclusionList:
+    - "^latest$"
