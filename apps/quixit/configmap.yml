@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quixit-config
+  namespace: quixit
+  labels:
+    app: quixit
+data:
+  APP_ENV: "production"
+  APP_PORT: "8080"
+
+  # Storage
+  STORAGE_ROOT: "/var/quixit"
+
+  # tufkin OAuth 2.1 (issuer must match token iss claim = external URL)
+  TUFKIN_ISSUER: "https://${TUFKIN_HOST}"
+  TUFKIN_CLIENT_ID: "${TUFKIN_CLIENT_ID}"
+  # Internal cluster URLs for server-to-server communication
+  TUFKIN_JWKS_URL: "http://tufkin.tufkin.svc.cluster.local:8080/.well-known/jwks.json"
+  TUFKIN_AUTHORIZATION_ENDPOINT: "https://${TUFKIN_HOST}/api/oauth/authorize"
+  TUFKIN_TOKEN_ENDPOINT: "http://tufkin.tufkin.svc.cluster.local:8080/api/oauth/token"
+
+  # OAuth callback
+  QUIXIT_OAUTH_REDIRECT_URI: "https://${QUIXIT_HOST}/auth/callback"
+  QUIXIT_FRONTEND_URL: "https://${QUIXIT_HOST}"
+
+  # CORS
+  QUIXIT_CORS_ORIGINS: "https://${QUIXIT_HOST}"
+
+  # Session
+  QUIXIT_SESSION_EXPIRY: "3600"
+
+  # Database connection pool
+  DB_MAX_CONNS: "25"
+  DB_MIN_CONNS: "5"
