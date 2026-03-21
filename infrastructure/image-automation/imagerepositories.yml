@@ -110,6 +110,8 @@ metadata:
 spec:
   image: ghcr.io/ianhundere/quixit
   interval: 5m0s
+  secretRef:
+    name: ghcr-secret
   exclusionList:
     - "^latest$"
 ---
@@ -121,5 +123,7 @@ metadata:
 spec:
   image: ghcr.io/ianhundere/tufkin
   interval: 5m0s
+  secretRef:
+    name: ghcr-secret
   exclusionList:
     - "^latest$"
