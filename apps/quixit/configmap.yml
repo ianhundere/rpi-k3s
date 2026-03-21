@@ -24,7 +24,7 @@ data:
   TUFKIN_AUTHORIZATION_ENDPOINT: "https://${TUFKIN_HOST}/api/oauth/authorize"
 
   # OAuth callback
-  QUIXIT_OAUTH_REDIRECT_URI: "https://${QUIXIT_HOST}/api/auth/callback"
+  QUIXIT_OAUTH_REDIRECT_URI: "https://${QUIXIT_HOST}/auth/callback"
   QUIXIT_FRONTEND_URL: "https://${QUIXIT_HOST}"
 
   # CORS
