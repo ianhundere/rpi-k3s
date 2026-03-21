@@ -4,6 +4,7 @@ namespace: tufkin
 resources:
   - namespace.yml
   - secret.yml
+  - ghcr-secret.yml
   - configmap.yml
   - pvc.yml
   - postgres.yml

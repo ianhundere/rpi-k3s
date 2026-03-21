@@ -4,6 +4,7 @@ namespace: quixit
 resources:
   - namespace.yml
   - secret.yml
+  - ghcr-secret.yml
   - configmap.yml
   - postgres.yml
   - pvc.yml
