@@ -89,6 +89,26 @@ spec:
       certificateRefs:
       - kind: Secret
         name: quixit-cert
+  # tufkin - auth.clusterian.pw
+  - name: tufkin-http
+    hostname: ${TUFKIN_HOST}
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: tufkin-https
+    hostname: ${TUFKIN_HOST}
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: All
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: tufkin-cert
   # media tools - HTTP only (internal)
   - name: calibre-media-tools-http
     hostname: calibre.media.tools

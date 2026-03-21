@@ -9,4 +9,4 @@ resources:
   - postgres.yml
   - deployment.yml
   - service.yml
-  # - gateway.yml  # Enable when browser-facing OAuth flow is needed
+  - gateway.yml
