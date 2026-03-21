@@ -11,6 +11,7 @@ data:
   PLEX_HOST: "media.clusterian.pw"
   QUIXIT_HOST: "quixit.us"
   TUFKIN_HOST: "auth.clusterian.pw"
+  TUFKIN_CLIENT_ID: "quixit-web"
 
   # infra IPs
   METAL_LB_IP1: "192.168.3.240"
