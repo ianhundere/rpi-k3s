@@ -1,0 +1,51 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: tufkin-http-redirect
+  namespace: tufkin
+spec:
+  hostnames:
+    - ${TUFKIN_HOST}
+  parentRefs:
+    - name: shared-gateway
+      namespace: nginx-gateway
+      sectionName: tufkin-http
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: tufkin-https
+  namespace: tufkin
+spec:
+  hostnames:
+    - ${TUFKIN_HOST}
+  parentRefs:
+    - name: shared-gateway
+      namespace: nginx-gateway
+      sectionName: tufkin-https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Strict-Transport-Security
+                value: "max-age=31536000; includeSubDomains; preload"
+              - name: X-Frame-Options
+                value: "DENY"
+              - name: X-Content-Type-Options
+                value: "nosniff"
+              - name: Referrer-Policy
+                value: "strict-origin-when-cross-origin"
+      backendRefs:
+        - name: tufkin
+          port: 8080
