@@ -10,6 +10,7 @@ data:
   CALIBRE_HOST: "calibre.clusterian.pw"
   PLEX_HOST: "media.clusterian.pw"
   QUIXIT_HOST: "quixit.us"
+  SOJU_HOST: "irc.clusterian.pw"
   TUFKIN_HOST: "auth.clusterian.pw"
   TUFKIN_CLIENT_ID: "quixit-web"
 
