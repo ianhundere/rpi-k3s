@@ -8,7 +8,7 @@ spec:
   - ${QUIXIT_HOST}
   parentRefs:
   - name: shared-gateway
-    namespace: nginx-gateway
+    namespace: envoy-gateway-system
     sectionName: quixit-us-http
   rules:
   - filters:
@@ -27,7 +27,7 @@ spec:
   - ${QUIXIT_HOST}
   parentRefs:
   - name: shared-gateway
-    namespace: nginx-gateway
+    namespace: envoy-gateway-system
     sectionName: quixit-us-https
   rules:
   - matches:
@@ -60,28 +60,17 @@ spec:
     - name: quixit
       port: 8080
 ---
-apiVersion: gateway.nginx.org/v1alpha1
-kind: ClientSettingsPolicy
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
 metadata:
-  name: quixit-client-settings
-  namespace: quixit
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: quixit-https
-  body:
-    maxSize: "50m"
-    timeout: 60s
----
-apiVersion: gateway.nginx.org/v1alpha1
-kind: UpstreamSettingsPolicy
-metadata:
-  name: quixit-upstream-settings
-  namespace: quixit
+  name: quixit-client-traffic
+  namespace: envoy-gateway-system
 spec:
   targetRefs:
-  - group: ''
-    kind: Service
-    name: quixit
-  zoneSize: 256k
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: shared-gateway
+    sectionName: quixit-us-https
+  timeout:
+    http:
+      requestReceivedTimeout: 60s

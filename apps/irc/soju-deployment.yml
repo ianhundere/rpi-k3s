@@ -38,6 +38,8 @@ spec:
           ports:
             - name: irc
               containerPort: 6667
+            - name: ircs
+              containerPort: 6697
             - name: ident
               containerPort: 113
           volumeMounts:
@@ -46,6 +48,9 @@ spec:
               subPath: soju
             - name: soju
               mountPath: /etc/soju
+            - name: tls
+              mountPath: /etc/soju/tls
+              readOnly: true
           readinessProbe:
             tcpSocket:
               port: 6667
@@ -70,3 +75,6 @@ spec:
         - name: soju
           configMap:
             name: soju
+        - name: tls
+          secret:
+            secretName: soju-tls

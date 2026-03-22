@@ -8,7 +8,7 @@ spec:
     - ${TUFKIN_HOST}
   parentRefs:
     - name: shared-gateway
-      namespace: nginx-gateway
+      namespace: envoy-gateway-system
       sectionName: tufkin-http
   rules:
     - filters:
@@ -27,7 +27,7 @@ spec:
     - ${TUFKIN_HOST}
   parentRefs:
     - name: shared-gateway
-      namespace: nginx-gateway
+      namespace: envoy-gateway-system
       sectionName: tufkin-https
   rules:
     - matches:

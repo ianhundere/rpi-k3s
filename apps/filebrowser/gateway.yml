@@ -8,7 +8,7 @@ spec:
   - ${FILEBROWSER_HOST}
   parentRefs:
   - name: shared-gateway
-    namespace: nginx-gateway
+    namespace: envoy-gateway-system
     sectionName: share-clusterian-pw-http
   rules:
   - filters:
@@ -27,7 +27,7 @@ spec:
   - ${FILEBROWSER_HOST}
   parentRefs:
   - name: shared-gateway
-    namespace: nginx-gateway
+    namespace: envoy-gateway-system
     sectionName: share-clusterian-pw-https
   rules:
   - matches:
@@ -50,16 +50,17 @@ spec:
     - name: filebrowser
       port: 44301
 ---
-apiVersion: gateway.nginx.org/v1alpha1
-kind: ClientSettingsPolicy
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
 metadata:
-  name: filebrowser-client-settings
-  namespace: filebrowser
+  name: filebrowser-client-traffic
+  namespace: envoy-gateway-system
 spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: filebrowser-https
-  body:
-    maxSize: "50m"
-    timeout: 60s
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: shared-gateway
+    sectionName: share-clusterian-pw-https
+  timeout:
+    http:
+      requestReceivedTimeout: 60s

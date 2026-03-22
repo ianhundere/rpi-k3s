@@ -8,7 +8,7 @@ spec:
   - ${PLEX_HOST}
   parentRefs:
   - name: shared-gateway
-    namespace: nginx-gateway
+    namespace: envoy-gateway-system
     sectionName: plex-http
   rules:
   - filters:
@@ -27,7 +27,7 @@ spec:
   - ${PLEX_HOST}
   parentRefs:
   - name: shared-gateway
-    namespace: nginx-gateway
+    namespace: envoy-gateway-system
     sectionName: plex-https
   rules:
   - matches:
@@ -51,15 +51,3 @@ spec:
     backendRefs:
     - name: plex
       port: 80
----
-apiVersion: gateway.nginx.org/v1alpha1
-kind: UpstreamSettingsPolicy
-metadata:
-  name: plex-upstream-settings
-  namespace: media
-spec:
-  targetRefs:
-  - group: ''
-    kind: Service
-    name: plex
-  zoneSize: 256k

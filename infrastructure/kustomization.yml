@@ -7,6 +7,7 @@ resources:
   - sources/nfs-subdir.yml
   - sources/tailscale.yml
   - sources/nginx-gateway-oci.yml
+  - sources/envoy-gateway-oci.yml
   # cert-manager
   - cert-manager/namespace.yml
   - cert-manager/release.yml
@@ -18,6 +19,12 @@ resources:
   - nginx-gateway-fabric/namespace.yml
   - nginx-gateway-fabric/release.yml
   - nginx-gateway-fabric/gateway.yml
+  # envoy-gateway
+  - envoy-gateway/namespace.yml
+  - envoy-gateway/release.yml
+  - envoy-gateway/gatewayclass.yml
+  - envoy-gateway/envoyproxy.yml
+  - envoy-gateway/gateway.yml
   # nfs-provisioner
   - nfs-provisioner/namespace.yml
   - nfs-provisioner/video-storage.yml

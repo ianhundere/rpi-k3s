@@ -1,0 +1,15 @@
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TLSRoute
+metadata:
+  name: soju-passthrough
+  namespace: irc
+spec:
+  parentRefs:
+  - name: shared-gateway
+    namespace: envoy-gateway-system
+    sectionName: irc-passthrough
+  rules:
+  - backendRefs:
+    - name: soju
+      port: 6697

@@ -16,7 +16,7 @@ spec:
   - ${UNIFI_HOST}
   parentRefs:
   - name: shared-gateway
-    namespace: nginx-gateway
+    namespace: envoy-gateway-system
     sectionName: unifi-clusterian-pw-http
   rules:
   - filters:
@@ -35,7 +35,7 @@ spec:
   - ${UNIFI_HOST}
   parentRefs:
   - name: shared-gateway
-    namespace: nginx-gateway
+    namespace: envoy-gateway-system
     sectionName: unifi-clusterian-pw-https
   rules:
   - matches:
@@ -57,15 +57,3 @@ spec:
     backendRefs:
     - name: unifi-controller
       port: 9080
----
-apiVersion: gateway.nginx.org/v1alpha1
-kind: UpstreamSettingsPolicy
-metadata:
-  name: unifi-upstream-settings
-  namespace: unifi
-spec:
-  targetRefs:
-  - group: ''
-    kind: Service
-    name: unifi-controller
-  zoneSize: 256k

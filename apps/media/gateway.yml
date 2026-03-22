@@ -8,7 +8,7 @@ spec:
   - media.tools
   parentRefs:
   - name: shared-gateway
-    namespace: nginx-gateway
+    namespace: envoy-gateway-system
     sectionName: media-tools-http
   rules:
   - matches:
@@ -109,16 +109,3 @@ spec:
     backendRefs:
     - name: calibre
       port: 80
----
-apiVersion: gateway.nginx.org/v1alpha1
-kind: ClientSettingsPolicy
-metadata:
-  name: media-tools-client-settings
-  namespace: media
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: media-tools
-  body:
-    maxSize: "0"
