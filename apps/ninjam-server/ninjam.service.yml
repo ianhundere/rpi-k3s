@@ -1,8 +1,6 @@
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    tailscale.com/hostname: "ninjam"
   namespace: ninjam
   labels:
     app: ninjam-server
@@ -14,7 +12,3 @@ spec:
       protocol: TCP
   selector:
     app: ninjam-server
-  type: LoadBalancer
-  loadBalancerClass: tailscale
-  externalIPs:
-    - "${METAL_LB_IP2}"
