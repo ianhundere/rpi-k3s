@@ -15,7 +15,9 @@ spec:
         container:
           resources:
             requests:
-              memory: "128Mi"
+              memory: "256Mi"
               cpu: "50m"
             limits:
               memory: "256Mi"
+      envoyService:
+        externalTrafficPolicy: Local
