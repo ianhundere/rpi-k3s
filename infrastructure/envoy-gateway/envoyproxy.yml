@@ -1,7 +1,7 @@
 ---
 # EnvoyProxy configures the data plane proxy pods.
-# CRITICAL: Envoy proxy must run on amd64 — TCMalloc in upstream Envoy
-# crashes on RPi4 ARM64 (39-bit VA space vs required 48-bit).
+# Note: RPi4 nodes recompiled with CONFIG_ARM64_VA_BITS_48=y (kernel 6.12.77-v8+)
+# to support Envoy's TCMalloc. No architecture constraint needed.
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
@@ -19,6 +19,3 @@ spec:
               cpu: "50m"
             limits:
               memory: "256Mi"
-        pod:
-          nodeSelector:
-            kubernetes.io/arch: amd64
