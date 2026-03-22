@@ -6,7 +6,6 @@ resources:
   - sources/jetstack.yml
   - sources/nfs-subdir.yml
   - sources/tailscale.yml
-  - sources/nginx-gateway-oci.yml
   - sources/envoy-gateway-oci.yml
   # cert-manager
   - cert-manager/namespace.yml
@@ -15,10 +14,6 @@ resources:
   # metallb
   - metallb/namespace.yml
   - metallb/config.yml
-  # nginx-gateway-fabric
-  - nginx-gateway-fabric/namespace.yml
-  - nginx-gateway-fabric/release.yml
-  - nginx-gateway-fabric/gateway.yml
   # envoy-gateway
   - envoy-gateway/namespace.yml
   - envoy-gateway/release.yml

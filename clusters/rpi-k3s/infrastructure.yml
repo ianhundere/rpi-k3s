@@ -28,9 +28,5 @@ spec:
       namespace: cert-manager
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease
-      name: ngf
-      namespace: nginx-gateway
-    - apiVersion: helm.toolkit.fluxcd.io/v2
-      kind: HelmRelease
       name: envoy-gateway
       namespace: envoy-gateway-system
