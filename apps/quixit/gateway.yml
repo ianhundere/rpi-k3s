@@ -73,4 +73,4 @@ spec:
     sectionName: quixit-us-https
   timeout:
     http:
-      requestReceivedTimeout: 60s
+      requestReceivedTimeout: 300s
