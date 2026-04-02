@@ -2,8 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: jackett
-  name: jackett
+    app: prowlarr
+  name: prowlarr
   namespace: media
 spec:
   replicas: 1
@@ -12,13 +12,13 @@ spec:
   revisionHistoryLimit: 3
   selector:
     matchLabels:
-      app: jackett
+      app: prowlarr
   template:
     metadata:
       labels:
-        app: jackett
+        app: prowlarr
     spec:
-      hostname: jackett
+      hostname: prowlarr
       initContainers:
       - name: sysctl-setup
         image: busybox
@@ -41,14 +41,20 @@ spec:
         - name: WIREGUARD_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
-              name: jackett
+              name: prowlarr
               key: key
+        - name: SERVER_COUNTRIES
+          value: 'Hungary'
         - name: VPN_PORT_FORWARDING
           value: 'off'
         - name: FIREWALL
           value: 'yes'
         - name: HEALTH_TARGET_ADDRESSES
           value: 'cloudflare.com:443,github.com:443'
+        - name: DNS_KEEP_NAMESERVER
+          value: 'on'
+        - name: FIREWALL_OUTBOUND_SUBNETS
+          value: '10.42.0.0/16,10.43.0.0/16'
         volumeMounts:
         - mountPath: /dev/net/tun
           name: tun-device
@@ -75,31 +81,29 @@ spec:
             memory: 512Mi
           limits:
             memory: 512Mi
-      - env:
+      - name: prowlarr
+        image: linuxserver/prowlarr:2.3.0 # {"$imagepolicy": "flux-system:prowlarr"}
+        imagePullPolicy: IfNotPresent
+        env:
         - name: PUID
           value: '1000'
         - name: PGID
           value: '1000'
-        image: linuxserver/jackett:0.24.1427 # {"$imagepolicy": "flux-system:jackett"}
-        imagePullPolicy: IfNotPresent
-        name: jackett
         ports:
-        - containerPort: 9117
+        - containerPort: 9696
           name: http
           protocol: TCP
         resources:
           requests:
-            cpu: 1
-            memory: 1Gi
+            cpu: 500m
+            memory: 512Mi
           limits:
-            memory: 1Gi
+            memory: 512Mi
         volumeMounts:
         - mountPath: /config
           name: media-config
-          subPath: jackett
-      dnsPolicy: None
-      dnsConfig:
-        nameservers: ['1.1.1.1', '1.0.0.1']
+          subPath: prowlarr
+      dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:
       - name: media-config

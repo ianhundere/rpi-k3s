@@ -74,3 +74,18 @@ spec:
   timeout:
     http:
       requestReceivedTimeout: 300s
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: quixit-backend-traffic
+  namespace: quixit
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: quixit-https
+  timeout:
+    http:
+      connectionIdleTimeout: 600s
+      maxConnectionDuration: 600s

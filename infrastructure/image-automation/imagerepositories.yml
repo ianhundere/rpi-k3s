@@ -92,10 +92,10 @@ spec:
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageRepository
 metadata:
-  name: jackett
+  name: prowlarr
   namespace: flux-system
 spec:
-  image: linuxserver/jackett
+  image: linuxserver/prowlarr
   interval: 30m0s
   exclusionList:
     - "^latest$"

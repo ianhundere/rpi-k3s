@@ -21,9 +21,9 @@ spec:
   - matches:
     - path:
         type: PathPrefix
-        value: /jackett
+        value: /prowlarr
     backendRefs:
-    - name: jackett
+    - name: prowlarr
       port: 80
   - matches:
     - path:

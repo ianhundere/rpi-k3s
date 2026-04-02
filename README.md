@@ -219,32 +219,32 @@ if cluster is lost:
 
 > **automated via flux**: metallb is deployed automatically via flux. see `infrastructure/metallb/` for configuration.
 
-## install gateway api & nginx gateway fabric - web proxy
+## install gateway api & envoy gateway - web proxy
 
-> **note**: this cluster uses the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) with [NGINX Gateway Fabric](https://docs.nginx.com/nginx-gateway-fabric/) deployed via flux using an OCIRepository. see `infrastructure/nginx-gateway-fabric/` for configuration.
+> **note**: this cluster uses the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) with [Envoy Gateway](https://gateway.envoyproxy.io/) deployed via flux. see `infrastructure/envoy-gateway/` for configuration. supports simultaneous TLS passthrough and HTTPS termination on port 443.
 
 **verify installation:**
 
 ```bash
-kubectl get pods -n nginx-gateway
+kubectl get pods -n envoy-gateway-system
 kubectl get gatewayclass
-kubectl get svc -n nginx-gateway
-flux get helmreleases -n nginx-gateway
+kubectl get svc -n envoy-gateway-system
+flux get helmreleases -n envoy-gateway-system
 ```
 
 ## install cert-manager
 
 > **automated via flux**: cert-manager is deployed automatically via flux. see `infrastructure/cert-manager/` for configuration.
 
-cert-manager is configured with Gateway API support (`enableGatewayAPI: true` in Helm values). the `letsencrypt-prod` ClusterIssuer uses `http01.gatewayHTTPRoute` solver referencing the shared-gateway. the Gateway is annotated with `cert-manager.io/cluster-issuer: letsencrypt-prod`, so cert-manager's gateway-shim auto-creates Certificate resources for each HTTPS listener and handles renewal.
+cert-manager is configured with Gateway API support (`enableGatewayAPI: true` in Helm values). the `letsencrypt-prod` ClusterIssuer uses `http01.gatewayHTTPRoute` solver referencing the shared-gateway in `envoy-gateway-system`. the Gateway is annotated with `cert-manager.io/cluster-issuer: letsencrypt-prod`, so cert-manager's gateway-shim auto-creates Certificate resources for each HTTPS listener and handles renewal.
 
-**important**: cert-manager's gateway-shim does not support cross-namespace `certificateRefs`. all TLS secrets must live in the Gateway's namespace (`nginx-gateway`). be sure to forward port 80 for HTTP-01 cert challenges.
+**important**: cert-manager's gateway-shim does not support cross-namespace `certificateRefs`. all TLS secrets must live in the Gateway's namespace (`envoy-gateway-system`).
 
 **verify certificates:**
 
 ```bash
-kubectl get certificates -n nginx-gateway
-kubectl get orders,challenges -n nginx-gateway
+kubectl get certificates -n envoy-gateway-system
+kubectl get orders,challenges -n envoy-gateway-system
 ```
 
 ## deployed applications
@@ -266,36 +266,41 @@ kubectl get orders,challenges -n nginx-gateway
 - **plex** (media.clusterian.pw) - media server routing
   - uses EndpointSlice to route traffic to NAS (${NFS_IP})
   - see: `apps/media/plex/`
+- **tufkin** (auth.clusterian.pw) - OAuth authentication for quixit
+  - see: `apps/quixit/`
+- **soju** (irc.clusterian.pw) - IRC bouncer via TLS passthrough
+  - see: `apps/irc/`
 
-**internal media apps (HTTP only):**
+**internal media apps (HTTP only, accessible via media.tools):**
 
-- **qbittorrent** - torrent client (media.tools/qbittorrent, qbt.media.tools)
+- **qbittorrent** - torrent client (media.tools/qbit)
   - see: `apps/media/qbittorrent/`
-- **jackett** - indexer proxy (media.tools/jackett)
-  - see: `apps/media/jackett/`
+- **prowlarr** - indexer manager (media.tools/prowlarr)
+  - auto-syncs indexers to sonarr/radarr, replaces jackett
+  - see: `apps/media/prowlarr/`
 - **sonarr** - tv automation (media.tools/sonarr)
   - see: `apps/media/sonarr/`
 - **radarr** - movie automation (media.tools/radarr)
   - see: `apps/media/radarr/`
-- **calibre** - ebook management (calibre.media.tools)
+- **calibre** - ebook management (media.tools/calibre)
   - see: `apps/media/calibre/`
-- **soulseek** - music sharing (soulseek.media.tools)
+- **soulseek** - music sharing (media.tools/soulseek)
   - see: `apps/media/soulseek/`
 
 **application notes:**
 
 - all public-facing apps use Let's Encrypt TLS certificates via cert-manager (auto-renewed via gateway-shim)
-- TLS secrets live in the `nginx-gateway` namespace (cert-manager gateway-shim requirement)
+- TLS secrets live in the `envoy-gateway-system` namespace (cert-manager gateway-shim requirement)
 - unifi's nginx sidecar accepts self-signed certs with `proxy_ssl_verify off`
-- gateway API with NGINX Gateway Fabric handles all HTTP/HTTPS routing
+- Envoy Gateway handles all HTTP/HTTPS routing including TLS passthrough for soju (IRC)
 
 **media apps configuration notes:**
 
-- jackett: requires `ServerConfig.json` in `<nfs_path>/jackett/Jackett` with `{"BasePathOverride": "/jackett"}`
+- prowlarr: set URL base to `/prowlarr` in Settings > General. manages all indexers centrally and auto-syncs to sonarr/radarr via app-sync
 - sonarr: requires `config.xml` in `<nfs_path>/sonarr/` with `<Config><UrlBase>/sonarr</UrlBase></Config>`
 - radarr: requires `config.xml` in `<nfs_path>/radarr/` with `<Config><UrlBase>/radarr</UrlBase></Config>`
 - connections: radarr/sonarr connect to qbittorrent at `qbittorrent.media:9091`
-- indexers: use jackett API at `http://media.tools/jackett/api/v2.0/indexers/<name>/results/torznab/`
+- indexers: managed by prowlarr — add indexers in prowlarr UI and they auto-sync to sonarr/radarr
 
 ## install nfs-provisioner
 
