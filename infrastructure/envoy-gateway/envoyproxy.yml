@@ -25,3 +25,9 @@ spec:
               memory: "256Mi"
       envoyService:
         externalTrafficPolicy: Local
+        # In merged-gateway mode, the per-Gateway `metallb` annotation on
+        # shared-gateway metadata is ignored — EG creates a single Envoy
+        # Service based on this EnvoyProxy spec, so the IP must be pinned
+        # here to keep reusing METAL_LB_IP1 (no local DNS changes).
+        annotations:
+          metallb.universe.tf/loadBalancerIPs: ${METAL_LB_IP1}

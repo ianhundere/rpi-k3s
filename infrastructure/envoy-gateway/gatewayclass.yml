@@ -5,3 +5,12 @@ metadata:
   name: eg
 spec:
   controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  # parametersRef binds this GatewayClass to the EnvoyProxy config that
+  # governs data-plane behavior for all Gateways in this class — including
+  # `mergeGateways: true`, which collapses shared-gateway + internal-gateway
+  # into one Envoy deployment sharing the same MetalLB IP.
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: proxy-config
+    namespace: envoy-gateway-system
