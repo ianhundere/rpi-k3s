@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: filebrowser
+  namespace: filebrowser
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: filebrowser
+      port:
+        number: 44301
+  tls:
+    - hosts:
+        - filebrowser
