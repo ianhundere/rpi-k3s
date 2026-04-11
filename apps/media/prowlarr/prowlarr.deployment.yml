@@ -82,7 +82,7 @@ spec:
           limits:
             memory: 512Mi
       - name: prowlarr
-        image: linuxserver/prowlarr:2.3.0 # {"$imagepolicy": "flux-system:prowlarr"}
+        image: linuxserver/prowlarr:2.3.5 # {"$imagepolicy": "flux-system:prowlarr"}
         imagePullPolicy: IfNotPresent
         env:
         - name: PUID
