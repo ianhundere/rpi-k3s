@@ -9,4 +9,3 @@ resources:
   - service.yml
   - pvc.yml
   - gateway.yml
-  - grassnose-media.yml
