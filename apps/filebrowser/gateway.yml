@@ -7,9 +7,9 @@ spec:
   hostnames:
   - ${FILEBROWSER_HOST}
   parentRefs:
-  - name: shared-gateway
+  - name: internal-gateway
     namespace: envoy-gateway-system
-    sectionName: share-clusterian-pw-http
+    sectionName: filebrowser-internal-http
   rules:
   - filters:
     - type: RequestRedirect
@@ -26,20 +26,23 @@ spec:
   hostnames:
   - ${FILEBROWSER_HOST}
   parentRefs:
-  - name: shared-gateway
+  - name: internal-gateway
     namespace: envoy-gateway-system
-    sectionName: share-clusterian-pw-https
+    sectionName: filebrowser-internal-https
   rules:
   - matches:
     - path:
         type: PathPrefix
         value: /
     filters:
+    # NOTE: deliberately NO Strict-Transport-Security here. filebrowser is
+    # served with an internal-CA cert that browsers don't trust — HSTS would
+    # prevent the click-through bypass (Firefox shows "can't add an
+    # exception" instead of "Advanced → Proceed"), and the user has opted
+    # not to install the internal CA root on personal devices.
     - type: ResponseHeaderModifier
       responseHeaderModifier:
         add:
-        - name: Strict-Transport-Security
-          value: "max-age=31536000; includeSubDomains; preload"
         - name: X-Frame-Options
           value: "DENY"
         - name: X-Content-Type-Options
@@ -59,8 +62,8 @@ spec:
   targetRefs:
   - group: gateway.networking.k8s.io
     kind: Gateway
-    name: shared-gateway
-    sectionName: share-clusterian-pw-https
+    name: internal-gateway
+    sectionName: filebrowser-internal-https
   timeout:
     http:
       requestReceivedTimeout: 60s
