@@ -15,26 +15,6 @@ spec:
       kind: EnvoyProxy
       name: proxy-config
   listeners:
-  # --- filebrowser - share.clusterian.pw ---
-  - name: share-clusterian-pw-http
-    hostname: ${FILEBROWSER_HOST}
-    port: 80
-    protocol: HTTP
-    allowedRoutes:
-      namespaces:
-        from: All
-  - name: share-clusterian-pw-https
-    hostname: ${FILEBROWSER_HOST}
-    port: 443
-    protocol: HTTPS
-    allowedRoutes:
-      namespaces:
-        from: All
-    tls:
-      mode: Terminate
-      certificateRefs:
-      - kind: Secret
-        name: filebrowser-cert
   # --- plex - media.clusterian.pw ---
   - name: plex-http
     hostname: ${PLEX_HOST}
@@ -55,26 +35,6 @@ spec:
       certificateRefs:
       - kind: Secret
         name: plex-cert
-  # --- unifi - unifi.clusterian.pw ---
-  - name: unifi-clusterian-pw-http
-    hostname: ${UNIFI_HOST}
-    port: 80
-    protocol: HTTP
-    allowedRoutes:
-      namespaces:
-        from: All
-  - name: unifi-clusterian-pw-https
-    hostname: ${UNIFI_HOST}
-    port: 443
-    protocol: HTTPS
-    allowedRoutes:
-      namespaces:
-        from: All
-    tls:
-      mode: Terminate
-      certificateRefs:
-      - kind: Secret
-        name: unifi-cert
   # --- quixit - quixit.us ---
   - name: quixit-us-http
     hostname: ${QUIXIT_HOST}

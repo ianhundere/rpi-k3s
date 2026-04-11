@@ -11,6 +11,7 @@ resources:
   - cert-manager/namespace.yml
   - cert-manager/release.yml
   - cert-manager/clusterissuer.yml
+  - cert-manager/internal-ca.yml
   # metallb
   - metallb/namespace.yml
   - metallb/config.yml
@@ -20,6 +21,7 @@ resources:
   - envoy-gateway/gatewayclass.yml
   - envoy-gateway/envoyproxy.yml
   - envoy-gateway/gateway.yml
+  - envoy-gateway/internal-gateway.yml
   # nfs-provisioner
   - nfs-provisioner/namespace.yml
   - nfs-provisioner/video-storage.yml

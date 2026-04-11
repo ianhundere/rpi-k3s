@@ -1,0 +1,104 @@
+---
+# Internal Gateway — hosts HTTPS listeners for personal-only services whose
+# certs are issued by the internal CA (no Let's Encrypt, no public DNS).
+#
+# This Gateway deliberately has NO cert-manager.io/cluster-issuer annotation
+# so gateway-shim will not try to auto-create Let's Encrypt Certificates for
+# its listeners.
+#
+# With `mergeGateways: true` on the EnvoyProxy config, this Gateway merges
+# into the same Envoy deployment as shared-gateway and reuses METAL_LB_IP1 —
+# no new MetalLB IP, no local DNS changes required.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: internal-gateway
+  namespace: envoy-gateway-system
+spec:
+  gatewayClassName: eg
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: proxy-config
+  listeners:
+  # --- filebrowser - share.clusterian.pw (internal only) ---
+  - name: filebrowser-internal-http
+    hostname: ${FILEBROWSER_HOST}
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: filebrowser-internal-https
+    hostname: ${FILEBROWSER_HOST}
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: All
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: filebrowser-cert-internal
+  # --- unifi - unifi.clusterian.pw (internal only) ---
+  - name: unifi-internal-http
+    hostname: ${UNIFI_HOST}
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: unifi-internal-https
+    hostname: ${UNIFI_HOST}
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: All
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: unifi-cert-internal
+---
+# Explicit Certificate for filebrowser — signed by the internal CA.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: filebrowser-cert-internal
+  namespace: envoy-gateway-system
+spec:
+  secretName: filebrowser-cert-internal
+  duration: 8760h      # 1 year
+  renewBefore: 720h    # 30 days before expiry
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  dnsNames:
+  - ${FILEBROWSER_HOST}
+  issuerRef:
+    name: internal-ca
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# Explicit Certificate for unifi — signed by the internal CA.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: unifi-cert-internal
+  namespace: envoy-gateway-system
+spec:
+  secretName: unifi-cert-internal
+  duration: 8760h      # 1 year
+  renewBefore: 720h    # 30 days before expiry
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  dnsNames:
+  - ${UNIFI_HOST}
+  issuerRef:
+    name: internal-ca
+    kind: ClusterIssuer
+    group: cert-manager.io

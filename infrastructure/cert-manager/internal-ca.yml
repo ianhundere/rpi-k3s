@@ -1,0 +1,40 @@
+---
+# Bootstrap SelfSigned issuer — only used once to mint the internal CA root.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-bootstrap
+spec:
+  selfSigned: {}
+---
+# Root CA for internal-only services (filebrowser, unifi).
+# 10-year validity — install this cert on personal devices once.
+# Rotation is automatic via cert-manager (renewBefore: 1 year).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: internal-ca-root
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: clusterian internal CA
+  secretName: internal-ca-root
+  duration: 87600h     # 10 years
+  renewBefore: 8760h   # 1 year before expiry
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-bootstrap
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# Cluster-wide CA issuer backed by the internal-ca-root Secret.
+# Use this for Certificate resources that should be signed by the internal CA.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: internal-ca
+spec:
+  ca:
+    secretName: internal-ca-root

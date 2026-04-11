@@ -8,6 +8,10 @@ metadata:
   name: proxy-config
   namespace: envoy-gateway-system
 spec:
+  # Merge multiple Gateway resources (shared-gateway + internal-gateway) into
+  # one Envoy deployment sharing the same MetalLB IP. Without this, each
+  # Gateway would try to claim its own LoadBalancer IP and fight over ports.
+  mergeGateways: true
   provider:
     type: Kubernetes
     kubernetes:
