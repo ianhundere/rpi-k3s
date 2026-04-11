@@ -16,4 +16,3 @@ resources:
   - service.yml
   - pvc.yml
   - gateway.yml
-  - ingress-tailscale.yml

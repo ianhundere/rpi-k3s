@@ -9,4 +9,3 @@ resources:
   - pvc.yml
   - gateway.yml
   - grassnose-media.yml
-  - ingress-tailscale.yml
