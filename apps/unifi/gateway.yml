@@ -15,9 +15,9 @@ spec:
   hostnames:
   - ${UNIFI_HOST}
   parentRefs:
-  - name: internal-gateway
+  - name: shared-gateway
     namespace: envoy-gateway-system
-    sectionName: unifi-internal-http
+    sectionName: unifi-http
   rules:
   - filters:
     - type: RequestRedirect
@@ -34,21 +34,20 @@ spec:
   hostnames:
   - ${UNIFI_HOST}
   parentRefs:
-  - name: internal-gateway
+  - name: shared-gateway
     namespace: envoy-gateway-system
-    sectionName: unifi-internal-https
+    sectionName: unifi-https
   rules:
   - matches:
     - path:
         type: PathPrefix
         value: /
     filters:
-    # NOTE: deliberately NO Strict-Transport-Security here — see filebrowser
-    # gateway.yml for rationale. Internal-CA cert, user clicks through
-    # browser warnings, HSTS would break that bypass.
     - type: ResponseHeaderModifier
       responseHeaderModifier:
         add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
         - name: X-Frame-Options
           value: "DENY"
         - name: X-Content-Type-Options

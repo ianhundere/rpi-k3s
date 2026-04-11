@@ -21,7 +21,6 @@ resources:
   - envoy-gateway/gatewayclass.yml
   - envoy-gateway/envoyproxy.yml
   - envoy-gateway/gateway.yml
-  - envoy-gateway/internal-gateway.yml
   # nfs-provisioner
   - nfs-provisioner/namespace.yml
   - nfs-provisioner/video-storage.yml

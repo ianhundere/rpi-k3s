@@ -73,6 +73,49 @@ spec:
       certificateRefs:
       - kind: Secret
         name: tufkin-cert
+  # --- filebrowser - share.clusterian.pw ---
+  # Reuses the pre-existing `filebrowser-cert` Secret from the
+  # 2026-03 Let's Encrypt issuance; gateway-shim will adopt it into
+  # a managed Certificate CR on next reconcile.
+  - name: filebrowser-http
+    hostname: ${FILEBROWSER_HOST}
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: filebrowser-https
+    hostname: ${FILEBROWSER_HOST}
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: All
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: filebrowser-cert
+  # --- unifi - unifi.clusterian.pw ---
+  - name: unifi-http
+    hostname: ${UNIFI_HOST}
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: unifi-https
+    hostname: ${UNIFI_HOST}
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: All
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: unifi-cert
   # --- soju IRC - irc.clusterian.pw (TLS passthrough + HTTP for ACME) ---
   - name: irc-http
     hostname: ${SOJU_HOST}
