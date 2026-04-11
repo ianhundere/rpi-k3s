@@ -17,7 +17,14 @@ data:
         --root "/srv" \
         --branding.name "hi, welcome." \
         --branding.disableExternal
-    /bin/filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin --database /database/filebrowser.db
+    # Self-healing credential sync: `users add` creates the user on first boot
+    # and is a harmless no-op afterwards; `users update` then forces the
+    # password to whatever is currently in the Secret, so rotating the
+    # SOPS-encrypted FILEBROWSER_PW + restarting the pod is enough to rotate
+    # the running admin credential. Previously this was `users add` only,
+    # which silently ignored SOPS rotations because the user already existed.
+    /bin/filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin --database /database/filebrowser.db 2>/dev/null || true
+    /bin/filebrowser users update ${FILEBROWSER_USER} --password ${FILEBROWSER_PW} --database /database/filebrowser.db
     exec /bin/filebrowser --port 44301 --disable-exec --database /database/filebrowser.db
 ---
 apiVersion: apps/v1
