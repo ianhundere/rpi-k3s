@@ -23,8 +23,15 @@ data:
     # SOPS-encrypted FILEBROWSER_PW + restarting the pod is enough to rotate
     # the running admin credential. Previously this was `users add` only,
     # which silently ignored SOPS rotations because the user already existed.
-    /bin/filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PW} --perm.admin --database /database/filebrowser.db 2>/dev/null || true
-    /bin/filebrowser users update ${FILEBROWSER_USER} --password ${FILEBROWSER_PW} --database /database/filebrowser.db
+    #
+    # The $${VAR} escape keeps Flux's postBuild envsubst from substituting
+    # the plaintext creds into this ConfigMap at apply time. Flux replaces
+    # $${VAR} with ${VAR}, and the shell then expands ${VAR} at container
+    # runtime from env vars injected via secretKeyRef (see Deployment below).
+    # Without the escape, `kubectl get cm filebrowser-scripts -o yaml` would
+    # leak the plaintext admin password to anyone with namespace RBAC.
+    /bin/filebrowser users add "$${FILEBROWSER_USER}" "$${FILEBROWSER_PW}" --perm.admin --database /database/filebrowser.db 2>/dev/null || true
+    /bin/filebrowser users update "$${FILEBROWSER_USER}" --password "$${FILEBROWSER_PW}" --database /database/filebrowser.db
     exec /bin/filebrowser --port 44301 --disable-exec --database /database/filebrowser.db
 ---
 apiVersion: apps/v1
