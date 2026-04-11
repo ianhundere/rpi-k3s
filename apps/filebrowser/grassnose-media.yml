@@ -139,9 +139,14 @@ metadata:
   labels:
     app: grassnose-media
   annotations:
-    # Tailscale operator picks this up and provisions a Funnel proxy.
+    # Tailscale operator picks this up and provisions a proxy.
+    # `expose: "true"` is what makes the operator create the ts-* StatefulSet
+    # in the `tailscale` namespace; `funnel: "true"` flips that proxy into
+    # Funnel mode so it's reachable from the public internet (not just the
+    # tailnet). Without `expose`, the operator ignores the Service entirely.
     # Public URL becomes: https://grassnose-media.<tailnet>.ts.net
     tailscale.com/hostname: "grassnose-media"
+    tailscale.com/expose: "true"
     tailscale.com/funnel: "true"
 spec:
   type: ClusterIP
