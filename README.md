@@ -172,9 +172,30 @@ git add -A
 git commit -m "update: whatever you changed"
 git push
 
-# 3. flux automatically applies changes within 1 minute
-# (or force sync)
+# 3. for manifests under apps/ or infrastructure/, flux auto-applies
+# within 1 minute (or force sync):
 flux reconcile kustomization flux-system --with-source
+
+# 4. config/cluster-secrets.enc.yaml and config/cluster-vars.enc.yaml
+# are NOT managed by flux — apply them manually with server-side apply:
+sops -d config/cluster-secrets.enc.yaml | kubectl apply --server-side --force-conflicts -f -
+sops -d config/cluster-vars.enc.yaml    | kubectl apply --server-side --force-conflicts -f -
+```
+
+**⚠ do not use plain `kubectl apply -f` for these:** client-side apply
+stores the entire decrypted object (including every secret value in
+plaintext) in the `kubectl.kubernetes.io/last-applied-configuration`
+annotation, where anyone with `get secrets`/`get configmaps` RBAC on
+`flux-system` can read it. Server-side apply tracks field ownership via
+`.metadata.managedFields` and does not write that annotation. If you
+ever did a plain `kubectl apply` on these in the past, strip the stale
+annotation on the live object:
+
+```bash
+kubectl -n flux-system annotate secret cluster-secrets \
+    kubectl.kubernetes.io/last-applied-configuration-
+kubectl -n flux-system annotate cm cluster-vars \
+    kubectl.kubernetes.io/last-applied-configuration-
 ```
 
 **check flux status:**

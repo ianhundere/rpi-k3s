@@ -4,7 +4,13 @@ namespace: unifi
 resources:
   - namespace.yml
   - secret.yml
-  - configmap.yml
+  # mongo-init-script configmap removed — the init script (which contained
+  # `${MONGO_PASS}` substituted by Flux into plaintext) only runs on MongoDB's
+  # first startup when the data dir is empty. The data dir has been populated
+  # since 2025, so the script was never re-executed. Removing the ConfigMap
+  # eliminates the plaintext credential leak without touching runtime state.
+  # If you ever need to re-bootstrap MongoDB from an empty data dir, recreate
+  # the unifi user manually with: db.getSiblingDB("unifi").createUser({...}).
   - nginx-proxy-configmap.yml
   - deployment.yml
   - service.yml
