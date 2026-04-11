@@ -53,7 +53,7 @@ spec:
               mountPath: /config
       containers:
         - name: filebrowser
-          image: gtstef/filebrowser:1.2.4-stable # {"$imagepolicy": "flux-system:filebrowser"}
+          image: gtstef/filebrowser:1.2.4-stable-slim # {"$imagepolicy": "flux-system:filebrowser"}
           imagePullPolicy: IfNotPresent
           env:
             - name: FILEBROWSER_CONFIG

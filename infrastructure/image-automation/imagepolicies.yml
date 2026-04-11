@@ -7,10 +7,11 @@ metadata:
 spec:
   imageRepositoryRef:
     name: filebrowser
-  # Quantum tags look like `1.2.4-stable`; strip the `-stable` suffix so
-  # semver ordering works, then track latest 1.x stable.
+  # We run the `-stable-slim` variant (no ffmpeg) to avoid the preview
+  # cache warnings on the RPi overlay FS. Strip the suffix so semver
+  # ordering works, then track latest 1.x.
   filterTags:
-    pattern: '^(?P<ver>[0-9]+\.[0-9]+\.[0-9]+)-stable$'
+    pattern: '^(?P<ver>[0-9]+\.[0-9]+\.[0-9]+)-stable-slim$'
     extract: '$ver'
   policy:
     semver:
