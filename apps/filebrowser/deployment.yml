@@ -58,6 +58,12 @@ spec:
           env:
             - name: FILEBROWSER_CONFIG
               value: /config/config.yaml
+            # Silences the early "database file could not be found" warning
+            # from backend/common/settings/config.go, which checks this env
+            # var before config.yaml is parsed. Must match server.database
+            # in config.yml.
+            - name: FILEBROWSER_DATABASE
+              value: /database/quantum.db
           volumeMounts:
             - name: filebrowser
               mountPath: /srv
