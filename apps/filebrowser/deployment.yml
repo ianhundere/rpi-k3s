@@ -71,6 +71,9 @@ spec:
             - name: filebrowser
               mountPath: /database
               subPath: database
+            - name: filebrowser
+              mountPath: /cache
+              subPath: cache
             - name: rendered-config
               mountPath: /config
               readOnly: true

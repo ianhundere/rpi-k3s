@@ -18,6 +18,11 @@ data:
       port: 44301
       baseURL: "/"
       database: "/database/quantum.db"
+      # Point cacheDir at a dedicated subPath on the 60Gi NFS PVC so
+      # Quantum's boot-time probe sees >20GB free (silencing the
+      # low-disk warning) and gets NFS write speed instead of the
+      # ~2 MB/s node overlay (silencing the slow-write warning).
+      cacheDir: "/cache"
       sources:
         - path: "/srv"
     auth:
