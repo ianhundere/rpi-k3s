@@ -16,11 +16,9 @@ metadata:
   namespace: envoy-gateway-system
 spec:
   gatewayClassName: eg
-  infrastructure:
-    parametersRef:
-      group: gateway.envoyproxy.io
-      kind: EnvoyProxy
-      name: proxy-config
+  # NOTE: infrastructure.parametersRef MUST be nil when mergeGateways is
+  # enabled at the GatewayClass level — EG rejects per-Gateway overrides
+  # in merged mode. The EnvoyProxy config is inherited from GatewayClass.
   listeners:
   # --- filebrowser - share.clusterian.pw (internal only) ---
   - name: filebrowser-internal-http
