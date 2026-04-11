@@ -5,11 +5,16 @@ metadata:
   name: filebrowser
   namespace: flux-system
 spec:
-  image: filebrowser/filebrowser
+  image: gtstef/filebrowser
   interval: 30m0s
   exclusionList:
     - "^latest$"
-    - "^develop"
+    - "^stable$"
+    - "^beta$"
+    - "beta"
+    - "slim"
+    - "webdav"
+    - "-private-"
 ---
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageRepository

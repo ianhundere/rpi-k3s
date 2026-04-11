@@ -1,39 +1,3 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: filebrowser-scripts
-  namespace: filebrowser
-  labels:
-    app: filebrowser
-data:
-  init-filebrowser.sh: |
-    #!/usr/bin/env sh
-    /bin/filebrowser config init --database /database/filebrowser.db
-    /bin/filebrowser config set \
-        --database /database/filebrowser.db \
-        --port 44301 \
-        --address 0.0.0.0 \
-        --baseurl "/" \
-        --root "/srv" \
-        --branding.name "hi, welcome." \
-        --branding.disableExternal
-    # Self-healing credential sync: `users add` creates the user on first boot
-    # and is a harmless no-op afterwards; `users update` then forces the
-    # password to whatever is currently in the Secret, so rotating the
-    # SOPS-encrypted FILEBROWSER_PW + restarting the pod is enough to rotate
-    # the running admin credential. Previously this was `users add` only,
-    # which silently ignored SOPS rotations because the user already existed.
-    #
-    # The $${VAR} escape keeps Flux's postBuild envsubst from substituting
-    # the plaintext creds into this ConfigMap at apply time. Flux replaces
-    # $${VAR} with ${VAR}, and the shell then expands ${VAR} at container
-    # runtime from env vars injected via secretKeyRef (see Deployment below).
-    # Without the escape, `kubectl get cm filebrowser-scripts -o yaml` would
-    # leak the plaintext admin password to anyone with namespace RBAC.
-    /bin/filebrowser users add "$${FILEBROWSER_USER}" "$${FILEBROWSER_PW}" --perm.admin --database /database/filebrowser.db 2>/dev/null || true
-    /bin/filebrowser users update "$${FILEBROWSER_USER}" --password "$${FILEBROWSER_PW}" --database /database/filebrowser.db
-    exec /bin/filebrowser --port 44301 --disable-exec --database /database/filebrowser.db
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -45,7 +9,7 @@ spec:
   replicas: 1
   revisionHistoryLimit: 3
   strategy:
-    type: RollingUpdate
+    type: Recreate
   selector:
     matchLabels:
       app: filebrowser
@@ -56,10 +20,21 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
-      containers:
-        - name: filebrowser
-          image: filebrowser/filebrowser:v2.63.2 # {"$imagepolicy": "flux-system:filebrowser"}
-          imagePullPolicy: IfNotPresent
+      initContainers:
+        # Renders /config/config.yaml by expanding ${FILEBROWSER_USER} and
+        # ${FILEBROWSER_PW} (sourced from the SOPS-encrypted Secret) into
+        # the template shipped in the filebrowser-config ConfigMap. See
+        # config.yml for the matching Flux-escape rationale.
+        - name: render-config
+          image: alpine:3.19
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              apk add --no-cache gettext >/dev/null
+              envsubst < /tmpl/config.yaml > /config/config.yaml
+              chmod 0644 /config/config.yaml
           env:
             - name: FILEBROWSER_USER
               valueFrom:
@@ -72,14 +47,27 @@ spec:
                   name: filebrowser-credentials
                   key: FILEBROWSER_PW
           volumeMounts:
+            - name: config-tmpl
+              mountPath: /tmpl
+            - name: rendered-config
+              mountPath: /config
+      containers:
+        - name: filebrowser
+          image: gtstef/filebrowser:1.2.4-stable # {"$imagepolicy": "flux-system:filebrowser"}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FILEBROWSER_CONFIG
+              value: /config/config.yaml
+          volumeMounts:
             - name: filebrowser
               mountPath: /srv
               subPath: files
             - name: filebrowser
               mountPath: /database
               subPath: database
-            - name: filebrowser-scripts
-              mountPath: /scripts
+            - name: rendered-config
+              mountPath: /config
+              readOnly: true
           ports:
             - containerPort: 44301
               protocol: TCP
@@ -89,12 +77,12 @@ spec:
               memory: 512Mi
             limits:
               memory: 512Mi
-          command: ["/bin/sh", "-c", "/scripts/init-filebrowser.sh"]
       volumes:
         - name: filebrowser
           persistentVolumeClaim:
             claimName: filebrowser
-        - name: filebrowser-scripts
+        - name: config-tmpl
           configMap:
-            name: filebrowser-scripts
-            defaultMode: 0755
+            name: filebrowser-config
+        - name: rendered-config
+          emptyDir: {}

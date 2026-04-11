@@ -4,6 +4,7 @@ namespace: filebrowser
 resources:
   - namespace.yml
   - secret.yml
+  - config.yml
   - deployment.yml
   - service.yml
   - pvc.yml

@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebrowser-config
+  namespace: filebrowser
+  labels:
+    app: filebrowser
+data:
+  # FileBrowser Quantum config. Admin creds are rendered at pod start via
+  # an init-container envsubst pass (see deployment.yml). The $${VAR}
+  # escape keeps Flux's postBuild from substituting plaintext creds into
+  # this ConfigMap at apply time — Flux rewrites $${VAR} → ${VAR}, and
+  # envsubst in the init-container expands to the real value at pod start.
+  # Without the escape, `kubectl get cm filebrowser-config -o yaml` would
+  # leak the admin password to anyone with namespace RBAC.
+  config.yaml: |
+    server:
+      port: 44301
+      baseURL: "/"
+      database: "/database/quantum.db"
+      sources:
+        - path: "/srv"
+    auth:
+      adminUsername: "$${FILEBROWSER_USER}"
+      adminPassword: "$${FILEBROWSER_PW}"
+      methods:
+        password:
+          enabled: true
+    frontend:
+      name: "hi, welcome."
+      disableUsedPercentage: true
+    userDefaults:
+      darkMode: true
+      singleClick: true
+      permissions:
+        admin: false
+        modify: false
+        share: false
+        api: false
