@@ -23,6 +23,8 @@ spec:
         {{- range .Changed.Changes}}
         - {{.OldValue}} -> {{.NewValue}}
         {{- end}}
+
+        [skip ci]
     push:
       branch: flux-image-updates
   update:
