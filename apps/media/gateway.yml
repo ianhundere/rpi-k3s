@@ -65,25 +65,8 @@ spec:
       port: 80
   - matches:
     - path:
-        type: Exact
-        value: /soulseek
-    filters:
-    - type: RequestRedirect
-      requestRedirect:
-        path:
-          type: ReplaceFullPath
-          replaceFullPath: /soulseek/
-        statusCode: 301
-  - matches:
-    - path:
         type: PathPrefix
-        value: /soulseek/
-    filters:
-    - type: URLRewrite
-      urlRewrite:
-        path:
-          type: ReplacePrefixMatch
-          replacePrefixMatch: /
+        value: /soulseek
     backendRefs:
     - name: soulseek
       port: 80
