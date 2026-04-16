@@ -42,7 +42,8 @@ spec:
           value: lidarr-main
         - name: LIDARR__POSTGRES__LOGDB
           value: lidarr-log
-        image: linuxserver/lidarr:3.1.0 # {"$imagepolicy": "flux-system:lidarr"}
+        # Nightly required for slskd plugin support. Flux automation disabled (semver tag can't track nightly).
+        image: linuxserver/lidarr:3.1.2-nightly
         imagePullPolicy: IfNotPresent
         name: lidarr
         ports:
