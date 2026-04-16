@@ -85,6 +85,16 @@ spec:
               value: '/downloads'
             - name: SLSKD_SHARED_DIR
               value: '[Music]/music'
+            - name: SLSKD_SLSK_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: soulseek
+                  key: slsk-username
+            - name: SLSKD_SLSK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: soulseek
+                  key: slsk-password
             - name: SLSKD_API_KEY
               valueFrom:
                 secretKeyRef:
