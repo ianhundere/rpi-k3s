@@ -43,9 +43,12 @@ spec:
                 secretKeyRef:
                   name: media-postgres
                   key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql
+              subPath: media-postgres
             - name: init-scripts
               mountPath: /docker-entrypoint-initdb.d
           livenessProbe:
