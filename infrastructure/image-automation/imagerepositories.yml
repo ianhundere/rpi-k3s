@@ -110,6 +110,20 @@ spec:
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageRepository
 metadata:
+  name: lidarr
+  namespace: flux-system
+spec:
+  image: linuxserver/lidarr
+  interval: 30m0s
+  exclusionList:
+    - "^latest$"
+    - "^develop"
+    - "^nightly"
+    - "-ls\\d+$"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
   name: quixit
   namespace: flux-system
 spec:

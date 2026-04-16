@@ -34,6 +34,13 @@ spec:
       port: 80
   - matches:
     - path:
+        type: PathPrefix
+        value: /lidarr
+    backendRefs:
+    - name: lidarr
+      port: 80
+  - matches:
+    - path:
         type: Exact
         value: /qbit
     filters:

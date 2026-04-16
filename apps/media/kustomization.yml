@@ -12,5 +12,6 @@ resources:
   - prowlarr/
   - sonarr/
   - radarr/
+  - lidarr/
   - calibre/
   - soulseek/

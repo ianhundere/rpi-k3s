@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: lidarr
+  name: lidarr
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: lidarr
+  template:
+    metadata:
+      labels:
+        app: lidarr
+    spec:
+      enableServiceLinks: false
+      containers:
+      - env:
+        - name: PUID
+          value: '1000'
+        - name: PGID
+          value: '1000'
+        - name: TZ
+          value: 'UTC'
+        - name: LIDARR__POSTGRES__HOST
+          value: media-postgres
+        - name: LIDARR__POSTGRES__PORT
+          value: '5432'
+        - name: LIDARR__POSTGRES__USER
+          value: media
+        - name: LIDARR__POSTGRES__PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: media-postgres
+              key: password
+        - name: LIDARR__POSTGRES__MAINDB
+          value: lidarr-main
+        - name: LIDARR__POSTGRES__LOGDB
+          value: lidarr-log
+        image: linuxserver/lidarr:2.11.2 # {"$imagepolicy": "flux-system:lidarr"}
+        imagePullPolicy: IfNotPresent
+        name: lidarr
+        ports:
+        - containerPort: 8686
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            memory: 512Mi
+        startupProbe:
+          httpGet:
+            path: /lidarr/ping
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 18
+        readinessProbe:
+          httpGet:
+            path: /lidarr/ping
+            port: http
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /lidarr/ping
+            port: http
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 10
+        volumeMounts:
+        - mountPath: /config
+          name: media-config
+          subPath: lidarr
+        - mountPath: /downloads/complete
+          name: media-data
+          subPath: downloads/qbittorrent
+        - mountPath: /downloads/soulseek
+          name: media-data
+          subPath: downloads/soulseek
+        - mountPath: /music
+          name: music-data
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - name: media-config
+        persistentVolumeClaim:
+          claimName: media-config
+      - name: media-data
+        persistentVolumeClaim:
+          claimName: media-data
+      - name: music-data
+        persistentVolumeClaim:
+          claimName: music-data
+      nodeSelector:
+        kubernetes.io/arch: arm64
