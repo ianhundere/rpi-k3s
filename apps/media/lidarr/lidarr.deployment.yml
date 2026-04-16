@@ -90,7 +90,7 @@ spec:
         - mountPath: /music
           name: music-data
       - name: soularr
-        image: mrusse08/soularr:1.1.0
+        image: mrusse08/soularr:v1.1.0
         env:
         - name: TZ
           value: 'UTC'
