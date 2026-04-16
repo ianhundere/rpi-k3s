@@ -110,6 +110,19 @@ spec:
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageRepository
 metadata:
+  name: slskd
+  namespace: flux-system
+spec:
+  image: slskd/slskd
+  interval: 30m0s
+  exclusionList:
+    - "^latest$"
+    - "^canary"
+    - "-\\w+$"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
   name: lidarr
   namespace: flux-system
 spec:

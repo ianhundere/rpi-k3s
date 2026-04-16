@@ -89,9 +89,32 @@ spec:
           subPath: downloads/soulseek
         - mountPath: /music
           name: music-data
+      - name: soularr
+        image: mrusse08/soularr:1.1.0
+        env:
+        - name: TZ
+          value: 'UTC'
+        - name: SCRIPT_INTERVAL
+          value: '300'
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 128Mi
+        volumeMounts:
+        - mountPath: /data/config.ini
+          name: soularr-config
+          subPath: config.ini
+        - mountPath: /downloads/soulseek
+          name: media-data
+          subPath: downloads/soulseek
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:
+      - name: soularr-config
+        secret:
+          secretName: soularr-config
       - name: media-config
         persistentVolumeClaim:
           claimName: media-config

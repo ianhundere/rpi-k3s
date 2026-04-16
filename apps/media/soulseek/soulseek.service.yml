@@ -15,4 +15,4 @@ spec:
     - name: http
       protocol: TCP
       port: 80
-      targetPort: 6080
+      targetPort: 5030
