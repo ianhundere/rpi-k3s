@@ -123,7 +123,7 @@ spec:
     name: lidarr
   policy:
     semver:
-      range: ">=2.0.0 <3.0.0"
+      range: ">=3.0.0 <4.0.0"
 ---
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImagePolicy
