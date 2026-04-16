@@ -20,6 +20,8 @@ spec:
     spec:
       hostname: soulseek
       enableServiceLinks: false
+      securityContext:
+        fsGroup: 1000
       initContainers:
         - name: sysctl-setup
           image: busybox
@@ -70,6 +72,9 @@ spec:
               memory: 512Mi
         - name: slskd
           image: slskd/slskd:0.24.5 # {"$imagepolicy": "flux-system:slskd"}
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
           env:
             - name: SLSKD_REMOTE_CONFIGURATION
               value: 'true'
