@@ -1,13 +1,27 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-postgres-pvc
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-rpik3s
+  resources:
+    requests:
+      storage: 5Gi
+---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: media-postgres
   namespace: media
   labels:
     app: media-postgres
 spec:
-  serviceName: media-postgres
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: media-postgres
@@ -18,7 +32,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:16-alpine
+          image: postgres:18-alpine
           ports:
             - containerPort: 5432
           env:
@@ -29,11 +43,9 @@ spec:
                 secretKeyRef:
                   name: media-postgres
                   key: password
-            - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata
           volumeMounts:
             - name: postgres-data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
             - name: init-scripts
               mountPath: /docker-entrypoint-initdb.d
           livenessProbe:
@@ -53,19 +65,12 @@ spec:
             limits:
               memory: 512Mi
       volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: media-postgres-pvc
         - name: init-scripts
           configMap:
             name: media-postgres-init
-  volumeClaimTemplates:
-    - metadata:
-        name: postgres-data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        storageClassName: nfs-rpik3s
-        resources:
-          requests:
-            storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
@@ -80,4 +85,3 @@ spec:
       targetPort: 5432
   selector:
     app: media-postgres
-  clusterIP: None
