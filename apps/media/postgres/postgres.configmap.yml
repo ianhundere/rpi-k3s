@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: media-postgres-init
+  namespace: media
+data:
+  init-databases.sh: |
+    #!/bin/bash
+    set -e
+    for db in sonarr-main sonarr-log radarr-main radarr-log prowlarr-main prowlarr-log; do
+      echo "Creating database: $db"
+      psql -v ON_ERROR_STOP=0 --username "$POSTGRES_USER" -c "CREATE DATABASE \"$db\";" || true
+    done

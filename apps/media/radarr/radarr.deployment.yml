@@ -18,12 +18,28 @@ spec:
       labels:
         app: radarr
     spec:
+      enableServiceLinks: false
       containers:
       - env:
         - name: PUID
           value: '1000'
         - name: PGID
           value: '1000'
+        - name: RADARR__POSTGRES__HOST
+          value: media-postgres
+        - name: RADARR__POSTGRES__PORT
+          value: '5432'
+        - name: RADARR__POSTGRES__USER
+          value: media
+        - name: RADARR__POSTGRES__PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: media-postgres
+              key: password
+        - name: RADARR__POSTGRES__MAINDB
+          value: radarr-main
+        - name: RADARR__POSTGRES__LOGDB
+          value: radarr-log
         image: linuxserver/radarr:6.1.1 # {"$imagepolicy": "flux-system:radarr"}
         imagePullPolicy: IfNotPresent
         name: radarr

@@ -18,12 +18,28 @@ spec:
       labels:
         app: sonarr
     spec:
+      enableServiceLinks: false
       containers:
       - env:
         - name: PUID
           value: '1000'
         - name: PGID
           value: '1000'
+        - name: SONARR__POSTGRES__HOST
+          value: media-postgres
+        - name: SONARR__POSTGRES__PORT
+          value: '5432'
+        - name: SONARR__POSTGRES__USER
+          value: media
+        - name: SONARR__POSTGRES__PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: media-postgres
+              key: password
+        - name: SONARR__POSTGRES__MAINDB
+          value: sonarr-main
+        - name: SONARR__POSTGRES__LOGDB
+          value: sonarr-log
         image: linuxserver/sonarr:4.0.17 # {"$imagepolicy": "flux-system:sonarr"}
         imagePullPolicy: IfNotPresent
         name: sonarr

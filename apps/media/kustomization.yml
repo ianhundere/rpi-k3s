@@ -4,6 +4,8 @@ namespace: media
 resources:
   - namespace.yml
   - gateway.yml
+  # shared services
+  - postgres/
   # media apps
   - plex/
   - qbittorrent/

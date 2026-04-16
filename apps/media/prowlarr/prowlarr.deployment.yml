@@ -19,6 +19,7 @@ spec:
         app: prowlarr
     spec:
       hostname: prowlarr
+      enableServiceLinks: false
       initContainers:
       - name: sysctl-setup
         image: busybox
@@ -89,6 +90,21 @@ spec:
           value: '1000'
         - name: PGID
           value: '1000'
+        - name: PROWLARR__POSTGRES__HOST
+          value: media-postgres
+        - name: PROWLARR__POSTGRES__PORT
+          value: '5432'
+        - name: PROWLARR__POSTGRES__USER
+          value: media
+        - name: PROWLARR__POSTGRES__PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: media-postgres
+              key: password
+        - name: PROWLARR__POSTGRES__MAINDB
+          value: prowlarr-main
+        - name: PROWLARR__POSTGRES__LOGDB
+          value: prowlarr-log
         ports:
         - containerPort: 9696
           name: http
