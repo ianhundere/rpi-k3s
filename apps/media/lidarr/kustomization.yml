@@ -5,3 +5,4 @@ resources:
   - lidarr.service.yml
   - lidarr.deployment.yml
   - soularr.secret.yml
+  - import-sweeper.cronjob.yml

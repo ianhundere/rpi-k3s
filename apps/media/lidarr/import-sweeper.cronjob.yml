@@ -1,0 +1,75 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: lidarr-import-sweeper
+  namespace: media
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: sweeper
+              image: python:3.12-alpine
+              env:
+                - name: LIDARR_API_KEY
+                  value: "8a57f95c3c52405696d42cfe77420ab9"
+                - name: LIDARR_URL
+                  value: "http://lidarr:80/lidarr/api/v1"
+              command:
+                - python3
+                - -c
+                - |
+                  import json, os, urllib.request, urllib.parse
+                  API_KEY = os.environ['LIDARR_API_KEY']
+                  BASE = os.environ['LIDARR_URL']
+                  def api(method, path, data=None):
+                      headers = {'X-Api-Key': API_KEY, 'Content-Type': 'application/json'}
+                      body = json.dumps(data).encode() if data else None
+                      req = urllib.request.Request(f'{BASE}{path}', data=body, headers=headers, method=method)
+                      try:
+                          with urllib.request.urlopen(req, timeout=60) as r:
+                              return json.loads(r.read())
+                      except Exception as e:
+                          return None
+                  # List album folders in downloads/soulseek via Lidarr filesystem API
+                  fs = api('GET', '/filesystem?path=/downloads/soulseek/&includeFiles=false') or {}
+                  subdirs = [d['path'].rstrip('/') for d in fs.get('directories', [])
+                             if not d['name'].startswith('.')
+                             and d['name'] not in ('complete', 'downloading', 'failed_imports')]
+                  print(f'Found {len(subdirs)} candidate folders')
+                  total = 0
+                  for folder in subdirs:
+                      enc = urllib.parse.quote(folder)
+                      items = api('GET', f'/manualimport?folder={enc}&filterExistingFiles=true')
+                      if not isinstance(items, list):
+                          continue
+                      valid = [i for i in items if len(i.get('rejections',[])) == 0
+                               and i.get('artist') and i.get('album') and i.get('tracks')]
+                      if not valid:
+                          continue
+                      files = [{
+                          'path': i['path'], 'folderName': i.get('folderName',''),
+                          'artistId': i['artist']['id'], 'albumId': i['album']['id'],
+                          'albumReleaseId': i.get('albumReleaseId') or (i.get('albumRelease') or {}).get('id'),
+                          'trackIds': [t['id'] for t in i['tracks']],
+                          'quality': i.get('quality'), 'releaseGroup': i.get('releaseGroup',''),
+                          'downloadId': i.get('downloadId',''), 'additionalFile': False,
+                          'replaceExistingFiles': False, 'disableReleaseSwitching': False,
+                      } for i in valid]
+                      cmd = api('POST', '/command', {'name': 'ManualImport', 'files': files, 'importMode': 'move'})
+                      if isinstance(cmd, dict) and cmd.get('id'):
+                          print(f'Imported {len(files)} from {folder}')
+                          total += len(files)
+                  print(f'Total: {total} tracks queued for import')
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  memory: 128Mi
