@@ -110,9 +110,8 @@ spec:
             limits:
               memory: 512Mi
           volumeMounts:
-            - name: media-config
+            - name: slskd-app
               mountPath: /app
-              subPath: slskd/config
             - name: media-data
               mountPath: /downloads
               subPath: downloads/soulseek
@@ -122,6 +121,9 @@ spec:
       dnsConfig:
         nameservers: ['1.1.1.1', '1.0.0.1']
       volumes:
+        - name: slskd-app
+          persistentVolumeClaim:
+            claimName: slskd-app
         - name: media-config
           persistentVolumeClaim:
             claimName: media-config

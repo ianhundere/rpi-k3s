@@ -3,5 +3,6 @@ kind: Kustomization
 namespace: media
 resources:
   - soulseek.vpn_secret.yml
+  - soulseek.pvc.yml
   - soulseek.service.yml
   - soulseek.deployment.yml
