@@ -87,7 +87,7 @@ spec:
             - name: SLSKD_URL_BASE
               value: '/soulseek'
             - name: SLSKD_DOWNLOADS_DIR
-              value: '/downloads'
+              value: '/downloads/soulseek'
             - name: SLSKD_SHARED_DIR
               value: '[Music]/music'
             - name: SLSKD_SLSK_USERNAME
@@ -118,7 +118,7 @@ spec:
             - name: slskd-app
               mountPath: /app
             - name: media-data
-              mountPath: /downloads
+              mountPath: /downloads/soulseek
               subPath: downloads/soulseek
             - name: music-data
               mountPath: /music
