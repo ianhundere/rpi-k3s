@@ -4,6 +4,7 @@ namespace: media
 resources:
   - namespace.yml
   - gateway.yml
+  - backend-traffic-policy.yml
   # shared services
   - postgres/
   # media apps
