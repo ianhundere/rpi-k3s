@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: soulseek-port-sync
+  namespace: media
+data:
+  sync.sh: |
+    #!/bin/sh
+    set -u
+    PORT_FILE="/gluetun/forwarded_port"
+    API_URL="http://127.0.0.1:5030/soulseek/api/v0/options"
+    LAST_PORT=""
+    echo "[port-sync] starting (slskd)"
+    while true; do
+      if [ -f "$PORT_FILE" ]; then
+        PORT=$(tr -d '[:space:]' < "$PORT_FILE" 2>/dev/null || true)
+        if [ -n "$PORT" ] && [ "$PORT" != "$LAST_PORT" ]; then
+          echo "[port-sync] syncing slskd listenPort=$PORT"
+          if curl -fsS -X PATCH \
+               -H "X-API-Key: ${SLSKD_API_KEY}" \
+               -H "Content-Type: application/json" \
+               -d "{\"soulseek\":{\"listenPort\":$PORT}}" \
+               "$API_URL" > /dev/null; then
+            LAST_PORT="$PORT"
+            echo "[port-sync] ok"
+          else
+            echo "[port-sync] slskd api call failed, retrying"
+          fi
+        fi
+      fi
+      sleep 30
+    done

@@ -6,3 +6,4 @@ resources:
   - soulseek.pvc.yml
   - soulseek.service.yml
   - soulseek.deployment.yml
+  - port-sync.configmap.yml

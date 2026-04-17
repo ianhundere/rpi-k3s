@@ -5,3 +5,4 @@ resources:
   - qbittorrent.vpn_secret.yml
   - qbittorrent.service.yml
   - qbittorrent.deployment.yml
+  - port-sync.configmap.yml

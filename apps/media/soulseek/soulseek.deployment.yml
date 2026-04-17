@@ -64,6 +64,8 @@ spec:
           volumeMounts:
             - mountPath: /dev/net/tun
               name: tun-device
+            - mountPath: /tmp/gluetun
+              name: gluetun-shared
           resources:
             requests:
               cpu: 100m
@@ -80,8 +82,6 @@ spec:
               value: 'true'
             - name: SLSKD_HTTP_PORT
               value: '5030'
-            - name: SLSKD_SLSK_LISTEN_PORT
-              value: '50300'
             - name: SLSKD_NO_HTTPS
               value: 'true'
             - name: SLSKD_URL_BASE
@@ -122,6 +122,27 @@ spec:
               subPath: downloads/soulseek
             - name: music-data
               mountPath: /music
+        - name: port-sync
+          image: curlimages/curl:8.10.1
+          command: ['/bin/sh', '/scripts/sync.sh']
+          env:
+            - name: SLSKD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: soulseek
+                  key: api-key
+          volumeMounts:
+            - name: gluetun-shared
+              mountPath: /gluetun
+              readOnly: true
+            - name: port-sync-script
+              mountPath: /scripts
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 32Mi
       dnsPolicy: None
       dnsConfig:
         nameservers: ['1.1.1.1', '1.0.0.1']
@@ -142,5 +163,11 @@ spec:
           hostPath:
             path: /dev/net/tun
             type: CharDevice
+        - name: gluetun-shared
+          emptyDir: {}
+        - name: port-sync-script
+          configMap:
+            name: soulseek-port-sync
+            defaultMode: 0755
       nodeSelector:
         kubernetes.io/arch: arm64

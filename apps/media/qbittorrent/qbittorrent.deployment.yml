@@ -62,6 +62,8 @@ spec:
       volumeMounts:
        - mountPath: /dev/net/tun
          name: tun-device
+       - mountPath: /tmp/gluetun
+         name: gluetun-shared
       resources:
        requests:
         cpu: 100m
@@ -102,6 +104,21 @@ spec:
        - mountPath: /downloads/complete
          name: media-data
          subPath: downloads/qbittorrent
+    - name: port-sync
+      image: curlimages/curl:8.10.1
+      command: ['/bin/sh', '/scripts/sync.sh']
+      volumeMounts:
+       - mountPath: /gluetun
+         name: gluetun-shared
+         readOnly: true
+       - mountPath: /scripts
+         name: port-sync-script
+      resources:
+       requests:
+        cpu: 10m
+        memory: 32Mi
+       limits:
+        memory: 32Mi
    restartPolicy: Always
    dnsPolicy: None
    dnsConfig:
@@ -117,5 +134,11 @@ spec:
       hostPath:
        path: /dev/net/tun
        type: CharDevice
+    - name: gluetun-shared
+      emptyDir: {}
+    - name: port-sync-script
+      configMap:
+       name: qbittorrent-port-sync
+       defaultMode: 0755
    nodeSelector:
     kubernetes.io/arch: arm64
