@@ -45,27 +45,21 @@ spec:
             limits:
               memory: "512Mi"
           startupProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: http
             initialDelaySeconds: 15
             periodSeconds: 10
-            timeoutSeconds: 5
             failureThreshold: 18
           readinessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: http
             periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 10
+            failureThreshold: 3
           livenessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: http
             periodSeconds: 30
-            timeoutSeconds: 10
-            failureThreshold: 10
+            failureThreshold: 5
       volumes:
         - name: media-config
           persistentVolumeClaim:
