@@ -305,7 +305,11 @@ kubectl get orders,challenges -n envoy-gateway-system
   - see: `apps/media/radarr/`
 - **calibre** - ebook management (media.tools/calibre)
   - see: `apps/media/calibre/`
-- **soulseek** - music sharing (media.tools/soulseek)
+- **lidarr** - music automation (media.tools/lidarr)
+  - nightly image + Tubifarry plugin for native slskd integration (search, grab, download, import)
+  - see: `apps/media/lidarr/`
+- **soulseek/slskd** - music sharing (media.tools/soulseek)
+  - slskd REST-API fork of Soulseek; behind gluetun VPN sidecar with dynamic port forwarding
   - see: `apps/media/soulseek/`
 
 **application notes:**
@@ -320,8 +324,12 @@ kubectl get orders,challenges -n envoy-gateway-system
 - prowlarr: set URL base to `/prowlarr` in Settings > General. manages all indexers centrally and auto-syncs to sonarr/radarr via app-sync
 - sonarr: requires `config.xml` in `<nfs_path>/sonarr/` with `<Config><UrlBase>/sonarr</UrlBase></Config>`
 - radarr: requires `config.xml` in `<nfs_path>/radarr/` with `<Config><UrlBase>/radarr</UrlBase></Config>`
-- connections: radarr/sonarr connect to qbittorrent at `qbittorrent.media:9091`
-- indexers: managed by prowlarr — add indexers in prowlarr UI and they auto-sync to sonarr/radarr
+- lidarr: Postgres-backed (shared `media-postgres`). Install the Tubifarry plugin via Lidarr System → Plugins (source: `https://github.com/TypNull/Tubifarry`). Delay Profile in Lidarr's Postgres state has `Torrent=5min, Soulseek=0` so slskd has time to return slower results before qBit wins the race. Mount `/downloads/soulseek` aligned with slskd's `SLSKD_DOWNLOADS_DIR`.
+- **Tubifarry Remote Path Mapping (required)**: Settings → Download Clients → Remote Path Mappings → `host=soulseek, remote=/downloads/, local=/downloads/soulseek/`. Tubifarry reports import paths without the `/soulseek/` prefix regardless of slskd's `downloads_dir`; without this mapping every Lidarr import from slskd fails with `path does not exist or is not accessible by Lidarr`. Observed on Tubifarry net8.0 nightly (2026-04-18).
+- connections: radarr/sonarr connect to qbittorrent at `qbittorrent.media:9091`; lidarr uses both qbittorrent (torrent) and slskd (via Tubifarry, `http://soulseek:80`)
+- indexers: managed by prowlarr — add indexers in prowlarr UI and they auto-sync to sonarr/radarr. Lidarr uses Tubifarry as its own slskd indexer (not synced from prowlarr)
+- **gluetun port-sync sidecars** (slskd + qbittorrent pods): a small `curlimages/curl` sidecar watches gluetun's `/tmp/gluetun/forwarded_port` (shared via emptyDir) and patches each app's listen port whenever ProtonVPN rotates the forwarded port. No manual updates required when the VPN port changes. Config lives in each app's `port-sync.configmap.yml`.
+- **calibre-web probes**: use `tcpSocket` probes, not `httpGet /`. Calibre-web's `/` renders the full book list (can take 60+s on RPi for a 1.6GB library), which blows past HTTP liveness timeouts and triggers kubelet kills. TCP probes only check the listener is up.
 
 ## install nfs-provisioner
 
