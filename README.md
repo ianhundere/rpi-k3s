@@ -283,7 +283,7 @@ kubectl get orders,challenges -n envoy-gateway-system
   - see: `apps/unifi/`
 - **quixit** (quixit.us) - music collaboration challenge platform
   - automated phase transitions via cronjobs, file-watcher sidecar
-  - see: `apps/quixit/` and [apps/quixit/README.md](apps/quixit/README.md) for details
+  - see: `apps/quixit/` (app source + docs live in the separate quixit repo)
 - **plex** (media.clusterian.pw) - media server routing
   - uses EndpointSlice to route traffic to NAS (${NFS_IP})
   - see: `apps/media/plex/`
