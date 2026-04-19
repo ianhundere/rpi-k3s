@@ -30,6 +30,37 @@ spec:
     namespace: envoy-gateway-system
     sectionName: quixit-us-https
   rules:
+  # SSE long-poll: Envoy's default route timeout (15s) was killing the
+  # /api/sse stream before even the first keepalive (20s). timeouts.request:
+  # "0s" disables the request timeout for this path only — all other
+  # requests keep the default. Note: the BackendTrafficPolicy below still
+  # applies connectionIdleTimeout: 600s / maxConnectionDuration: 600s to
+  # this route, so the stream is "long but not infinite" — capped at 10min.
+  # Client auto-reconnects on drop.
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/sse
+    timeouts:
+      request: "0s"
+      backendRequest: "0s"
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
+        - name: Access-Control-Allow-Origin
+          value: "*"
+        - name: Access-Control-Allow-Credentials
+          value: "true"
+        - name: Referrer-Policy
+          value: "strict-origin-when-cross-origin"
+        - name: X-Content-Type-Options
+          value: "nosniff"
+    backendRefs:
+    - name: quixit
+      port: 8080
   - matches:
     - path:
         type: PathPrefix
