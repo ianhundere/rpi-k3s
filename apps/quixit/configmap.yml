@@ -45,4 +45,4 @@ data:
   SMTP_HOST: "smtp.resend.com"
   SMTP_PORT: "587"
   SMTP_USER: "resend"
-  SMTP_FROM: "noreply@auth.quixit.us"
+  SMTP_FROM: "noreply@quixit.us"
