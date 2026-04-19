@@ -176,10 +176,12 @@ git push
 # within 1 minute (or force sync):
 flux reconcile kustomization flux-system --with-source
 
-# 4. config/cluster-secrets.enc.yaml and config/cluster-vars.enc.yaml
-# are NOT managed by flux — apply them manually with server-side apply:
+# 4. config/cluster-secrets.enc.yaml and config/cluster-vars.yaml
+# are NOT managed by flux — apply them manually with server-side apply.
+# cluster-secrets.enc.yaml is SOPS-encrypted; cluster-vars.yaml is plaintext
+# (it only holds non-secret hostnames and LAN IPs):
 sops -d config/cluster-secrets.enc.yaml | kubectl apply --server-side --force-conflicts -f -
-sops -d config/cluster-vars.enc.yaml    | kubectl apply --server-side --force-conflicts -f -
+kubectl apply --server-side --force-conflicts -f config/cluster-vars.yaml
 ```
 
 **⚠ do not use plain `kubectl apply -f` for these:** client-side apply
