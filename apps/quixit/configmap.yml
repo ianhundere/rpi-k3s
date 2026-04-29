@@ -46,3 +46,13 @@ data:
   SMTP_PORT: "587"
   SMTP_USER: "resend"
   SMTP_FROM: "noreply@quixit.us"
+
+  # IRC chat bridge — relays messages between /chat and Libera #quixit via the
+  # quixit-bot NickServ account. SASL password sourced from quixit-credentials.
+  IRC_ENABLED: "true"
+  IRC_SERVER: "irc.libera.chat:6697"
+  IRC_NICK: "quixit-bot"
+  IRC_CHANNEL: "#quixit"
+  IRC_SASL_USER: "quixit-bot"
+  IRC_RATE_LIMIT_PER_MIN: "5"
+  IRC_RATE_LIMIT_PER_HOUR: "20"
