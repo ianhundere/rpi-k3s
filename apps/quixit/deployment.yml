@@ -67,6 +67,12 @@ spec:
                   name: quixit-credentials
                   key: smtp-password
                   optional: true
+            - name: IRC_SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: quixit-credentials
+                  key: irc-sasl-password
+                  optional: true
           volumeMounts:
             - name: quixit-storage
               mountPath: /var/quixit
