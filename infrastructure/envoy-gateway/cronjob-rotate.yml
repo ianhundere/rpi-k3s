@@ -25,6 +25,13 @@
 # 3. Label selector `app.kubernetes.io/component=proxy` — matches only the
 #    data-plane pod, not the control-plane `envoy-gateway` controller.
 #    Control plane has its own much-slower drift pattern and is left alone.
+#    **WARNING for future maintainers:** the selector deletes ALL matching
+#    pods. Safe today because the data plane runs `replicas: 1`. If that
+#    ever becomes 2+ (true HA), this rewrites to a full outage instead of
+#    a rolling restart. Switch to "delete the oldest pod only" via e.g.
+#    `kubectl get pods ... --sort-by=.metadata.creationTimestamp -o name | head -1`
+#    when replicas grows. Also stagger the rotation across pods (e.g. odd
+#    weeks rotate pod-0, even weeks pod-1) to preserve HA during the recycle.
 #
 # 4. RBAC scoped to `envoy-gateway-system` namespace, pods resource only.
 #    No cluster-wide permissions. Cannot affect any other workload.
@@ -94,6 +101,13 @@ spec:
                 # the rotation while the data plane is already mid-restart
                 # from some other cause.
                 - --ignore-not-found=true
+                # --wait=false skips the watch-for-termination poll. We
+                # don't need to babysit deletion — the Deployment
+                # controller recreates the pod independently. Without
+                # this flag kubectl tries to watch and hits a Role-scope
+                # permission error (we deliberately didn't grant `watch`
+                # — minimum-privilege).
+                - --wait=false
               resources:
                 requests:
                   cpu: 10m
