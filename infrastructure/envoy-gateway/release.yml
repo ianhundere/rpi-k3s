@@ -25,5 +25,11 @@ spec:
           requests:
             memory: 256Mi
             cpu: 50m
+          # Control-plane limit raised from 256Mi → 512Mi as a defensive
+          # parity move after the data-plane (envoyproxy.yml) hit a
+          # cgroup-pressure crash at its 256Mi ceiling. Controller current
+          # usage is ~75Mi steady-state — far less leaky than the data
+          # plane — but the same failure pattern is theoretically reachable
+          # over long uptime, and 512Mi cheaply removes that risk.
           limits:
-            memory: 256Mi
+            memory: 512Mi

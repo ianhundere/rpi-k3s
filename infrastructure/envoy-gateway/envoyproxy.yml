@@ -21,8 +21,15 @@ spec:
             requests:
               memory: "256Mi"
               cpu: "50m"
+            # Limit raised from 256Mi → 1Gi after a 33-day Envoy data-plane
+            # crashloop traced to TCMalloc CHECK failure (exit 133) under
+            # cgroup memory pressure. Fresh-pod baseline is ~50Mi but Envoy's
+            # internal counters / connection pools / leaks grow over weeks; the
+            # 256Mi ceiling left no headroom for TCMalloc arena expansion and
+            # the allocator aborted rather than retried. 1Gi gives multi-month
+            # headroom without crowding the amd64 worker node it lands on.
             limits:
-              memory: "256Mi"
+              memory: "1Gi"
       envoyService:
         externalTrafficPolicy: Local
         # In merged-gateway mode, the per-Gateway `metallb` annotation on
