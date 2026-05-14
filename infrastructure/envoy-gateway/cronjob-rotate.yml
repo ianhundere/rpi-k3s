@@ -79,24 +79,21 @@ spec:
           restartPolicy: Never
           containers:
             - name: kubectl
+              # rancher/kubectl is a slim image without `sh`; invoke kubectl
+              # directly via args rather than wrapping in a shell.
               image: rancher/kubectl:v1.35.1
-              command:
-                - sh
-                - -c
-                - |
-                  set -eu
-                  echo "Rotating Envoy data-plane pod(s) in envoy-gateway-system..."
-                  pods=$(kubectl get pods -n envoy-gateway-system \
-                    -l 'app.kubernetes.io/component=proxy' \
-                    -o name)
-                  if [ -z "$pods" ]; then
-                    echo "No data-plane pods found — nothing to rotate."
-                    exit 0
-                  fi
-                  echo "Found pod(s):"
-                  echo "$pods"
-                  echo "$pods" | xargs -r kubectl delete -n envoy-gateway-system --grace-period=30
-                  echo "Deletion issued. Deployment controller will recreate."
+              command: ["kubectl"]
+              args:
+                - delete
+                - pod
+                - --namespace=envoy-gateway-system
+                - --selector=app.kubernetes.io/component=proxy
+                - --grace-period=30
+                # --ignore-not-found makes the CronJob a no-op (exit 0)
+                # when no matching pod exists — defensive against running
+                # the rotation while the data plane is already mid-restart
+                # from some other cause.
+                - --ignore-not-found=true
               resources:
                 requests:
                   cpu: 10m
