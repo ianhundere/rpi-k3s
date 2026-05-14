@@ -1,0 +1,105 @@
+---
+# Weekly rotation of the Envoy data-plane pod. Belt-and-suspenders for the
+# TCMalloc-under-cgroup-pressure failure mode that took down quixit.us +
+# auth.quixit.us on 2026-05-14 after 33 days of pod uptime.
+#
+# Why this exists even though we raised the memory limit and bumped Envoy
+# Gateway: the underlying failure mode is unbounded allocator drift over time.
+# 4× memory headroom + v1.8.0's deferred stat creation push the natural
+# failure interval out to many months, but never to zero. A scheduled weekly
+# pod recycle resets allocator state before the ceiling can be approached.
+#
+# Design choices, each load-bearing:
+#
+# 1. `kubectl delete pod` (not `rollout restart`) — Flux ignores pod-level
+#    operations. The 2026-05-14 cascade was caused by `rollout restart`
+#    adding a `kubectl.kubernetes.io/restartedAt` annotation, which Flux
+#    reverted on next reconcile, triggering wave-2 restarts of everything.
+#    Pod deletion is invisible to Flux.
+#
+# 2. Sunday 10:00 UTC = 03:00 PDT — verified dead window for quixit's user
+#    base (US-centric, small community). The 5-min scheduler ticker is
+#    24/7 but absorbs a 5-10s API blip without issue (next tick picks up).
+#    Cycle phase transitions are admin-set times; nothing fires at 3am Sun.
+#
+# 3. Label selector `app.kubernetes.io/component=proxy` — matches only the
+#    data-plane pod, not the control-plane `envoy-gateway` controller.
+#    Control plane has its own much-slower drift pattern and is left alone.
+#
+# 4. RBAC scoped to `envoy-gateway-system` namespace, pods resource only.
+#    No cluster-wide permissions. Cannot affect any other workload.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: envoy-data-plane-rotator
+  namespace: envoy-gateway-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: envoy-data-plane-rotator
+  namespace: envoy-gateway-system
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: envoy-data-plane-rotator
+  namespace: envoy-gateway-system
+subjects:
+  - kind: ServiceAccount
+    name: envoy-data-plane-rotator
+    namespace: envoy-gateway-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: envoy-data-plane-rotator
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: envoy-data-plane-rotate
+  namespace: envoy-gateway-system
+spec:
+  # Sunday 10:00 UTC = Sunday 03:00 PDT (US off-peak for quixit's user base)
+  schedule: "0 10 * * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          serviceAccountName: envoy-data-plane-rotator
+          restartPolicy: Never
+          containers:
+            - name: kubectl
+              image: bitnami/kubectl:1.35
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  echo "Rotating Envoy data-plane pod(s) in envoy-gateway-system..."
+                  pods=$(kubectl get pods -n envoy-gateway-system \
+                    -l 'app.kubernetes.io/component=proxy' \
+                    -o name)
+                  if [ -z "$pods" ]; then
+                    echo "No data-plane pods found — nothing to rotate."
+                    exit 0
+                  fi
+                  echo "Found pod(s):"
+                  echo "$pods"
+                  echo "$pods" | xargs -r kubectl delete -n envoy-gateway-system --grace-period=30
+                  echo "Deletion issued. Deployment controller will recreate."
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 64Mi
