@@ -4,7 +4,7 @@
 
 ## access
 
-Public TLS only: `ircs://irc.clusterian.pw:6697` (Let's Encrypt cert via envoy TLS passthrough).
+Public TLS only: `ircs://irc.clusterian.pw:443` (Let's Encrypt cert via envoy TLS passthrough — non-standard port because the envoy LB only exposes 80/443; SNI routes the hostname to soju).
 
 Pair with any IRC client — [senpai](https://sr.ht/~taiite/senpai/), weechat, irssi.
 
@@ -19,11 +19,11 @@ Pair with any IRC client — [senpai](https://sr.ht/~taiite/senpai/), weechat, i
 `~/.config/senpai/senpai.scfg`:
 
 ```scfg
-address irc.clusterian.pw:6697
+address irc.clusterian.pw:443
+tls true
 nickname YourNick
 username admin@laptop
 password YourSojuPassword
-tls true
 ```
 
 Multi-network — append the network to username: `admin/libera@laptop`.
