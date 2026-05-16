@@ -4,18 +4,14 @@
 
 ## access
 
-| method    | address                      | notes                                   |
-|-----------|------------------------------|-----------------------------------------|
-| public    | `ircs://irc.clusterian.pw:6697` | Let's Encrypt via envoy TLS passthrough |
-| tailscale | `irc://soju:6667`            | plaintext, encrypted by the tailnet     |
+Public TLS only: `ircs://irc.clusterian.pw:6697` (Let's Encrypt cert via envoy TLS passthrough).
 
 Pair with any IRC client — [senpai](https://sr.ht/~taiite/senpai/), weechat, irssi.
 
 ## architecture
 
 - **soju** — bouncer, SQLite DB + filesystem message store on a PVC
-- **TLS** — cert-manager issues for `irc.clusterian.pw`; envoy-gateway terminates at the edge via passthrough
-- **Tailscale** — service annotated for tailnet exposure as hostname `soju`
+- **TLS** — cert-manager issues for `irc.clusterian.pw`; envoy-gateway terminates at the edge via passthrough on port 6697
 - deployed via flux; see root [README](../../README.md)
 
 ## client config (senpai)

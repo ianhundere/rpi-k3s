@@ -36,8 +36,6 @@ spec:
             runAsGroup: 1000
             allowPrivilegeEscalation: false
           ports:
-            - name: irc
-              containerPort: 6667
             - name: ircs
               containerPort: 6697
             - name: ident
@@ -53,12 +51,12 @@ spec:
               readOnly: true
           readinessProbe:
             tcpSocket:
-              port: 6667
+              port: 6697
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             tcpSocket:
-              port: 6667
+              port: 6697
             initialDelaySeconds: 15
             periodSeconds: 20
           resources:

@@ -6,7 +6,6 @@ metadata:
 data:
   config: |
     hostname soju
-    listen irc+insecure://0.0.0.0:6667
     listen ircs://0.0.0.0:6697
     listen ident://0.0.0.0:113
     listen unix+admin:/var/lib/soju/control.sock
