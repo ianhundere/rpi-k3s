@@ -61,6 +61,71 @@ spec:
     backendRefs:
     - name: quixit
       port: 8080
+  # Long-tail downloads: Envoy's 15s default route timeout cuts ZIP
+  # downloads mid-stream for users on modest connections (~12Mbps user
+  # reported a "failed network error" at 22MB into a sample-pack
+  # download on 2026-05-14 — math: 22MB / 15s = 1.5MB/s = ~12Mbps).
+  # Same fix pattern as the SSE rule above: timeouts: 0s removes the
+  # per-request cap; BackendTrafficPolicy still bounds the underlying
+  # connection at 600s, so downloads are "long but not infinite."
+  # PathPrefix covers:
+  #   GET /api/cycles/:id/sample-pack/download
+  #   GET /api/cycles/:id/song-pack/download
+  # Short JSON endpoints under /api/cycles/ (list, get, status) are
+  # also matched but complete in ms regardless of timeout, so the
+  # broader prefix is harmless.
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/cycles/
+    timeouts:
+      request: "0s"
+      backendRequest: "0s"
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
+        - name: Access-Control-Allow-Origin
+          value: "*"
+        - name: Access-Control-Allow-Credentials
+          value: "true"
+        - name: Referrer-Policy
+          value: "strict-origin-when-cross-origin"
+        - name: X-Content-Type-Options
+          value: "nosniff"
+    backendRefs:
+    - name: quixit
+      port: 8080
+  # Legacy cycle archive playback / file serve. Same 15s-cuts-mid-stream
+  # concern as the cycles/*-pack/download routes; http.ServeFile with
+  # Range support means seeks restart the timer but a sequential play
+  # of a long track on a slow connection would also be cut.
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/legacy/
+    timeouts:
+      request: "0s"
+      backendRequest: "0s"
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
+        - name: Access-Control-Allow-Origin
+          value: "*"
+        - name: Access-Control-Allow-Credentials
+          value: "true"
+        - name: Referrer-Policy
+          value: "strict-origin-when-cross-origin"
+        - name: X-Content-Type-Options
+          value: "nosniff"
+    backendRefs:
+    - name: quixit
+      port: 8080
   - matches:
     - path:
         type: PathPrefix
