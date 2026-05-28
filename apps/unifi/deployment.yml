@@ -29,6 +29,15 @@ spec:
         - name: unifi-db
           image: docker.io/mongo:3.6.23
           restartPolicy: Always
+          # mongo 3.6 isn't cgroup-aware: it sizes wiredTiger cache from
+          # /proc/meminfo (host RAM, ~3.3GiB calculated) regardless of the
+          # container's memory limit, causing recurring OOMKills. Cap the
+          # cache explicitly; bind_ip_all restores the default-listen
+          # behavior that --wiredTigerCacheSizeGB would otherwise omit.
+          args:
+            - mongod
+            - --wiredTigerCacheSizeGB=0.25
+            - --bind_ip_all
           volumeMounts:
             - name: unifi
               mountPath: /data/db
