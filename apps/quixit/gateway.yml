@@ -61,6 +61,39 @@ spec:
     backendRefs:
     - name: quixit
       port: 8080
+  # Chat live-stream SSE: identical failure mode to /api/sse above. This route
+  # was missed when the IRC chat bridge shipped its own stream endpoint, so
+  # Envoy's default 15s route timeout killed /api/chat/stream before the 20s
+  # keepalive could fire — every connection died at ~15s, forcing a reconnect
+  # storm and dropping live cross-device message delivery (messages persisted
+  # to the DB but never fanned out live). timeouts: 0s mirrors /api/sse;
+  # BackendTrafficPolicy below still caps the connection at 600s.
+  # NOTE: every server-sent-events / long-poll route MUST be listed here.
+  # Current SSE/long-poll routes: /api/sse, /api/chat/stream.
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/chat/stream
+    timeouts:
+      request: "0s"
+      backendRequest: "0s"
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
+        - name: Access-Control-Allow-Origin
+          value: "*"
+        - name: Access-Control-Allow-Credentials
+          value: "true"
+        - name: Referrer-Policy
+          value: "strict-origin-when-cross-origin"
+        - name: X-Content-Type-Options
+          value: "nosniff"
+    backendRefs:
+    - name: quixit
+      port: 8080
   # Long-tail downloads: Envoy's 15s default route timeout cuts ZIP
   # downloads mid-stream for users on modest connections (~12Mbps user
   # reported a "failed network error" at 22MB into a sample-pack
