@@ -40,7 +40,7 @@ spec:
           value: radarr-main
         - name: RADARR__POSTGRES__LOGDB
           value: radarr-log
-        image: linuxserver/radarr:6.1.1 # {"$imagepolicy": "flux-system:radarr"}
+        image: linuxserver/radarr:6.2.1 # {"$imagepolicy": "flux-system:radarr"}
         imagePullPolicy: IfNotPresent
         name: radarr
         ports:
