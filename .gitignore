@@ -5,3 +5,8 @@ keys.txt.backup
 # Ansible-generated secrets (belt-and-suspenders with ansible/.gitignore)
 ansible/.k3s-token
 ansible/.kubeconfig
+
+# BMAD tooling + outputs — local-only, never commit/push
+.claude/
+_bmad/
+_bmad-output/
