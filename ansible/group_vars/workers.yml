@@ -1,0 +1,5 @@
+---
+# Worker-specific k3s agent flags.
+# Agents take only the shared kubelet_args (from group_vars/all.yml); no extra
+# server flags apply. Left empty as an explicit, documented extension point.
+k3s_agent_args: []

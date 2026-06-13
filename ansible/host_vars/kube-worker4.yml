@@ -1,0 +1,10 @@
+---
+# amd64 Beelink Mini S (N5095) overrides.
+#
+# ansible_user and install_apparmor are already set inline in inventory.yml;
+# they are restated here as the canonical per-host location and so single-node
+# runs (`--limit kube-worker4`) remain self-documenting.
+#
+# apparmor is installed both when ansible detects an x86_64 architecture and
+# when install_apparmor is true, so this flag is belt-and-suspenders.
+install_apparmor: true

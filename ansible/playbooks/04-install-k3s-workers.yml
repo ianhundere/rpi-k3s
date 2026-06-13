@@ -1,0 +1,80 @@
+---
+# Join worker nodes to the cluster as k3s agents.
+# Requires .k3s-token (produced by 03-install-k3s-master.yml).
+# Idempotent and --limit-safe for onboarding a single new worker.
+- name: Install k3s on worker nodes
+  hosts: workers
+  become: true
+  tasks:
+    - name: Check that the node-token exists on the control machine
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../.k3s-token"
+      register: token_file
+      delegate_to: localhost
+      become: false
+
+    - name: Fail early if token is missing or empty
+      ansible.builtin.fail:
+        msg: >-
+          ansible/.k3s-token missing or empty — re-run 03-install-k3s-master.yml
+          (it may have crashed between creating and writing the token file).
+      when: not token_file.stat.exists or token_file.stat.size == 0
+
+    - name: Load k3s token and master URL
+      ansible.builtin.set_fact:
+        k3s_token: "{{ lookup('file', playbook_dir + '/../.k3s-token') }}"
+        k3s_url: "https://{{ hostvars[groups['masters'][0]]['ansible_host'] }}:6443"
+      no_log: true # k3s_token is the cluster join secret
+
+    - name: Check if k3s is already installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Download k3s install script
+      ansible.builtin.get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: "0755"
+      when: not k3s_binary.stat.exists
+
+    - name: Build k3s agent exec arguments
+      ansible.builtin.set_fact:
+        k3s_exec: >-
+          {{ (k3s_agent_args
+              + (kubelet_args | map('regex_replace', '^(.*)$', '--kubelet-arg=\1') | list))
+             | join(' ') }}
+
+    - name: Install k3s agent
+      ansible.builtin.command: /tmp/k3s-install.sh
+      environment:
+        INSTALL_K3S_VERSION: "{{ k3s_version }}"
+        K3S_URL: "{{ k3s_url }}"
+        K3S_TOKEN: "{{ k3s_token }}"
+        INSTALL_K3S_EXEC: "{{ k3s_exec }}"
+      when: not k3s_binary.stat.exists
+      changed_when: true
+      no_log: true # K3S_TOKEN in the environment must not leak under -v
+
+    - name: Wait for node to report Ready
+      ansible.builtin.command: >-
+        kubectl get node {{ inventory_hostname }}
+        -o jsonpath={.status.conditions[?(@.type=="Ready")].status}
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      delegate_to: "{{ groups['masters'][0] }}"
+      register: node_ready
+      until: node_ready.stdout == "True"
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Label worker node
+      ansible.builtin.command: >-
+        kubectl label node {{ inventory_hostname }}
+        node-role.kubernetes.io/node="" --overwrite
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      delegate_to: "{{ groups['masters'][0] }}"
+      register: label_result
+      changed_when: '"labeled" in label_result.stdout'

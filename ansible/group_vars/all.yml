@@ -1,0 +1,41 @@
+---
+# Shared variables for all rpi-k3s nodes.
+
+# --- K3s ---------------------------------------------------------------
+# Keep in sync with the running cluster (memory: k3s v1.35.1+k3s1).
+k3s_version: v1.35.1+k3s1
+# Applied via the K3S_KUBECONFIG_MODE env var at install time, matching the
+# `write-kubeconfig-mode: "644"` reference in k3s-config/k3s_server-config.yml.
+k3s_kubeconfig_mode: "644"
+
+# Kubelet args — identical on server and agents.
+# Source of truth: k3s-config/k3s_server-config.yml + k3s_agent-config.yml.
+kubelet_args:
+  - "container-log-max-files=5"
+  - "container-log-max-size=50Mi"
+  - "image-gc-high-threshold=85"
+  - "image-gc-low-threshold=80"
+
+# --- Network -----------------------------------------------------------
+# k3s defaults; listed explicitly for documentation.
+cluster_cidr: "10.42.0.0/16"
+service_cidr: "10.43.0.0/16"
+
+# --- NFS ---------------------------------------------------------------
+# nfs-common is always installed (required by the in-cluster
+# nfs-subdir-external-provisioner). A direct OS-level fstab mount is NOT
+# needed for normal operation — leave nfs_direct_mount false unless you want
+# a debug/maintenance mount on the nodes themselves.
+nfs_server: "192.168.3.85" # Synology NAS
+nfs_direct_mount: false
+nfs_mount_path: "/mnt/nfs"
+nfs_share_path: "/volume1/k3s" # TODO: confirm Synology export path if using direct mount
+
+# --- System ------------------------------------------------------------
+timezone: "Etc/UTC" # TODO: set local timezone if desired
+enable_poe_fan: false # set true if a PoE HAT with fan is installed
+# Full apt dist-upgrade in 01-prepare-nodes. OFF by default: a dist-upgrade can
+# pull a stock kernel that reverts the recompiled 48-bit-VA kernel (Envoy fix)
+# or clobber the cgroup cmdline edit. Enable only for a fresh DR bootstrap with
+# `ansible-playbook ... -e full_upgrade=true`.
+full_upgrade: false

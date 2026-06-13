@@ -1,0 +1,90 @@
+---
+# Install the k3s server (control-plane) on the master node.
+# Idempotent: skips the install if the k3s binary already exists.
+- name: Install k3s on master node
+  hosts: masters
+  become: true
+  tasks:
+    - name: Check if k3s is already installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Download k3s install script
+      ansible.builtin.get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: "0755"
+      when: not k3s_binary.stat.exists
+
+    # Combine server flags (group_vars/masters.yml) with the shared kubelet
+    # args (group_vars/all.yml) into a single INSTALL_K3S_EXEC string.
+    - name: Build k3s server exec arguments
+      ansible.builtin.set_fact:
+        k3s_exec: >-
+          {{ (k3s_server_args
+              + (kubelet_args | map('regex_replace', '^(.*)$', '--kubelet-arg=\1') | list))
+             | join(' ') }}
+
+    - name: Install k3s server
+      ansible.builtin.command: /tmp/k3s-install.sh
+      environment:
+        INSTALL_K3S_VERSION: "{{ k3s_version }}"
+        K3S_KUBECONFIG_MODE: "{{ k3s_kubeconfig_mode }}"
+        INSTALL_K3S_EXEC: "{{ k3s_exec }}"
+      when: not k3s_binary.stat.exists
+      changed_when: true
+
+    - name: Wait for k3s API to come up
+      ansible.builtin.wait_for:
+        port: 6443
+        delay: 5
+        timeout: 300
+
+    - name: Wait for node-token to be written
+      ansible.builtin.wait_for:
+        path: /var/lib/rancher/k3s/server/node-token
+        timeout: 60
+
+    - name: Read node-token
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: node_token
+      no_log: true # cluster join token — never echo to console/log
+
+    - name: Save node-token to control machine
+      ansible.builtin.copy:
+        content: "{{ node_token.content | b64decode | trim }}"
+        dest: "{{ playbook_dir }}/../.k3s-token"
+        mode: "0600"
+      delegate_to: localhost
+      become: false
+      no_log: true # cluster join token — never echo to console/log
+
+    - name: Taint master node NoSchedule
+      ansible.builtin.command: >-
+        kubectl taint node {{ inventory_hostname }}
+        node-role.kubernetes.io/master:NoSchedule
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: taint_result
+      changed_when: '"tainted" in taint_result.stdout'
+      failed_when:
+        - taint_result.rc != 0
+        - '"already has" not in taint_result.stderr'
+
+    - name: Fetch kubeconfig to control machine
+      # Only on first install — re-running must not clobber a kubeconfig whose
+      # 127.0.0.1 server has already been sed'd to the real master IP.
+      ansible.builtin.fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: "{{ playbook_dir }}/../.kubeconfig"
+        flat: true
+      when: not k3s_binary.stat.exists
+
+    - name: Show post-install notes
+      ansible.builtin.debug:
+        msg: >-
+          k3s master installed. Token saved to ansible/.k3s-token,
+          kubeconfig to ansible/.kubeconfig. Replace 127.0.0.1 in the
+          kubeconfig with {{ ansible_host }} to use kubectl remotely.

@@ -1,0 +1,64 @@
+---
+# Full cluster bootstrap: runs every playbook in order, then prints the
+# remaining manual steps (Flux bootstrap + age key restore).
+#
+#   cd ansible && ansible-playbook playbooks/99-full-bootstrap.yml
+#
+# Note: 01-prepare-nodes may reboot Pi nodes when it first enables cgroups.
+
+- name: Announce bootstrap
+  hosts: all
+  gather_facts: true
+  become: false
+  tasks:
+    - name: Display cluster overview
+      ansible.builtin.debug:
+        msg: >-
+          Bootstrapping k3s {{ k3s_version }} —
+          masters: {{ groups['masters'] | join(', ') }};
+          workers: {{ groups['workers'] | join(', ') }}
+      run_once: true
+
+- ansible.builtin.import_playbook: 00-test-connection.yml
+- ansible.builtin.import_playbook: 01-prepare-nodes.yml
+- ansible.builtin.import_playbook: 02-setup-nfs.yml
+- ansible.builtin.import_playbook: 03-install-k3s-master.yml
+- ansible.builtin.import_playbook: 04-install-k3s-workers.yml
+
+- name: Post-installation summary
+  hosts: localhost
+  gather_facts: false
+  become: false
+  vars:
+    master_ip: "{{ hostvars[groups['masters'][0]]['ansible_host'] }}"
+  tasks:
+    - name: Display next steps
+      ansible.builtin.debug:
+        msg: |
+          ================================================================
+          Cluster OS + k3s install complete. Remaining manual steps:
+
+          1. Point local kubectl at the cluster:
+               sed -i 's/127.0.0.1/{{ master_ip }}/g' ansible/.kubeconfig
+               cp ansible/.kubeconfig ~/.kube/config
+               kubectl get nodes -o wide
+
+          2. Bootstrap Flux (GitOps owns everything in Kubernetes):
+               export GITHUB_TOKEN=$(gh auth token)
+               flux bootstrap github \
+                 --owner=ianhundere \
+                 --repository=rpi-k3s \
+                 --branch=main \
+                 --path=clusters/rpi-k3s \
+                 --personal \
+                 --components-extra=image-reflector-controller,image-automation-controller
+
+          3. Restore the SOPS age key so Flux can decrypt secrets:
+               cat ~/.config/sops/age/keys.txt | \
+                 kubectl create secret generic sops-age \
+                   --namespace=flux-system \
+                   --from-file=age.agekey=/dev/stdin
+
+          4. Watch Flux reconcile the cluster:
+               flux get all -A
+          ================================================================

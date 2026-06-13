@@ -1,0 +1,18 @@
+---
+# Verify Ansible can reach every node and report basic facts.
+# Safe to run anytime; changes nothing. Works with --limit for single nodes.
+- name: Test Ansible connection to all nodes
+  hosts: all
+  gather_facts: true
+  become: false
+  tasks:
+    - name: Ping node
+      ansible.builtin.ping:
+
+    - name: Display node information
+      ansible.builtin.debug:
+        msg: >-
+          {{ ansible_hostname }} |
+          {{ ansible_distribution }} {{ ansible_distribution_version }} |
+          arch={{ ansible_architecture }} |
+          ip={{ ansible_default_ipv4.address | default('unknown') }}

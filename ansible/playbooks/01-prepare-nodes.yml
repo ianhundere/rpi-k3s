@@ -1,0 +1,128 @@
+---
+# OS-level preparation for k3s: hostname, timezone, cgroups, base packages.
+# Idempotent and --limit-safe. Reboots a node only if its cgroup config changed.
+- name: Prepare all nodes for k3s
+  hosts: all
+  become: true
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    # Off by default. A full dist-upgrade can pull a stock kernel that reverts
+    # the recompiled 48-bit-VA kernel (Envoy Gateway fix) or overwrite the
+    # cgroup-enabled cmdline.txt — destabilizing on a re-run against the live
+    # cluster. Opt in for a fresh DR bootstrap with `-e full_upgrade=true`.
+    - name: Upgrade all packages
+      ansible.builtin.apt:
+        upgrade: dist
+        autoremove: true
+        autoclean: true
+      when: full_upgrade | default(false) | bool
+
+    - name: Set hostname
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"
+
+    - name: Map 127.0.1.1 to hostname in /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1'
+        line: "127.0.1.1 {{ inventory_hostname }}"
+
+    - name: Read current timezone
+      ansible.builtin.command: timedatectl show -p Timezone --value
+      register: current_tz
+      changed_when: false
+
+    - name: Set timezone
+      ansible.builtin.command: "timedatectl set-timezone {{ timezone }}"
+      when: current_tz.stdout != timezone
+
+    # --- cgroups (Raspberry Pi only) -----------------------------------
+    # k3s needs the memory cgroup enabled, which on Pi OS means appending
+    # kernel params to the single-line cmdline.txt BEFORE k3s is installed.
+    # Newer Pi OS uses /boot/firmware/cmdline.txt; older uses /boot/cmdline.txt.
+    # Non-Pi nodes (amd64) have neither file and enable cgroups by default —
+    # they fall through every cgroup task via `when: cmdline_file | length > 0`.
+    - name: Locate Pi cmdline.txt
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /boot/firmware/cmdline.txt
+        - /boot/cmdline.txt
+      register: cmdline_stat
+
+    - name: Resolve active cmdline.txt path
+      ansible.builtin.set_fact:
+        cmdline_file: >-
+          {{ (cmdline_stat.results
+              | selectattr('stat.exists')
+              | map(attribute='stat.path')
+              | list
+              | first) | default('') }}
+
+    - name: Enable memory cgroups in cmdline.txt
+      # cmdline.txt is a single kernel-param line. Anchor on the whole line
+      # rather than 'rootwait' (omitted by some Ubuntu/DietPi Pi images) so the
+      # params are always appended; the negative lookahead keeps it idempotent.
+      ansible.builtin.replace:
+        path: "{{ cmdline_file }}"
+        regexp: '^(?!.*cgroup_memory=1)(?!.*cgroup_enable=cpuset)(.+)$'
+        replace: '\1 cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory'
+      when: cmdline_file | length > 0
+      register: cgroup_config
+
+    # --- packages ------------------------------------------------------
+    - name: Install required base packages
+      ansible.builtin.apt:
+        name:
+          - nfs-common
+          - open-iscsi
+          - curl
+          - git
+        state: present
+
+    - name: Install apparmor on x86_64 nodes
+      ansible.builtin.apt:
+        name:
+          - apparmor
+          - apparmor-utils
+        state: present
+      when: ansible_architecture == "x86_64" or (install_apparmor | default(false) | bool)
+
+    # --- optional PoE HAT fan ------------------------------------------
+    - name: Locate Pi config.txt
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /boot/firmware/config.txt
+        - /boot/config.txt
+      register: config_stat
+      when: enable_poe_fan | bool
+
+    - name: Resolve active config.txt path
+      ansible.builtin.set_fact:
+        config_file: >-
+          {{ (config_stat.results
+              | selectattr('stat.exists')
+              | map(attribute='stat.path')
+              | list
+              | first) | default('') }}
+      when: enable_poe_fan | bool
+
+    - name: Configure PoE HAT fan
+      # Guarded on a real config.txt: a node without one (e.g. the amd64 worker)
+      # is silently skipped instead of failing on a non-existent path.
+      ansible.builtin.lineinfile:
+        path: "{{ config_file }}"
+        line: "dtoverlay=i2c-fan,emc2301"
+        create: false
+      when: enable_poe_fan | bool and config_file | default('') | length > 0
+
+    # --- reboot only if cgroups changed --------------------------------
+    - name: Reboot if cgroup config changed
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+      when: cgroup_config is defined and cgroup_config.changed

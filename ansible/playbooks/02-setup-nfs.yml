@@ -1,0 +1,41 @@
+---
+# NFS client setup.
+#
+# The in-cluster nfs-subdir-external-provisioner handles all Kubernetes NFS
+# access, so only the nfs-common package is strictly required. A direct
+# OS-level mount is useful for debugging/maintenance but is OFF by default;
+# enable it by setting nfs_direct_mount: true in group_vars/all.yml.
+#
+# Uses only ansible.builtin so no extra collections are needed during DR.
+- name: Setup NFS client on all nodes
+  hosts: all
+  become: true
+  tasks:
+    - name: Ensure nfs-common is installed
+      ansible.builtin.apt:
+        name: nfs-common
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    # --- optional direct mount (debug/maintenance only) ----------------
+    - name: Create NFS mount directory
+      ansible.builtin.file:
+        path: "{{ nfs_mount_path }}"
+        state: directory
+        mode: "0755"
+      when: nfs_direct_mount | bool
+
+    - name: Add NFS share to /etc/fstab
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: "[[:space:]]{{ nfs_mount_path | regex_escape }}[[:space:]]+nfs[[:space:]]"
+        line: "{{ nfs_server }}:{{ nfs_share_path }} {{ nfs_mount_path }} nfs defaults,_netdev 0 0"
+        backup: true
+      when: nfs_direct_mount | bool
+      register: nfs_fstab
+
+    - name: Mount NFS share
+      ansible.builtin.command: "mount {{ nfs_mount_path }}"
+      when: nfs_direct_mount | bool and nfs_fstab is changed
+      changed_when: true
