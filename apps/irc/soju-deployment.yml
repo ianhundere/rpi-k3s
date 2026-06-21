@@ -19,9 +19,14 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+      # Shared PID namespace so the cert-reloader sidecar can signal soju.
+      # soju reloads its TLS cert/key on SIGHUP (soju(1)); the sidecar sends
+      # one whenever cert-manager rotates soju-tls, avoiding the stale-cert-in-
+      # memory bug that expires the served cert ~60 days after a pod start.
+      shareProcessNamespace: true
       initContainers:
         - name: remove-socket
-          image: busybox:1.35
+          image: busybox:1.38
           command: ['sh', '-c', 'rm -f /var/lib/soju/control.sock']
           volumeMounts:
             - name: irc
@@ -65,6 +70,49 @@ spec:
               memory: 128Mi
             limits:
               memory: 128Mi
+        # Watches the mounted soju-tls secret and SIGHUPs soju on rotation so
+        # it re-reads the cert without a restart (zero dropped IRC sessions).
+        # Runs as UID 1000 (same as soju) so it has permission to signal it.
+        - name: cert-reloader
+          image: busybox:1.38
+          command:
+            - sh
+            - -c
+            - |
+              crt=/etc/soju/tls/tls.crt
+              last=$(sha256sum "$crt" 2>/dev/null | cut -d' ' -f1)
+              echo "cert-reloader: watching $crt (baseline ${last:-none})"
+              while true; do
+                sleep 3600
+                cur=$(sha256sum "$crt" 2>/dev/null | cut -d' ' -f1)
+                [ -z "$cur" ] && continue
+                [ "$cur" = "$last" ] && continue
+                pid=$(pidof soju)
+                if [ -n "$pid" ]; then
+                  kill -HUP $pid && \
+                    echo "cert-reloader: cert changed; sent SIGHUP to soju (pid $pid)" && \
+                    last=$cur
+                else
+                  echo "cert-reloader: cert changed but soju not found; retrying"
+                fi
+              done
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/soju/tls
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 16Mi
       volumes:
         - name: irc
           persistentVolumeClaim:
