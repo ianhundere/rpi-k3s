@@ -19,6 +19,9 @@ spec:
     remediation:
       retries: 3
   upgrade:
+    # StorageClass parameters are immutable; force lets helm-controller
+    # delete+recreate the SC when pathPattern changes (plain patch is rejected).
+    force: true
     remediation:
       retries: 3
   values:
