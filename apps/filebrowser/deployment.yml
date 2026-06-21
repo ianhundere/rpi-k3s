@@ -26,7 +26,7 @@ spec:
         # the template shipped in the filebrowser-config ConfigMap. See
         # config.yml for the matching Flux-escape rationale.
         - name: render-config
-          image: alpine:3.19
+          image: alpine:3.24.1
           command:
             - sh
             - -c

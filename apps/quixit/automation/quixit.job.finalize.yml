@@ -8,7 +8,7 @@ spec:
   spec:
    containers:
     - name: quixit-finalize
-      image: alpine:3.21.3
+      image: alpine:3.24.1
       command:
        - /bin/sh
        - -c
