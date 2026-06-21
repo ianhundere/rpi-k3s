@@ -80,7 +80,14 @@ spec:
             - -c
             - |
               crt=/etc/soju/tls/tls.crt
-              last=$(sha256sum "$crt" 2>/dev/null | cut -d' ' -f1)
+              # The projected-secret ..data symlink can lag container start, so
+              # retry until the first hash is non-empty before baselining —
+              # otherwise an empty baseline triggers one spurious reload later.
+              last=""; n=0
+              while [ -z "$last" ] && [ "$n" -lt 30 ]; do
+                last=$(sha256sum "$crt" 2>/dev/null | cut -d' ' -f1)
+                [ -z "$last" ] && { n=$((n + 1)); sleep 1; }
+              done
               echo "cert-reloader: watching $crt (baseline ${last:-none})"
               while true; do
                 sleep 3600
