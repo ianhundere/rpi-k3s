@@ -46,7 +46,7 @@ spec:
     storageClass:
       defaultClass: false
       onDelete: retain
-      pathPattern: "$${.PVC.namespace}"
+      pathPattern: "$${.PVC.namespace}-$${.PVC.name}"
       name: nfs-rpik3s
     affinity:
       podAntiAffinity:
