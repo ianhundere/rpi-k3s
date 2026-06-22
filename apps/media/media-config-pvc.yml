@@ -6,11 +6,11 @@ metadata:
   labels:
     app: media
 spec:
-  # Shared config volume; each media app mounts it via a subPath. RWO is
-  # tolerated because the nfs-rpik3s provisioner's NFS export allows
-  # concurrent mounts. Lives at /volume3/rpi-k3s/media/media-config.
+  # Shared config volume; mounted concurrently (via subPaths) by all media
+  # apps across multiple nodes, so it must be ReadWriteMany. Lives at
+  # /volume3/rpi-k3s/media/media-config.
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   storageClassName: nfs-rpik3s
   resources:
     requests:
