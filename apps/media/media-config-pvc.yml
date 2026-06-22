@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-config
+  namespace: media
+  labels:
+    app: media
+spec:
+  # Shared config volume; each media app mounts it via a subPath. RWO is
+  # tolerated because the nfs-rpik3s provisioner's NFS export allows
+  # concurrent mounts. Lives at /volume3/rpi-k3s/media/media-config.
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-rpik3s
+  resources:
+    requests:
+      storage: 400Gi

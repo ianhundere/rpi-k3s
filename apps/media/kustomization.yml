@@ -6,6 +6,7 @@ resources:
   - gateway.yml
   - backend-traffic-policy.yml
   # shared services
+  - media-config-pvc.yml
   - postgres/
   # media apps
   - plex/
