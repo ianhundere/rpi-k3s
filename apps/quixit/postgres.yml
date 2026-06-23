@@ -1,13 +1,29 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quixit-postgres-pvc
+  namespace: quixit
+  labels:
+    app: quixit-postgres
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-rpik3s
+  resources:
+    requests:
+      storage: 5Gi
+---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: quixit-postgres
   namespace: quixit
   labels:
     app: quixit-postgres
 spec:
-  serviceName: quixit-postgres
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: quixit-postgres
@@ -32,10 +48,10 @@ spec:
                   name: quixit-credentials
                   key: db-password
             - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata
+              value: /var/lib/postgresql/data
           volumeMounts:
             - name: postgres-data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
           livenessProbe:
             exec:
               command: ["pg_isready", "-U", "quixit"]
@@ -49,19 +65,13 @@ spec:
           resources:
             requests:
               cpu: 250m
-              memory: 256Mi
+              memory: 512Mi
             limits:
               memory: 512Mi
-  volumeClaimTemplates:
-    - metadata:
-        name: postgres-data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        storageClassName: nfs-rpik3s
-        resources:
-          requests:
-            storage: 5Gi
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: quixit-postgres-pvc
 ---
 apiVersion: v1
 kind: Service
