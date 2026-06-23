@@ -7,6 +7,8 @@ resources:
   - backend-traffic-policy.yml
   # shared services
   - media-config-pvc.yml
+  - media-data-pvc.yml
+  - music-data-pvc.yml
   - postgres/
   # media apps
   - plex/

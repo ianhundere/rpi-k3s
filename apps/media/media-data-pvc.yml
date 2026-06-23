@@ -1,0 +1,45 @@
+# Static PV/PVC for the media library (~6.5 TB). Pinned to /volume1/media so
+# the data can never be relocated by a dynamic re-provision. RWX because it's
+# mounted concurrently (via subPaths) by lidarr/qbittorrent/radarr/sonarr/soulseek.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: media-data
+  labels:
+    app: media
+spec:
+  capacity:
+    storage: 6656Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=3
+    - proto=tcp
+    - rsize=4096
+    - wsize=4096
+    - noatime
+    - nodiratime
+  nfs:
+    server: ${NFS_IP}
+    path: /volume1/media
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-data
+  namespace: media
+  labels:
+    app: media
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: media-data
+  resources:
+    requests:
+      storage: 6656Gi

@@ -1,0 +1,44 @@
+# Static PV/PVC for the music library. Pinned to /volume2/music. RWX because
+# it's mounted concurrently (via subPaths) by lidarr and soulseek.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: music-data
+  labels:
+    app: media
+spec:
+  capacity:
+    storage: 80Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=3
+    - proto=tcp
+    - rsize=4096
+    - wsize=4096
+    - noatime
+    - nodiratime
+  nfs:
+    server: ${NFS_IP}
+    path: /volume2/music
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: music-data
+  namespace: media
+  labels:
+    app: media
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: music-data
+  resources:
+    requests:
+      storage: 80Gi
