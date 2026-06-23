@@ -84,8 +84,9 @@ spec:
             periodSeconds: 5
           resources:
             requests:
-              memory: "64Mi"
+              memory: "256Mi"
               cpu: "50m"
             limits:
+              # Convention: mem limit == request (OOM protection), no CPU limit
+              # (CFS throttling hurts on RPi).
               memory: "256Mi"
-              cpu: "500m"
