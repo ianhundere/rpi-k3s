@@ -46,7 +46,7 @@ spec:
     storageClass:
       defaultClass: false
       onDelete: retain
-      pathPattern: "./"
+      pathPattern: "$${.PVC.namespace}/$${.PVC.name}"
       name: nfs-music
     affinity:
       podAntiAffinity:
