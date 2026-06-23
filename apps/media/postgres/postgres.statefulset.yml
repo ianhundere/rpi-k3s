@@ -48,7 +48,6 @@ spec:
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql
-              subPath: media-postgres
             - name: init-scripts
               mountPath: /docker-entrypoint-initdb.d
           livenessProbe:
