@@ -40,7 +40,7 @@ spec:
           value: sonarr-main
         - name: SONARR__POSTGRES__LOGDB
           value: sonarr-log
-        image: linuxserver/sonarr:4.0.17 # {"$imagepolicy": "flux-system:sonarr"}
+        image: linuxserver/sonarr:4.0.18 # {"$imagepolicy": "flux-system:sonarr"}
         imagePullPolicy: IfNotPresent
         name: sonarr
         ports:
