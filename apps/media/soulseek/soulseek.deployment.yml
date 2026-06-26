@@ -73,7 +73,7 @@ spec:
             limits:
               memory: 512Mi
         - name: slskd
-          image: slskd/slskd:0.24.5 # {"$imagepolicy": "flux-system:slskd"}
+          image: slskd/slskd:0.25.1 # {"$imagepolicy": "flux-system:slskd"}
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
