@@ -6,6 +6,7 @@ resources:
   - secret.yml
   - ghcr-secret.yml
   - configmap.yml
+  - tufkin-postgres-pv-csi.yml
   - pvc.yml
   - postgres.yml
   - deployment.yml

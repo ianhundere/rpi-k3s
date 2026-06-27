@@ -1,0 +1,36 @@
+---
+# Static csi-driver-nfs PV at unifi's existing mongo data dir (no data move).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unifi-csi
+  labels:
+    app: unifi
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=3
+    - proto=tcp
+    - rsize=1048576
+    - wsize=1048576
+    - noatime
+    - nodiratime
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ${NFS_IP}#volume3/rpi-k3s/unifi##
+    volumeAttributes:
+      server: ${NFS_IP}
+      share: /volume3/rpi-k3s/unifi
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    namespace: unifi
+    name: unifi

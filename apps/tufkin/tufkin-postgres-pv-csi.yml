@@ -1,0 +1,39 @@
+---
+# Static csi-driver-nfs PV at tufkin-postgres' existing PGDATA dir (no data move).
+# CRITICAL: tufkin's data lives at the LITERAL /volume3/rpi-k3s/tufkin (NOT
+# tufkin/tufkin-postgres-pvc) — tufkin sets no PGDATA env, so PG uses the default
+# /var/lib/postgresql/data => data at /volume3/rpi-k3s/tufkin/data. No mountPermissions.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tufkin-postgres-csi
+  labels:
+    app: tufkin-postgres
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=3
+    - proto=tcp
+    - rsize=1048576
+    - wsize=1048576
+    - noatime
+    - nodiratime
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ${NFS_IP}#volume3/rpi-k3s/tufkin##
+    volumeAttributes:
+      server: ${NFS_IP}
+      share: /volume3/rpi-k3s/tufkin
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    namespace: tufkin
+    name: tufkin-postgres-pvc

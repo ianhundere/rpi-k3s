@@ -14,5 +14,6 @@ resources:
   - nginx-proxy-configmap.yml
   - deployment.yml
   - service.yml
+  - pv-csi.yml
   - pvc.yml
   - gateway.yml

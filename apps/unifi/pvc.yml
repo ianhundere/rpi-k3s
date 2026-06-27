@@ -7,7 +7,9 @@ metadata:
     app: unifi-controller
     storage.k8s.io/name: nfs
 spec:
-  storageClassName: nfs-rpik3s
+  # Migrated to csi-driver-nfs: static-bind to the unifi-csi PV.
+  storageClassName: ""
+  volumeName: unifi-csi
   accessModes:
     - ReadWriteOnce
   resources:

@@ -6,7 +6,9 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: nfs-rpik3s
+  # Migrated to csi-driver-nfs: static-bind to the tufkin-postgres-csi PV.
+  storageClassName: ""
+  volumeName: tufkin-postgres-csi
   resources:
     requests:
       storage: 1Gi

@@ -1,0 +1,38 @@
+---
+# Static csi-driver-nfs PV at quixit-postgres' existing PGDATA dir (no data move).
+# share = the PVC dir; PGDATA is the data/ subdir inside it. No mountPermissions
+# (would chmod PGDATA and trip Postgres' strict 0700 check).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: quixit-postgres-csi
+  labels:
+    app: quixit-postgres
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=3
+    - proto=tcp
+    - rsize=1048576
+    - wsize=1048576
+    - noatime
+    - nodiratime
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ${NFS_IP}#volume3/rpi-k3s/quixit/quixit-postgres##
+    volumeAttributes:
+      server: ${NFS_IP}
+      share: /volume3/rpi-k3s/quixit/quixit-postgres
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    namespace: quixit
+    name: quixit-postgres
