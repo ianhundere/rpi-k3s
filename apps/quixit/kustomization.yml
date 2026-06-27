@@ -7,6 +7,7 @@ resources:
   - ghcr-secret.yml
   - configmap.yml
   - postgres.yml
+  - quixit-storage-pv-csi.yml
   - pvc.yml
   - deployment.yml
   - service.yml

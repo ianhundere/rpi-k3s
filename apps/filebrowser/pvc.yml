@@ -6,7 +6,9 @@ metadata:
   labels:
     app: filebrowser
 spec:
-  storageClassName: nfs-rpik3s
+  # Migrated to csi-driver-nfs: static-bind to the filebrowser-csi PV.
+  storageClassName: ""
+  volumeName: filebrowser-csi
   accessModes:
     - ReadWriteMany
   resources:

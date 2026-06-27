@@ -1,0 +1,36 @@
+---
+# Static csi-driver-nfs PV at filebrowser's existing data dir (no data move).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: filebrowser-csi
+  labels:
+    app: filebrowser
+spec:
+  capacity:
+    storage: 60Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=3
+    - proto=tcp
+    - rsize=1048576
+    - wsize=1048576
+    - noatime
+    - nodiratime
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ${NFS_IP}#volume3/rpi-k3s/filebrowser##
+    volumeAttributes:
+      server: ${NFS_IP}
+      share: /volume3/rpi-k3s/filebrowser
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    namespace: filebrowser
+    name: filebrowser

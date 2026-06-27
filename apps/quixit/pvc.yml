@@ -6,7 +6,9 @@ metadata:
   labels:
     app: quixit
 spec:
-  storageClassName: nfs-rpik3s
+  # Migrated to csi-driver-nfs: static-bind to the quixit-storage-csi PV.
+  storageClassName: ""
+  volumeName: quixit-storage-csi
   accessModes:
     - ReadWriteMany
   resources:

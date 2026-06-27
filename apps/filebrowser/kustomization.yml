@@ -7,5 +7,6 @@ resources:
   - config.yml
   - deployment.yml
   - service.yml
+  - pv-csi.yml
   - pvc.yml
   - gateway.yml
