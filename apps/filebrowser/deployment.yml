@@ -71,9 +71,11 @@ spec:
             - name: filebrowser
               mountPath: /database
               subPath: database
-            - name: filebrowser
+            # /cache is ephemeral (previews, speed-test). Keep it off NFS —
+            # FileBrowser Quantum 1.4 write-tests it at startup and the NFS
+            # subPath was not writable (permission denied -> crashloop).
+            - name: cache
               mountPath: /cache
-              subPath: cache
             - name: rendered-config
               mountPath: /config
               readOnly: true
@@ -94,4 +96,6 @@ spec:
           configMap:
             name: filebrowser-config
         - name: rendered-config
+          emptyDir: {}
+        - name: cache
           emptyDir: {}
