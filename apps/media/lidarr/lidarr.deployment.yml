@@ -42,8 +42,9 @@ spec:
           value: lidarr-main
         - name: LIDARR__POSTGRES__LOGDB
           value: lidarr-log
-        # Nightly required for slskd plugin support. Flux automation disabled (semver tag can't track nightly).
-        image: linuxserver/lidarr:3.1.2-nightly
+        # Nightly required for the Tubifarry/slskd plugin; the lidarr ImagePolicy
+        # tracks the -nightly channel via filterTags.
+        image: linuxserver/lidarr:3.1.2-nightly # {"$imagepolicy": "flux-system:lidarr"}
         imagePullPolicy: IfNotPresent
         name: lidarr
         ports:

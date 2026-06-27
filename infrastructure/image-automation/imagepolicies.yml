@@ -121,6 +121,11 @@ metadata:
 spec:
   imageRepositoryRef:
     name: lidarr
+  # We run the -nightly channel (required by the Tubifarry plugin). Strip the
+  # suffix so semver ordering works, then track latest 3.x nightly.
+  filterTags:
+    pattern: '^(?P<ver>[0-9]+\.[0-9]+\.[0-9]+)-nightly$'
+    extract: '$ver'
   policy:
     semver:
       range: ">=3.0.0 <4.0.0"
