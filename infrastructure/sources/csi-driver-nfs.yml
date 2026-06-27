@@ -1,0 +1,11 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: csi-driver-nfs
+  namespace: flux-system
+spec:
+  interval: 1h
+  # gh-pages /charts index does not exist (404); the chart index lives on the
+  # master branch's charts/ dir.
+  url: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts

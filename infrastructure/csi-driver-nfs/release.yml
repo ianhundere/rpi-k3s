@@ -1,0 +1,35 @@
+---
+# Maintained replacement for the deprecated nfs-subdir-external-provisioner.
+# Installed alongside it (coexistence) so PVCs can migrate one at a time onto
+# csi static PVs pointing at their existing NFS dirs (no data movement).
+# kube-system: the node DaemonSet needs privileged hostPath access; this avoids
+# PodSecurity friction a dedicated namespace would hit. Chart default resources
+# already set NO cpu limits (only memory), so they satisfy the cluster convention.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: csi-driver-nfs
+  namespace: kube-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: csi-driver-nfs
+      version: "4.13.3"
+      sourceRef:
+        kind: HelmRepository
+        name: csi-driver-nfs
+        namespace: flux-system
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    controller:
+      replicas: 1
+      runOnControlPlane: false
+    externalSnapshotter:
+      enabled: false

@@ -1,0 +1,29 @@
+---
+# csi-driver-nfs equivalent of the old nfs-rpik3s SC (same namespace/name layout
+# under /volume3/rpi-k3s). New name (SC names are immutable + cluster-unique) so
+# it can coexist with the old nfs-rpik3s during migration. For FUTURE dynamic
+# PVCs only; existing data rides static csi PVs. rsize/wsize=1048576 negotiates
+# down to the Synology server max (131072 / 128K on volume3) — fixes the old
+# crippling 4096. ${NFS_IP} is Flux-substituted; $${...} csi tokens are left literal.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-csi-rpik3s
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: "${NFS_IP}"
+  share: /volume3/rpi-k3s
+  subDir: "$${pvc.metadata.namespace}/$${pvc.metadata.name}"
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+mountOptions:
+  - nfsvers=4.1
+  - hard
+  - timeo=600
+  - retrans=3
+  - proto=tcp
+  - rsize=1048576
+  - wsize=1048576
+  - noatime
+  - nodiratime

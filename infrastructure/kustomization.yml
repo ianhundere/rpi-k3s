@@ -5,6 +5,7 @@ resources:
   # helm repositories
   - sources/jetstack.yml
   - sources/nfs-subdir.yml
+  - sources/csi-driver-nfs.yml
   - sources/tailscale.yml
   - sources/envoy-gateway-oci.yml
   # cert-manager
@@ -22,11 +23,16 @@ resources:
   - envoy-gateway/envoyproxy.yml
   - envoy-gateway/gateway.yml
   - envoy-gateway/cronjob-rotate.yml
-  # nfs-provisioner
+  # nfs-provisioner (deprecated; being migrated to csi-driver-nfs)
   - nfs-provisioner/namespace.yml
   - nfs-provisioner/video-storage.yml
   - nfs-provisioner/music-storage.yml
   - nfs-provisioner/config-storage.yml
+  # csi-driver-nfs (maintained replacement; coexists during migration)
+  - csi-driver-nfs/release.yml
+  - csi-driver-nfs/storageclass-rpik3s.yml
+  - csi-driver-nfs/storageclass-music.yml
+  - csi-driver-nfs/storageclass-video.yml
   # image-automation
   - image-automation/imagerepositories.yml
   - image-automation/imagepolicies.yml

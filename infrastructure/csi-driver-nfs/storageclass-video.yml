@@ -1,0 +1,25 @@
+---
+# csi-driver-nfs equivalent of the old nfs-video SC (/volume1/media). For future
+# dynamic PVCs; the live media library rides the static media-data PV.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-csi-video
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: "${NFS_IP}"
+  share: /volume1/media
+  subDir: "$${pvc.metadata.namespace}/$${pvc.metadata.name}"
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+mountOptions:
+  - nfsvers=4.1
+  - hard
+  - timeo=600
+  - retrans=3
+  - proto=tcp
+  - rsize=1048576
+  - wsize=1048576
+  - noatime
+  - nodiratime
