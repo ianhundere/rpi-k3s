@@ -22,6 +22,9 @@ spec:
       enableServiceLinks: false
       securityContext:
         fsGroup: 1000
+        # Skip the recursive chown of the large shared NFS volumes when root
+        # ownership already matches fsGroup — avoids slow startup chowns.
+        fsGroupChangePolicy: OnRootMismatch
       initContainers:
         - name: sysctl-setup
           image: busybox

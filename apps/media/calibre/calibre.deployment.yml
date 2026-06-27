@@ -17,6 +17,9 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+        # Skip the recursive chown of the 400Gi media-config when the root dir
+        # already matches fsGroup — avoids a ~5min startup chown on every restart.
+        fsGroupChangePolicy: OnRootMismatch
       enableServiceLinks: false
       containers:
         - name: calibre
