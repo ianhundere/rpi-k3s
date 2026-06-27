@@ -56,15 +56,13 @@ spec:
               mountPath: /config
       containers:
         - name: filebrowser
-          # 1.4.0's image defaults to a non-root user, but the existing NFS data
-          # (quantum.db and /cache) is root-owned (created by 1.2.4-as-root). Run
-          # as root — as 1.2.4 did — so it can write every subPath via the
-          # no_root_squash export, without chowning live data.
+          # Run as uid 1000 (owner of the NFS data). The previously root-owned
+          # quantum.db and /cache were chowned to 1000 to match.
           image: gtstef/filebrowser:1.4.0-stable-slim # {"$imagepolicy": "flux-system:filebrowser"}
           imagePullPolicy: IfNotPresent
           securityContext:
-            runAsUser: 0
-            runAsGroup: 0
+            runAsUser: 1000
+            runAsGroup: 1000
           env:
             - name: FILEBROWSER_CONFIG
               value: /config/config.yaml

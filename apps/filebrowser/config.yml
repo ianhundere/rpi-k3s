@@ -36,7 +36,8 @@ data:
       disableUsedPercentage: true
     userDefaults:
       darkMode: true
-      singleClick: true
+      listing:
+        singleClick: true
       permissions:
         admin: false
         modify: false
