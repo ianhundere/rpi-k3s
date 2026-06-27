@@ -56,14 +56,15 @@ spec:
               mountPath: /config
       containers:
         - name: filebrowser
-          # 1.4.0's image runs as a non-root user; run as uid 1000 (owner of the
-          # NFS /database and /srv subPaths) so it can write them. /cache is an
-          # emptyDir since the NFS cache subPath is root-owned.
+          # 1.4.0's image defaults to a non-root user, but the existing NFS data
+          # (quantum.db and /cache) is root-owned (created by 1.2.4-as-root). Run
+          # as root — as 1.2.4 did — so it can write every subPath via the
+          # no_root_squash export, without chowning live data.
           image: gtstef/filebrowser:1.4.0-stable-slim # {"$imagepolicy": "flux-system:filebrowser"}
           imagePullPolicy: IfNotPresent
           securityContext:
-            runAsUser: 1000
-            runAsGroup: 1000
+            runAsUser: 0
+            runAsGroup: 0
           env:
             - name: FILEBROWSER_CONFIG
               value: /config/config.yaml
@@ -80,11 +81,9 @@ spec:
             - name: filebrowser
               mountPath: /database
               subPath: database
-            # /cache is ephemeral (previews, speed-test). Keep it off NFS —
-            # FileBrowser Quantum 1.4 write-tests it at startup and the NFS
-            # subPath was not writable (permission denied -> crashloop).
-            - name: cache
+            - name: filebrowser
               mountPath: /cache
+              subPath: cache
             - name: rendered-config
               mountPath: /config
               readOnly: true
@@ -105,6 +104,4 @@ spec:
           configMap:
             name: filebrowser-config
         - name: rendered-config
-          emptyDir: {}
-        - name: cache
           emptyDir: {}
