@@ -5,16 +5,24 @@ metadata:
   labels:
     app: nfs-subdir-external-provisioner
   name: nfs-ninjam-cronjob
-provisioner: cluster.local/nfs-subdir-external-provisioner-rpik3s
-reclaimPolicy: Delete
+provisioner: nfs.csi.k8s.io
+reclaimPolicy: Retain
 volumeBindingMode: Immediate
 allowVolumeExpansion: true
 mountOptions:
+  - nfsvers=4.1
+  - hard
+  - timeo=600
+  - retrans=3
+  - proto=tcp
+  - rsize=1048576
+  - wsize=1048576
   - noatime
+  - nodiratime
 parameters:
-  archiveOnDelete: "true"
-  onDelete: retain
-  pathPattern: filebrowser/files/jamz
+  server: ${NFS_IP}
+  share: /volume3/rpi-k3s
+  subDir: filebrowser/files/jamz
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

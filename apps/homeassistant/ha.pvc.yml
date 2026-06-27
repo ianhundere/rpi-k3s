@@ -6,7 +6,7 @@ metadata:
  labels:
   app: ha
 spec:
- storageClassName: nfs-rpik3s
+ storageClassName: nfs-csi-rpik3s
  accessModes:
   - ReadWriteMany
  resources:
