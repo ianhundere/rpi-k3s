@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: irc
 resources:
   - namespace.yml
+  - pv-csi.yml
   - pvc.yml
   - soju-configmap.yml
   - soju-certificate.yml

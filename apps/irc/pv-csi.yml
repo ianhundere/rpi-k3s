@@ -1,0 +1,40 @@
+---
+# Static csi-driver-nfs PV pointing at irc's EXISTING data dir (no data move).
+# Replaces the old nfs-subdir dynamic PV; gives the 1 MiB mountOptions (was 4096).
+# storageClassName "" + claimRef + the PVC's volumeName = deterministic static bind.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: irc-csi
+  labels:
+    app: irc
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=3
+    - proto=tcp
+    - rsize=1048576
+    - wsize=1048576
+    - noatime
+    - nodiratime
+  csi:
+    driver: nfs.csi.k8s.io
+    # volumeHandle only needs to be globally unique (>=3 '#' segments); the mount
+    # is built from volumeAttributes server+share, not the handle.
+    volumeHandle: ${NFS_IP}#volume3/rpi-k3s/irc##
+    volumeAttributes:
+      server: ${NFS_IP}
+      share: /volume3/rpi-k3s/irc
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    namespace: irc
+    name: irc
