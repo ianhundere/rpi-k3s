@@ -53,7 +53,11 @@ spec:
               mountPath: /config
       containers:
         - name: filebrowser
-          image: gtstef/filebrowser:1.4.0-stable-slim # {"$imagepolicy": "flux-system:filebrowser"}
+          # Pinned to 1.2.4: 1.4.0 runs as a non-root user and can't write the
+          # NFS-backed /database (and /cache) subPaths -> crashloop. Upgrading
+          # needs an NFS write-permission rework (runAsUser/ownership). See
+          # _bmad-output/DEFERRED.md. ImagePolicy still reports 1.4.0 as latest.
+          image: gtstef/filebrowser:1.2.4-stable-slim # {"$imagepolicy": "flux-system:filebrowser"}
           imagePullPolicy: IfNotPresent
           env:
             - name: FILEBROWSER_CONFIG
