@@ -11,7 +11,9 @@ spec:
   # /volume3/rpi-k3s/media/media-config.
   accessModes:
     - ReadWriteMany
-  storageClassName: nfs-rpik3s
+  # Migrated to csi-driver-nfs: static-bind to the media-config-csi PV.
+  storageClassName: ""
+  volumeName: media-config-csi
   resources:
     requests:
       storage: 400Gi

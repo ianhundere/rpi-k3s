@@ -1,0 +1,37 @@
+---
+# Static csi-driver-nfs PV at the shared media-config dir (no data move).
+# RWX — mounted concurrently via subPaths by all media apps.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: media-config-csi
+  labels:
+    app: media
+spec:
+  capacity:
+    storage: 400Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=3
+    - proto=tcp
+    - rsize=1048576
+    - wsize=1048576
+    - noatime
+    - nodiratime
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ${NFS_IP}#volume3/rpi-k3s/media/media-config##
+    volumeAttributes:
+      server: ${NFS_IP}
+      share: /volume3/rpi-k3s/media/media-config
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    namespace: media
+    name: media-config

@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - postgres.secret.yml
   - postgres.configmap.yml
+  - postgres-pv-csi.yml
   - postgres.statefulset.yml

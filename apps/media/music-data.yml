@@ -19,13 +19,16 @@ spec:
     - timeo=600
     - retrans=3
     - proto=tcp
-    - rsize=4096
-    - wsize=4096
+    - rsize=1048576
+    - wsize=1048576
     - noatime
     - nodiratime
-  nfs:
-    server: ${NFS_IP}
-    path: /volume2/music
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ${NFS_IP}#volume2/music##
+    volumeAttributes:
+      server: ${NFS_IP}
+      share: /volume2/music
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

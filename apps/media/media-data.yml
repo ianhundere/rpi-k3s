@@ -20,13 +20,16 @@ spec:
     - timeo=600
     - retrans=3
     - proto=tcp
-    - rsize=4096
-    - wsize=4096
+    - rsize=1048576
+    - wsize=1048576
     - noatime
     - nodiratime
-  nfs:
-    server: ${NFS_IP}
-    path: /volume1/media
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ${NFS_IP}#volume1/media##
+    volumeAttributes:
+      server: ${NFS_IP}
+      share: /volume1/media
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

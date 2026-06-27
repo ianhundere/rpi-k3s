@@ -6,6 +6,7 @@ resources:
   - gateway.yml
   - backend-traffic-policy.yml
   # shared services
+  - media-config-pv-csi.yml
   - media-config.yml
   - media-data.yml
   - music-data.yml
