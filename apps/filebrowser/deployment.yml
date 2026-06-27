@@ -10,6 +10,9 @@ spec:
   revisionHistoryLimit: 3
   strategy:
     type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: filebrowser
@@ -53,12 +56,14 @@ spec:
               mountPath: /config
       containers:
         - name: filebrowser
-          # Pinned to 1.2.4: 1.4.0 runs as a non-root user and can't write the
-          # NFS-backed /database (and /cache) subPaths -> crashloop. Upgrading
-          # needs an NFS write-permission rework (runAsUser/ownership). See
-          # _bmad-output/DEFERRED.md. ImagePolicy still reports 1.4.0 as latest.
-          image: gtstef/filebrowser:1.2.4-stable-slim # {"$imagepolicy": "flux-system:filebrowser"}
+          # 1.4.0's image runs as a non-root user; run as uid 1000 (owner of the
+          # NFS /database and /srv subPaths) so it can write them. /cache is an
+          # emptyDir since the NFS cache subPath is root-owned.
+          image: gtstef/filebrowser:1.4.0-stable-slim # {"$imagepolicy": "flux-system:filebrowser"}
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
           env:
             - name: FILEBROWSER_CONFIG
               value: /config/config.yaml
