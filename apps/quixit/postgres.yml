@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: quixit-postgres-pvc
+  name: quixit-postgres
   namespace: quixit
   labels:
     app: quixit-postgres
@@ -71,7 +71,7 @@ spec:
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
-            claimName: quixit-postgres-pvc
+            claimName: quixit-postgres
 ---
 apiVersion: v1
 kind: Service
