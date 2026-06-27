@@ -52,7 +52,7 @@ spec:
               memory: 1Gi
       containers:
         - name: unifi-network-application
-          image: lscr.io/linuxserver/unifi-network-application:10.1.89 # {"$imagepolicy": "flux-system:unifi-network-application"}
+          image: lscr.io/linuxserver/unifi-network-application:10.4.57 # {"$imagepolicy": "flux-system:unifi-network-application"}
           env:
             - name: PGID
               value: "1000"
