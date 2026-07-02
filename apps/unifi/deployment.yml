@@ -73,9 +73,6 @@ spec:
               value: "27017"
             - name: MONGO_DBNAME
               value: "unifi"
-            # Cap the JVM max heap (MB) below the container limit so heap +
-            # JVM overhead fit — the image default heap filled the old 1Gi cap
-            # and OOMKilled the app ~daily. 1024 heap + overhead sits under 2Gi.
             - name: MEM_LIMIT
               value: "1024"
           ports:
