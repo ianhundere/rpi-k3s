@@ -184,7 +184,12 @@ spec:
         - name: Permissions-Policy
           value: "camera=(), microphone=(), geolocation=()"
         - name: Content-Security-Policy
-          value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+          # Google Fonts (googleapis stylesheet + gstatic font files) and the
+          # Workbox service-worker runtime (storage.googleapis.com CDN, loaded
+          # via importScripts in sw.js) are narrowly allowlisted — the app has
+          # always loaded these; the strict default-src 'self' just wasn't
+          # updated to match, so both were CSP-blocked in the console.
+          value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://storage.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'"
     backendRefs:
     - name: quixit
       port: 8080
