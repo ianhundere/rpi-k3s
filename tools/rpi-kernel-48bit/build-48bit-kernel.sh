@@ -51,6 +51,14 @@ make olddefconfig
 grep -q '^CONFIG_ARM64_VA_BITS_48=y' .config || { echo "FATAL: VA_BITS_48 not set after olddefconfig"; exit 1; }
 grep -q '^CONFIG_ARM64_VA_BITS=48'   .config || { echo "FATAL: ARM64_VA_BITS != 48"; exit 1; }
 
+# No-initramfs boot contract: the custom kernel filename breaks auto_initramfs
+# name-matching, so the node boots WITHOUT an initramfs. That is only safe while
+# the SD-card rootfs path is built-in. Fail the build if a future defconfig
+# demotes any of these to =m (see README "No-initramfs contract").
+for opt in CONFIG_MMC_BCM2835 CONFIG_MMC_SDHCI_IPROC CONFIG_EXT4_FS CONFIG_BLK_DEV_SD; do
+  grep -q "^${opt}=y" .config || { echo "FATAL: ${opt} is not built-in — no-initramfs boot would fail"; exit 1; }
+done
+
 echo "==> Build (-j${JOBS}) — Image + modules"
 make -j"${JOBS}" Image modules
 
