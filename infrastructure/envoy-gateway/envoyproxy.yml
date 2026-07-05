@@ -1,7 +1,16 @@
 ---
 # EnvoyProxy configures the data plane proxy pods.
-# Note: RPi4 nodes recompiled with CONFIG_ARM64_VA_BITS_48=y (kernel 6.12.77-v8+)
-# to support Envoy's TCMalloc. No architecture constraint needed.
+# Envoy's TCMalloc requires a 48-bit virtual address space; stock RPi OS
+# kernels ship CONFIG_ARM64_VA_BITS=39, so Envoy aborts at startup logging
+# "MmapAligned() failed ... TCMalloc assumes a 48-bit virtual address space"
+# (exit 133 — distinct from the memory-pressure abort described on the limits
+# below). Custom 48-bit RPi kernels fixed this in 2026-03 but were overwritten
+# by a linux-image-rpi-v8 package update, so the proxy is pinned to amd64.
+# Remove the pin only once rebuilt 48-bit kernels are back on the RPi nodes
+# AND held against package upgrades (apt-mark hold or a custom kernel=
+# filename in config.txt). Trade-off while pinned: the sole amd64 node is an
+# ingress SPOF, and with externalTrafficPolicy: Local MetalLB announces the
+# LB IP from that one node only.
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
@@ -16,6 +25,9 @@ spec:
     type: Kubernetes
     kubernetes:
       envoyDeployment:
+        pod:
+          nodeSelector:
+            kubernetes.io/arch: amd64
         container:
           resources:
             requests:
