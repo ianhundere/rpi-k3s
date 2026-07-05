@@ -40,7 +40,9 @@ Stock DTBs/overlays are kept (same-series 6.12.y DTBs are compatible); the
 build ships only the kernel Image + its module tree.
 
 **No-initramfs contract:** with `kernel=kernel8-48bit.img`, `auto_initramfs=1`
-no longer name-matches an initramfs, so the custom kernel boots without one.
+no longer name-matches an initramfs, so the custom kernel boots without one
+(side effect: no early-boot fsck of the rootfs — run `sudo fsck -fn /dev/mmcblk0p2`
+manually if SD corruption is ever suspected).
 That is safe **only because** the SD-card rootfs path is built-in — the build
 script asserts `CONFIG_MMC_BCM2835=y`, `CONFIG_MMC_SDHCI_IPROC=y`,
 `CONFIG_EXT4_FS=y` and fails the build if a future defconfig demotes them.
@@ -75,7 +77,7 @@ kubectl logs envoy-va-check          # expect a version banner, NOT MmapAligned
 kubectl delete pod envoy-va-check
 # k3s health on the new kernel (CNI sandbox creation is exercised by the pod
 # above; also confirm the node's daemonsets recovered):
-kubectl get node <node>              # Ready
+kubectl get node <node>              # Ready,SchedulingDisabled (cordoned until promote)
 kubectl get pods -A -o wide --field-selector spec.nodeName=<node>   # daemonsets Running
 ```
 

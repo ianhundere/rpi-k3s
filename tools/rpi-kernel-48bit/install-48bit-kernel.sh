@@ -34,14 +34,35 @@ FINAL_IMG="kernel8-48bit.img"
 GUARD=/etc/apt/apt.conf.d/99-48bit-kernel-guard
 
 krel() { tar -xzOf "${TARBALL}" KERNEL_RELEASE; }
+# Marker = "<kernelrelease> <sha256-of-Image>" so two builds with the same
+# release string are still distinguishable across stage/tryboot/promote.
+marker_expected() {
+  printf '%s %s' "$(krel)" "$(tar -xzOf "${TARBALL}" boot/${FINAL_IMG} | sha256sum | cut -d' ' -f1)"
+}
 
 wait_for_down() {
   echo "==> waiting for ${NODE} to go DOWN (max 90s)"
+  local misses=0
   for _ in $(seq 1 18); do
-    if ! ssh -o BatchMode=yes -o ConnectTimeout=3 "${NODE}" true 2>/dev/null; then return 0; fi
+    if ! ssh -o BatchMode=yes -o ConnectTimeout=3 "${NODE}" true 2>/dev/null; then
+      misses=$((misses+1))
+      # two consecutive failed probes — a single blip can't fake a reboot
+      [ "${misses}" -ge 2 ] && return 0
+    else
+      misses=0
+    fi
     sleep 5
   done
   echo "FATAL: ${NODE} never went down — the reboot did not happen; investigate before retrying"; return 1
+}
+
+uncordon_with_retry() {
+  # After a kube-master reboot, ssh returns before the k3s API listens.
+  for _ in $(seq 1 12); do
+    if kubectl uncordon "${NODE}" 2>/dev/null; then return 0; fi
+    sleep 5
+  done
+  echo "WARN: could not uncordon ${NODE} (API not up?) — run: kubectl uncordon ${NODE}"; return 1
 }
 
 wait_for_up() {
@@ -76,6 +97,7 @@ drain_node() {
 case "${ACTION}" in
 stage)
   KREL=$(krel)
+  MARKER_EXPECTED=$(marker_expected)
   echo "==> staging ${KREL} onto ${NODE} (trial file — live kernel untouched)"
   scp -q "${TARBALL}" "${NODE}:/tmp/k48.tar.gz"
   "${SSH[@]}" "
@@ -86,7 +108,7 @@ stage)
     # Atomic-ish kernel write: temp file on the same FAT fs, then rename.
     tar -xzOf /tmp/k48.tar.gz boot/${FINAL_IMG} | sudo tee ${FW}/${TRIAL_IMG}.tmp >/dev/null
     sudo mv ${FW}/${TRIAL_IMG}.tmp ${FW}/${TRIAL_IMG}
-    printf '%s\n' '${KREL}' | sudo tee ${FW}/kernel8-48bit-trial.krel >/dev/null
+    printf '%s\n' '${MARKER_EXPECTED}' | sudo tee ${FW}/kernel8-48bit-trial.krel >/dev/null
     rm -rf /tmp/k48.tar.gz /tmp/k48-modules
     echo \"staged: \$(ls -la ${FW}/${TRIAL_IMG})\"
     ls -d /lib/modules/${KREL}
@@ -95,9 +117,10 @@ stage)
 
 tryboot)
   KREL=$(krel)
-  echo "==> pre-flight: trial marker must match this tarball"
+  MARKER_EXPECTED=$(marker_expected)
+  echo "==> pre-flight: trial marker (release + image sha) must match this tarball"
   MARKER=$("${SSH[@]}" "cat ${FW}/kernel8-48bit-trial.krel 2>/dev/null" || true)
-  [ "${MARKER}" = "${KREL}" ] || { echo "FATAL: staged trial is '${MARKER}', tarball is '${KREL}' — re-run stage"; exit 1; }
+  [ "${MARKER}" = "${MARKER_EXPECTED}" ] || { echo "FATAL: staged trial is '${MARKER}', tarball is '${MARKER_EXPECTED}' — re-run stage"; exit 1; }
   echo "==> writing tryboot.txt (one-shot) + ensuring panic=10 in cmdline.txt"
   "${SSH[@]}" "
     set -euo pipefail
@@ -124,8 +147,9 @@ promote)
   KREL=$(krel)
   GOT=$("${SSH[@]}" uname -r)
   [ "${GOT}" = "${KREL}" ] || { echo "FATAL: refusing to promote — ${NODE} runs ${GOT}, not ${KREL} (run tryboot first)"; exit 1; }
+  MARKER_EXPECTED=$(marker_expected)
   MARKER=$("${SSH[@]}" "cat ${FW}/kernel8-48bit-trial.krel 2>/dev/null" || true)
-  [ "${MARKER}" = "${KREL}" ] || { echo "FATAL: trial marker '${MARKER}' != '${KREL}' — trial was re-staged since tryboot"; exit 1; }
+  [ "${MARKER}" = "${MARKER_EXPECTED}" ] || { echo "FATAL: trial marker '${MARKER}' != '${MARKER_EXPECTED}' — trial was re-staged since tryboot"; exit 1; }
 
   echo "==> promoting: trial -> ${FINAL_IMG}, pin in config.txt (mutations, fully checked)"
   "${SSH[@]}" "
@@ -151,7 +175,7 @@ promote)
     grep -q '^kernel=${FINAL_IMG}' ${FW}/config.txt
     test -f ${GUARD} && sudo apt-get check -qq
   " || { echo "FATAL: post-promote verification failed on ${NODE} — node left cordoned"; exit 1; }
-  kubectl uncordon "${NODE}"
+  uncordon_with_retry
   echo "==> PROMOTED: ${NODE} permanently on ${KREL}; guard installed and apt-validated; node uncordoned"
   ;;
 
@@ -172,7 +196,7 @@ rollback)
     *-48bit*) echo "FATAL: ${NODE} still runs ${GOT} after rollback — investigate; node left cordoned"; exit 1 ;;
     *)        echo "==> ROLLBACK OK: ${NODE} on stock ${GOT}" ;;
   esac
-  kubectl uncordon "${NODE}"
+  uncordon_with_retry
   ;;
 
 *) echo "unknown action ${ACTION}"; exit 2 ;;
