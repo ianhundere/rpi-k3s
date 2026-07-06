@@ -1,16 +1,18 @@
 ---
 # EnvoyProxy configures the data plane proxy pods.
-# Envoy's TCMalloc requires a 48-bit virtual address space; stock RPi OS
-# kernels ship CONFIG_ARM64_VA_BITS=39, so Envoy aborts at startup logging
-# "MmapAligned() failed ... TCMalloc assumes a 48-bit virtual address space"
-# (exit 133 — distinct from the memory-pressure abort described on the limits
-# below). Custom 48-bit RPi kernels fixed this in 2026-03 but were overwritten
-# by a linux-image-rpi-v8 package update, so the proxy is pinned to amd64.
-# Remove the pin only once rebuilt 48-bit kernels are back on the RPi nodes
-# AND held against package upgrades (apt-mark hold or a custom kernel=
-# filename in config.txt). Trade-off while pinned: the sole amd64 node is an
-# ingress SPOF, and with externalTrafficPolicy: Local MetalLB announces the
-# LB IP from that one node only.
+#
+# NO arch pin: the Envoy data plane may schedule on any node again (2026-07-05).
+# Background: Envoy's TCMalloc requires a 48-bit virtual address space; stock
+# RPi OS kernels ship CONFIG_ARM64_VA_BITS=39, so Envoy aborts at startup
+# ("MmapAligned() failed ... TCMalloc assumes a 48-bit virtual address space",
+# exit 133). This was pinned to amd64 (rpi-k3s#49) as a stopgap after a stock
+# linux-image-rpi-v8 update clobbered the March 48-bit kernels. All four RPi
+# nodes now run custom 48-bit kernels (kernel8-48bit.img, pinned in config.txt,
+# guarded against apt clobber — see tools/rpi-kernel-48bit), verified with the
+# official envoy image starting cleanly on each, so the amd64 pin is removed to
+# eliminate the worker4 ingress SPOF. If this ever recurs (exit 133 at startup),
+# re-add `pod.nodeSelector: {kubernetes.io/arch: amd64}` here as the fast stopgap
+# and check the 48-bit boot pin on the RPi nodes.
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
@@ -25,9 +27,6 @@ spec:
     type: Kubernetes
     kubernetes:
       envoyDeployment:
-        pod:
-          nodeSelector:
-            kubernetes.io/arch: amd64
         container:
           resources:
             requests:
@@ -39,7 +38,7 @@ spec:
             # internal counters / connection pools / leaks grow over weeks; the
             # 256Mi ceiling left no headroom for TCMalloc arena expansion and
             # the allocator aborted rather than retried. 1Gi gives multi-month
-            # headroom without crowding the amd64 worker node it lands on.
+            # headroom (RPi nodes have 3.7Gi; the amd64 node more).
             limits:
               memory: "1Gi"
       envoyService:
