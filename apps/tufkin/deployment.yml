@@ -19,7 +19,7 @@ spec:
         - name: ghcr-secret
       initContainers:
         - name: migrate
-          image: ghcr.io/ianhundere/tufkin:0.20.2 # {"$imagepolicy": "flux-system:tufkin"}
+          image: ghcr.io/ianhundere/tufkin:0.21.0 # {"$imagepolicy": "flux-system:tufkin"}
           command: ["/usr/local/bin/migrate"]
           args:
             - "-path"
@@ -38,7 +38,7 @@ spec:
                   key: db-password
       containers:
         - name: tufkin
-          image: ghcr.io/ianhundere/tufkin:0.20.2 # {"$imagepolicy": "flux-system:tufkin"}
+          image: ghcr.io/ianhundere/tufkin:0.21.0 # {"$imagepolicy": "flux-system:tufkin"}
           ports:
             - containerPort: 8080
           envFrom:
