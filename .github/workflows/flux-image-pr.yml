@@ -1,0 +1,61 @@
+name: Create Image Update PR
+# Daily schedule (not push): Flux force-rebuilds flux-image-updates from main
+# whenever it has pending bumps, so a stale/orphaned branch means nothing to PR.
+on:
+  schedule:
+    - cron: '23 16 * * *'
+  workflow_dispatch:
+concurrency:
+  group: flux-image-pr
+  cancel-in-progress: true
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Check for pending image updates
+        id: pending
+        run: |
+          if ! git fetch origin flux-image-updates 2>/dev/null; then
+            echo "::notice::flux-image-updates branch does not exist — nothing pending"
+            exit 0
+          fi
+          if ! git merge-base --is-ancestor origin/main origin/flux-image-updates; then
+            echo "::notice::flux-image-updates is stale (predates current main) — Flux will rebuild it when new bumps appear"
+            exit 0
+          fi
+          count=$(git rev-list origin/main..origin/flux-image-updates --count)
+          if [ "$count" -eq 0 ]; then
+            echo "::notice::flux-image-updates has no commits ahead of main"
+            exit 0
+          fi
+          echo "pending=true" >> "$GITHUB_OUTPUT"
+          git log origin/main..origin/flux-image-updates --pretty='- %s' > /tmp/pending-commits.md
+      - name: Create PR if none open
+        if: steps.pending.outputs.pending == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create image-update --description "Automated image updates" --color "0E8A16" --force
+          existing_pr=$(gh pr list --head flux-image-updates --json number --jq '.[0].number')
+          if [ -n "$existing_pr" ]; then
+            echo "::notice::PR #$existing_pr already open — Flux pushes update it automatically"
+            exit 0
+          fi
+          {
+            echo "Automated image version bumps by Flux image-automation-controller."
+            echo
+            echo "### Pending updates"
+            cat /tmp/pending-commits.md
+          } > /tmp/pr-body.md
+          gh pr create \
+            --title "chore(images): automated image updates" \
+            --body-file /tmp/pr-body.md \
+            --label "image-update" \
+            --head flux-image-updates \
+            --base main
