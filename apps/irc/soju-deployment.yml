@@ -42,7 +42,7 @@ spec:
             - /tools/busybox
             - sh
             - -c
-            - 'rm -f /var/lib/soju/control.sock; exec /soju -config /etc/soju/config'
+            - '/tools/busybox rm -f /var/lib/soju/control.sock; exec /soju -config /etc/soju/config'
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
