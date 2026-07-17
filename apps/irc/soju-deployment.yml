@@ -26,10 +26,11 @@ spec:
       shareProcessNamespace: true
       # Stale control.sock after an unclean shutdown crashloops soju. Cleanup
       # must run on every container start (initContainers don't re-run on
-      # restarts), and the shell-less soju image needs busybox staged for that.
+      # restarts), and the shell-less soju image needs busybox staged for that
+      # (musl variant: static — the scratch soju image has no glibc loader).
       initContainers:
         - name: setup-tools
-          image: busybox:1.38
+          image: busybox:1.38-musl
           command: ['sh', '-c', 'cp /bin/busybox /tools/busybox']
           volumeMounts:
             - name: tools
