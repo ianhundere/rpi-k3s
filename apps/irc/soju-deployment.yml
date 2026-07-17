@@ -24,18 +24,24 @@ spec:
       # one whenever cert-manager rotates soju-tls, avoiding the stale-cert-in-
       # memory bug that expires the served cert ~60 days after a pod start.
       shareProcessNamespace: true
+      # Stale control.sock after an unclean shutdown crashloops soju. Cleanup
+      # must run on every container start (initContainers don't re-run on
+      # restarts), and the shell-less soju image needs busybox staged for that.
       initContainers:
-        - name: remove-socket
+        - name: setup-tools
           image: busybox:1.38
-          command: ['sh', '-c', 'rm -f /var/lib/soju/control.sock']
+          command: ['sh', '-c', 'cp /bin/busybox /tools/busybox']
           volumeMounts:
-            - name: irc
-              mountPath: /var/lib/soju
-              subPath: soju
+            - name: tools
+              mountPath: /tools
       containers:
         - name: soju
           image: codeberg.org/emersion/soju:latest
-          args: ['-config', '/etc/soju/config']
+          command:
+            - /tools/busybox
+            - sh
+            - -c
+            - 'rm -f /var/lib/soju/control.sock; exec /soju -config /etc/soju/config'
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
@@ -53,6 +59,9 @@ spec:
               mountPath: /etc/soju
             - name: tls
               mountPath: /etc/soju/tls
+              readOnly: true
+            - name: tools
+              mountPath: /tools
               readOnly: true
           readinessProbe:
             tcpSocket:
@@ -126,6 +135,8 @@ spec:
         - name: irc
           persistentVolumeClaim:
             claimName: irc
+        - name: tools
+          emptyDir: {}
         - name: soju
           configMap:
             name: soju
