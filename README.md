@@ -127,6 +127,7 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
     - `scp pi@<master_ip>:/etc/rancher/k3s/k3s.yaml ~/.kube/config`
 4. you can either simply edit the `config` file and locate `127.0.0.1` and replace it with the IP address of the master node or use `sed`
     - `sed -i '' 's/127\.0\.0\.1/192\.168\.1\.1/g' ~/.kube/config`
+5. the embedded admin cert expires (k3s renews it server-side on restarts), so set up the refresh timer from [`tools/kubeconfig-refresh/`](tools/kubeconfig-refresh/) to keep the local copy in sync — see [automatic cert rotation/renewal](#automatic-cert-rotationrenewal).
 
 ## gitops with flux
 
@@ -385,7 +386,21 @@ provides vpn access to cluster resources. configuration in `infrastructure/tails
 
 ## automatic cert rotation/renewal
 
-[k3s client/server certs are valid for 365 days](https://docs.k3s.io/cli/certificate#client-and-server-certificates) and any that are expired, or within 90 days of expiring, are automatically renewed every time k3s starts. in other words, access to cluster will cease until local `kube-config` certs are updated:
+[k3s client/server certs are valid for 365 days](https://docs.k3s.io/cli/certificate#client-and-server-certificates) and any that are expired, or within 90 days of expiring, are automatically renewed every time k3s starts. in other words, access to cluster will cease until local `kube-config` certs are updated. the symptom is every `kubectl` command failing with:
+
+```text
+error: You must be logged in to the server (the server has asked for the client to provide credentials)
+```
+
+### keeping the local kubeconfig in sync
+
+the master's `/etc/rancher/k3s/k3s.yaml` renews itself on k3s restarts, but the copy in `~/.kube/config` goes stale. [`tools/kubeconfig-refresh/`](tools/kubeconfig-refresh/) has a script + systemd user timer that pulls the current admin cert from the master monthly and updates the local config only when it changed. see its README for install steps; a manual one-off refresh is just:
+
+```bash
+~/bin/refresh-k3s-kubeconfig
+```
+
+### disabling rotation via clock rollback
 
 to disable:
 
