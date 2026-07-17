@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: ninjam-server
-          image: zfigz/ninjam-server:v0.0.5
+          image: zfigz/ninjam-server:v0.0.6
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: config-volume
