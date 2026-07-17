@@ -400,24 +400,7 @@ the master's `/etc/rancher/k3s/k3s.yaml` renews itself on k3s restarts, but the 
 ~/bin/refresh-k3s-kubeconfig
 ```
 
-### disabling rotation via clock rollback
-
-to disable:
-
-1. `sudo systemctl stop k3s.service`
-2. `hwclock --verbose`
-3. `sudo timedatectl set-ntp 0`
-4. `sudo systemctl stop systemd-timesyncd.service`
-5. `sudo systemctl status systemd-timesyncd.service`
-6. `sudo date $(date "+%m%d%H%M%Y" --date="90 days ago")`
-7. `sudo systemctl start k3s.service`
-
-to renable:
-
-1. `sudo systemctl stop k3s.service`
-2. `sudo systemctl start systemd-timesyncd.service`
-3. `sudo date $(date "+%m%d%H%M%Y" --date="now")`
-4. `sudo timedatectl set-ntp 1`
+> **note**: don't try to suppress rotation by rolling back the master's clock (stopping ntp and faking the date). etcd and TLS validation both depend on accurate time, so clock skew can break the cluster in worse ways than an expired cert — and with the refresh timer above, rotation is a non-event anyway.
 
 ## backups
 
