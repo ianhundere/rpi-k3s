@@ -70,6 +70,12 @@ spec:
                 secretKeyRef:
                   name: tufkin-credentials
                   key: admin-token
+            - name: TUFKIN_KEY_FILE
+              value: /etc/tufkin/keys/signing-key.pem
+          volumeMounts:
+            - name: signing-key
+              mountPath: /etc/tufkin/keys
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /api/health
@@ -90,3 +96,11 @@ spec:
               # Convention: mem limit == request (OOM protection), no CPU limit
               # (CFS throttling hurts on RPi).
               memory: "256Mi"
+      volumes:
+        - name: signing-key
+          secret:
+            secretName: tufkin-credentials
+            defaultMode: 0400 # FileProvider warns on world/group-readable key
+            items:
+              - key: signing-key.pem
+                path: signing-key.pem

@@ -12,7 +12,9 @@ data:
   TUFKIN_DB_NAME: "tufkin"
   TUFKIN_DB_SSLMODE: "disable"
   TUFKIN_OAUTH_ISSUER: "https://${TUFKIN_HOST}"
-  TUFKIN_ATTEST_PROVIDER: "dev"
+  # FileProvider: signing key persists across restarts (mounted from
+  # tufkin-credentials/signing-key.pem) — deploys no longer log users out.
+  TUFKIN_ATTEST_PROVIDER: "file"
   TUFKIN_LOG_LEVEL: "info"
   TUFKIN_LOG_FORMAT: "json"
   TUFKIN_SECURITY_CORS_ALLOWED_ORIGINS: "https://${TUFKIN_HOST},https://${QUIXIT_HOST}"
