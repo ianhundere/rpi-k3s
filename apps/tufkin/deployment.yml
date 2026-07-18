@@ -15,6 +15,10 @@ spec:
       labels:
         app: tufkin
     spec:
+      # Container runs as uid/gid 1000 (tufkin). fsGroup lets the non-root
+      # process read the root-owned signing-key secret via group ownership.
+      securityContext:
+        fsGroup: 1000
       imagePullSecrets:
         - name: ghcr-secret
       initContainers:
@@ -100,7 +104,7 @@ spec:
         - name: signing-key
           secret:
             secretName: tufkin-credentials
-            defaultMode: 0400 # FileProvider warns on world/group-readable key
+            defaultMode: 0440 # root:fsGroup(1000) group-read; non-root app can read
             items:
               - key: signing-key.pem
                 path: signing-key.pem
