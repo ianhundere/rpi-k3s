@@ -57,6 +57,8 @@ spec:
               command: ["pg_isready", "-U", "media"]
             initialDelaySeconds: 15
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "media"]

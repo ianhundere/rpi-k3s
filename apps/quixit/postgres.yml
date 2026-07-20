@@ -59,6 +59,8 @@ spec:
               command: ["pg_isready", "-U", "quixit"]
             initialDelaySeconds: 15
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "quixit"]
