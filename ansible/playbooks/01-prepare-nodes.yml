@@ -82,6 +82,7 @@
           - open-iscsi
           - curl
           - git
+          - screen
         state: present
 
     - name: Install apparmor on x86_64 nodes
@@ -91,6 +92,29 @@
           - apparmor-utils
         state: present
       when: ansible_architecture == "x86_64" or (install_apparmor | default(false) | bool)
+
+    # --- DietPi backup filter (k3s exclusions) -------------------------
+    - name: Check for DietPi
+      ansible.builtin.stat:
+        path: /boot/dietpi
+      register: dietpi_dir
+
+    - name: Deploy dietpi-backup filter with k3s exclusions
+      # Without the kubelet exclusion, dietpi-backup rsyncs NFS bind mounts
+      # under volume-subpaths/ — i.e. the whole media library.
+      ansible.builtin.copy:
+        dest: /boot/dietpi/.dietpi-backup_inc_exc
+        mode: "0644"
+        content: |
+          # DietPi-Backup include/exclude filter (defaults + k3s exclusions)
+          + /mnt/dietpi_userdata/
+          - /mnt/*
+          - /media/
+          # k3s: containerd state (NB includes local-path PV dir k3s/storage/)
+          - /var/lib/rancher/
+          # k3s: ephemeral pod state incl. NFS bind mounts (2.3TB media library)
+          - /var/lib/kubelet/
+      when: dietpi_dir.stat.exists
 
     # --- optional PoE HAT fan ------------------------------------------
     - name: Locate Pi config.txt
