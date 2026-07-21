@@ -72,9 +72,9 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 512Mi
+              memory: 256Mi
             limits:
-              memory: 512Mi
+              memory: 256Mi
         - name: slskd
           image: slskd/slskd:0.25.1 # {"$imagepolicy": "flux-system:slskd"}
           securityContext:

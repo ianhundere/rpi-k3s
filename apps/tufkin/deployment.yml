@@ -94,12 +94,12 @@ spec:
             periodSeconds: 5
           resources:
             requests:
-              memory: "256Mi"
+              memory: "128Mi"
               cpu: "50m"
             limits:
               # Convention: mem limit == request (OOM protection), no CPU limit
               # (CFS throttling hurts on RPi).
-              memory: "256Mi"
+              memory: "128Mi"
       volumes:
         - name: signing-key
           secret:

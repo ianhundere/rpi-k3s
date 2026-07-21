@@ -91,9 +91,9 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 512Mi
+              memory: 256Mi
             limits:
-              memory: 512Mi
+              memory: 256Mi
       volumes:
         - name: filebrowser
           persistentVolumeClaim:
