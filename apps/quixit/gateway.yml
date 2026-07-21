@@ -223,3 +223,26 @@ spec:
     http:
       connectionIdleTimeout: 600s
       maxConnectionDuration: 600s
+  # Auto maintenance page: when the backend is unreachable (node drain,
+  # postgres down, rollout), Envoy's own 502/503/504 gets this body instead
+  # of a blank error. Self-clearing — healthy responses are untouched.
+  responseOverride:
+  - match:
+      statusCodes:
+      - value: 502
+      - value: 503
+      - value: 504
+    response:
+      contentType: text/html
+      body:
+        type: Inline
+        inline: |
+          <!doctype html><html lang="en"><head><meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta http-equiv="refresh" content="60">
+          <title>quixit &mdash; maintenance</title>
+          <style>body{font-family:system-ui,sans-serif;background:#111;color:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center}main{max-width:28rem;padding:2rem}h1{font-size:1.4rem;font-weight:600}p{color:#aaa;line-height:1.5}</style>
+          </head><body><main>
+          <h1>&#128295; quixit is undergoing maintenance</h1>
+          <p>We&rsquo;re doing some quick infrastructure work. The site will be back shortly &mdash; this page refreshes itself every minute.</p>
+          </main></body></html>
