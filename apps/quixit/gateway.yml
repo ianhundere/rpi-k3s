@@ -223,9 +223,10 @@ spec:
     http:
       connectionIdleTimeout: 600s
       maxConnectionDuration: 600s
-  # Auto maintenance page: when the backend is unreachable (node drain,
-  # postgres down, rollout), Envoy's own 502/503/504 gets this body instead
-  # of a blank error. Self-clearing — healthy responses are untouched.
+  # Auto maintenance page on ANY 502/503/504 — Envoy-originated (backend
+  # unreachable: drain, postgres down, rollout) or app-originated alike; the
+  # match is by status code, so JSON clients also get this HTML on those
+  # codes. 500 deliberately excluded so real app errors stay visible.
   responseOverride:
   - match:
       statusCodes:
