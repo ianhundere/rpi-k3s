@@ -33,10 +33,12 @@ etcd-snapshot-schedule-cron: "0 */6 * * *"
 etcd-snapshot-retention: 8
 
 # pin the node IP (DHCP-reserved): after the 2026-08-03 swaps, autodetect
-# raced a stale node object and crash-looped the netpol controller
-node-ip: "192.168.3.100"
+# raced a stale node object and crash-looped the netpol controller.
+# real IPs are not stored in git (see ansible/inventory.yml) — substitute
+# the actual reserved addresses on the node itself.
+node-ip: "<master-ip>"
 
-# extra SANs on the API cert: master IP + the Beelink's pre-swap IP
+# extra SANs on the API cert: master IP + the beelink's pre-swap IP
 tls-san:
-  - 192.168.3.100
-  - 192.168.3.104
+  - "<master-ip>"
+  - "<beelink-old-ip>"
