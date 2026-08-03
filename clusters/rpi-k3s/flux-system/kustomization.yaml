@@ -3,3 +3,44 @@ kind: Kustomization
 resources:
 - gotk-components.yaml
 - gotk-sync.yaml
+patches:
+# house conventions: memory request == limit, no cpu limits (upstream ships
+# 64Mi req / 1Gi lim + cpu 1000m). sized from observed usage + headroom.
+- patch: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: all-flux-controllers
+    spec:
+      template:
+        spec:
+          containers:
+          - name: manager
+            resources:
+              requests:
+                memory: 256Mi
+              limits:
+                cpu: null
+                memory: 256Mi
+  target:
+    kind: Deployment
+# source + kustomize controllers hold artifacts / full manifest builds in
+# memory — bigger footprint than the rest
+- patch: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: sized-up
+    spec:
+      template:
+        spec:
+          containers:
+          - name: manager
+            resources:
+              requests:
+                memory: 384Mi
+              limits:
+                memory: 384Mi
+  target:
+    kind: Deployment
+    name: (source-controller|kustomize-controller)
