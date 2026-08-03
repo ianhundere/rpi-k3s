@@ -17,7 +17,8 @@
 #   any subsequent reset boots config.txt. tryboot also ensures `panic=10` in
 #   cmdline.txt so a PANICKING trial kernel self-reboots back onto the stock
 #   config. A HUNG kernel still needs a physical power cycle (node is drained
-#   first; canary on a worker; kube-master last).
+#   first; canary on one worker before the rest — targets are the 4 RPi
+#   workers only; kube-master is amd64 since the 2026-08-03 swap).
 # - Every mutation runs in its own fully-error-checked ssh call; ONLY the bare
 #   reboot is allowed to drop the connection. Post-reboot verification checks
 #   the actual on-disk boot state, not just uname.

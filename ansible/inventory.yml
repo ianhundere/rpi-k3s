@@ -11,24 +11,26 @@ all:
   children:
     masters:
       hosts:
+        # amd64 Beelink Mini S (N5095), DietPi — control plane since the
+        # 2026-08-03 hostname swap (see host_vars/kube-master.yml)
         kube-master:
           ansible_host: 192.168.3.10 # TODO: set actual master IP
+          ansible_user: dietpi
+          install_apparmor: true
     workers:
       hosts:
-        # arm64 Raspberry Pi 4 workers
+        # arm64 Raspberry Pi 4 workers (kube-worker4 is the ex-master Pi,
+        # USB-thumb-drive boot, since the 2026-08-03 swap)
         kube-worker1:
           ansible_host: 192.168.3.11 # TODO: set actual IP
         kube-worker2:
           ansible_host: 192.168.3.12 # TODO: set actual IP
         kube-worker3:
           ansible_host: 192.168.3.13 # TODO: set actual IP
-        # amd64 Beelink Mini S (N5095) — Debian/Ubuntu, needs apparmor
         kube-worker4:
           ansible_host: 192.168.3.14 # TODO: set actual IP
-          ansible_user: ianfundere # TODO: amd64 node login user (differs from Pi 'pi' default)
-          install_apparmor: true
   vars:
-    # Default login user for the Raspberry Pi OS nodes.
+    # Default login user for the Raspberry Pi OS nodes (master overrides to dietpi).
     ansible_user: pi # TODO: confirm Pi login user
     ansible_ssh_private_key_file: ~/.ssh/id_rsa # TODO: path to your SSH key
     ansible_python_interpreter: /usr/bin/python3

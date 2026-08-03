@@ -1,13 +1,14 @@
 # k3s server configuration
 # reference: https://docs.k3s.io/installation/configuration
-# this file serves as a reference for the k3s server installation command
+# this file mirrors /etc/rancher/k3s/config.yaml on kube-master (the amd64
+# Beelink, control plane since the 2026-08-03 hostname swap)
 
-# disable built-in components (we use metallb and nginx-gateway-fabric via flux)
+# disable built-in components (we use metallb and envoy gateway via flux)
 disable:
   - servicelb  # using metallb for load balancing
-  - traefik    # using nginx-gateway-fabric for ingress
+  - traefik    # using envoy gateway for ingress
 
-# enable embedded etcd for ha
+# enable embedded etcd (datastore lives on the Beelink's internal SSD)
 cluster-init: true
 
 # kubeconfig permissions
@@ -21,3 +22,21 @@ kubelet-arg:
   # image garbage collection thresholds
   - "image-gc-high-threshold=85"
   - "image-gc-low-threshold=80"
+
+# deliberately NO node-taint: the master is the only 8GB/amd64 node, so it
+# must keep hosting unifi + postgres workloads (2026-08-03 design decision)
+
+# etcd snapshots every 6h, 8 retained locally (~2 days); the off-node copy to
+# the Synology is handled by etcd-snapshot-sync.timer on the node itself —
+# local-only snapshots died with the SD card on 2026-07-29
+etcd-snapshot-schedule-cron: "0 */6 * * *"
+etcd-snapshot-retention: 8
+
+# pin the node IP (DHCP-reserved): after the 2026-08-03 swaps, autodetect
+# raced a stale node object and crash-looped the netpol controller
+node-ip: "192.168.3.100"
+
+# extra SANs on the API cert: master IP + the Beelink's pre-swap IP
+tls-san:
+  - 192.168.3.100
+  - 192.168.3.104

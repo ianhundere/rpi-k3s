@@ -1,10 +1,13 @@
 ---
-# amd64 Beelink Mini S (N5095) overrides.
+# amd64 Beelink Mini S (N5095), DietPi — the control-plane node since the
+# 2026-08-03 hostname swap (this box was kube-worker4 before; the RPi that was
+# kube-master is now kube-worker4).
 #
 # ansible_user and install_apparmor are already set inline in inventory.yml;
 # they are restated here as the canonical per-host location and so single-node
-# runs (`--limit kube-worker4`) remain self-documenting.
+# runs (`--limit kube-master`) remain self-documenting.
 #
 # apparmor is installed both when ansible detects an x86_64 architecture and
 # when install_apparmor is true, so this flag is belt-and-suspenders.
+ansible_user: dietpi
 install_apparmor: true

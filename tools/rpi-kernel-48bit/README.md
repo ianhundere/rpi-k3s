@@ -53,8 +53,8 @@ script asserts `CONFIG_MMC_BCM2835=y`, `CONFIG_MMC_SDHCI_IPROC=y`,
 # 1. Build (x86_64 workstation, aarch64-linux-gnu- toolchain, ~15-25 min)
 ./build-48bit-kernel.sh                     # → out/rpi-kernel-48bit-<ver>-<sha>.tar.gz
 
-# 2. Per node — canary a worker first, kube-master LAST (control-plane API is
-#    down during its reboot; find problems on workers first):
+# 2. Per node. Kernel targets are the four RPi workers only — since the
+#    2026-08-03 swap, kube-master is the amd64 Beelink (never a target):
 ./install-48bit-kernel.sh kube-worker1 out/<tarball> stage     # trial file, no reboot
 ./install-48bit-kernel.sh kube-worker1 out/<tarball> tryboot   # drain + ONE-SHOT boot
 # … validate (below) …
@@ -86,7 +86,7 @@ kubectl get pods -A -o wide --field-selector spec.nodeName=<node>   # daemonsets
 All four RPi nodes must pass before removing the Envoy amd64 pin:
 
 ```bash
-for n in kube-worker1 kube-worker2 kube-worker3 kube-master; do
+for n in kube-worker1 kube-worker2 kube-worker3 kube-worker4; do
   echo "== $n: $(ssh $n 'uname -r; grep -c ^kernel=kernel8-48bit.img /boot/firmware/config.txt; test -f /etc/apt/apt.conf.d/99-48bit-kernel-guard && echo guard-ok' | paste -sd" ")"
 done   # each line: <release ending -v8-48bit+> 1 guard-ok
 ```
@@ -101,8 +101,8 @@ done   # each line: <release ending -v8-48bit+> 1 guard-ok
   unless `promote` has pinned.
 - If `drain` fails (PDB / stuck pod) the script stops with the node cordoned
   and tells you; nothing has been rebooted at that point.
-- Node reboots move single-replica workloads. quixit app + postgres live on
-  worker4 (amd64) and are untouched by RPi reboots.
+- Node reboots move single-replica workloads. unifi + the heavier postgres
+  pods live on kube-master (amd64) and are untouched by RPi worker reboots.
 
 ## Un-pin criteria (rpi-k3s#49)
 

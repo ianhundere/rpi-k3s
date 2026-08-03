@@ -86,22 +86,27 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
 
 ## configure k3s master node
 
+> **note**: since 2026-08-03 the master is the amd64 beelink (dietpi, user
+> `dietpi`, etcd on its internal ssd) and the ex-master rpi rejoined as
+> kube-worker4. the steps below still describe a from-scratch bootstrap.
+
 1. ssh to master node
-    - `ssh pi@kube-master`
+    - `ssh dietpi@kube-master`
 2. if you're not root, you'll want to enable the ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`. you'll also want to tell k3s not to deploy its default load balancer, servicelb, and proxy, traefik, since we'll install metallb as load balancer and nginx as proxy manually later on. finally we want to run the k3s installer
     - `export K3S_KUBECONFIG_MODE="644"; export INSTALL_K3S_EXEC="--disable servicelb --disable traefik --kubelet-arg=container-log-max-files=5 --kubelet-arg=container-log-max-size=50Mi --kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80 --cluster-init"; curl -sfL https://get.k3s.io | sh -`
 3. verify the master is up
     - `sudo systemctl status k3s`
     - `kubectl get nodes -o wide`
     - `kubectl get pods -A -o wide`
-4. taint the master node to avoid deploying to it / save resources for orchestration
-    - `kubectl taint node kube-master node-role.kubernetes.io/master:NoSchedule`
+4. ~~taint the master node~~ — since 2026-08-03 the master is deliberately
+   untainted: it is the only 8GB/amd64 node, so it must host unifi + the
+   heavier postgres pods. do not re-add the taint.
 5. save the access token to configure the agents
     - `sudo cat /var/lib/rancher/k3s/server/node-token`
 
 ## configure k3s worker nodes
 
-<sub>for my x86 worker node, a beelink mini s with an n5095, i had to install:
+<sub>for the beelink mini s (n5095) — my x86 node, the master since 2026-08-03 — i had to install:
 
 - `apt-get install apparmor apparmor-utils`</sub>
 
@@ -124,7 +129,7 @@ no matter what, the `nfs-common` package must be installed on all nodes unless a
     - `mkdir ~/.kube/`
     - `touch ~/.kube/config`
 3. copy the file using `scp`
-    - `scp pi@<master_ip>:/etc/rancher/k3s/k3s.yaml ~/.kube/config`
+    - `scp dietpi@<master_ip>:/etc/rancher/k3s/k3s.yaml ~/.kube/config`
 4. you can either simply edit the `config` file and locate `127.0.0.1` and replace it with the IP address of the master node or use `sed`
     - `sed -i '' 's/127\.0\.0\.1/192\.168\.1\.1/g' ~/.kube/config`
 5. the embedded admin cert expires (k3s renews it server-side on restarts), so set up the refresh timer from [`tools/kubeconfig-refresh/`](tools/kubeconfig-refresh/) to keep the local copy in sync — see [automatic cert rotation/renewal](#automatic-cert-rotationrenewal).
@@ -358,12 +363,8 @@ apply pvcs with the appropriate `storageClass` and they will provision automatic
 
 **to enable and perform k3s upgrade:**
 
-1. taint master node to allow controller scheduling:
-
-   ```bash
-   kubectl taint node kube-master node-role.kubernetes.io/master:NoSchedule-
-   kubectl taint node kube-master CriticalAddonsOnly=true:NoExecute
-   ```
+1. ~~taint juggling~~ — obsolete since 2026-08-03: the master carries no
+   taint, so the controller schedules without any taint changes.
 
 2. uncomment system-upgrade-controller in `infrastructure/kustomization.yml` and commit
 3. flux will deploy the controller automatically
@@ -376,7 +377,6 @@ apply pvcs with the appropriate `storageClass` and they will provision automatic
 
 - re-comment system-upgrade-controller in `infrastructure/kustomization.yml`
 - delete the deployment: `kubectl delete deployment -n system-upgrade system-upgrade-controller`
-- re-apply original master taint: `kubectl taint node kube-master node-role.kubernetes.io/master:NoSchedule`
 
 ## tailscale
 
