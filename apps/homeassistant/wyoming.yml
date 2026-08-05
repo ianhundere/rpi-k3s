@@ -27,8 +27,20 @@ spec:
         - name: whisper
           image: rhasspy/wyoming-whisper:3.5.0
           # base-int8 fits the master's memory budget; the GPU whisper on the
-          # gaming PC (spec phase 2) is the quality path — this is the fallback
-          args: ["--model", "base-int8", "--language", "en"]
+          # gaming PC (spec phase 2) is the quality path — this is the fallback.
+          # beam-size 5: much better decode than the default greedy(1); costs
+          # CPU not memory. threads bounded so STT never starves etcd.
+          args:
+            - "--model"
+            - "base-int8"
+            - "--language"
+            - "en"
+            - "--beam-size"
+            - "5"
+            - "--cpu-threads"
+            - "2"
+            - "--initial-prompt"
+            - "What time is it? Turn on the kitchen lights. Turn off the lights. What is the weather?"
           resources:
             requests:
               cpu: 250m
