@@ -21,7 +21,7 @@ spec:
         kubernetes.io/arch: amd64
       containers:
         - name: whisper
-          image: rhasspy/wyoming-whisper:2.5.0
+          image: rhasspy/wyoming-whisper:3.5.0
           # base-int8 fits the master's memory budget; the GPU whisper on the
           # gaming PC (spec phase 2) is the quality path — this is the fallback
           args: ["--model", "base-int8", "--language", "en"]
@@ -72,7 +72,7 @@ spec:
         kubernetes.io/arch: arm64
       containers:
         - name: piper
-          image: rhasspy/wyoming-piper:1.6.3
+          image: rhasspy/wyoming-piper:2.3.1
           args: ["--voice", "en_US-lessac-medium"]
           resources:
             requests:
