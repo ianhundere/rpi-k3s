@@ -165,3 +165,11 @@ spec:
     allowedRoutes:
       namespaces:
         from: All
+  # --- home assistant - ha.media.tools (LAN-only via edgey static-host-mapping) ---
+  - name: ha-http
+    hostname: ha.media.tools
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All

@@ -6,6 +6,7 @@ resources:
   - ha.pvc.yml
   - ha.deployment.yml
   - ha.service.yml
+  - ha-route.yml
   - wyoming.yml
   # zwave + usb device plugin stay dormant — separate project
   # - generic-device-plugin.yaml
