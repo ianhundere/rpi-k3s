@@ -9,6 +9,10 @@ metadata:
   namespace: ha
 spec:
   replicas: 1
+  # Recreate: never run two whisper pods at once — the master (etcd node) is
+  # memory-tight and a rolling update briefly spiked it to 99%.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: wyoming-whisper
