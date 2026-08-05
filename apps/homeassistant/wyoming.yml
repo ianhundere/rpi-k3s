@@ -72,7 +72,7 @@ spec:
         kubernetes.io/arch: arm64
       containers:
         - name: piper
-          image: rhasspy/wyoming-piper:2.3.1
+          image: rhasspy/wyoming-piper:1.6.3
           args: ["--voice", "en_US-lessac-medium"]
           resources:
             requests:
