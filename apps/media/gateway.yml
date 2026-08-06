@@ -70,6 +70,20 @@ spec:
     backendRefs:
     - name: soulseek
       port: 80
+  # convenience alias: HA can't serve from a subpath, so /ha bounces to its host
+  # (ha.media.tools is LAN-only DNS via edgey static-host-mapping)
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /ha
+    filters:
+    - type: RequestRedirect
+      requestRedirect:
+        hostname: ha.media.tools
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+        statusCode: 302
   - matches:
     - path:
         type: Exact

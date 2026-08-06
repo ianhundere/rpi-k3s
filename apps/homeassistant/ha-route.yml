@@ -1,5 +1,6 @@
 # LAN-only: ha.media.tools resolves via edgey static-host-mapping -> gateway;
 # no public DNS record exists for it.
+# media.tools/ha redirects here (alias rule in apps/media/gateway.yml).
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
