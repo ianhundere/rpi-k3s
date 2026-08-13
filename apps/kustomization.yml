@@ -6,6 +6,5 @@ resources:
   - quixit/
   - unifi/
   - ninjam-server/
-  - homeassistant/
   - irc/
   - tufkin/
