@@ -35,6 +35,11 @@
 #
 # 4. RBAC scoped to `envoy-gateway-system` namespace, pods resource only.
 #    No cluster-wide permissions. Cannot affect any other workload.
+#
+# 5. The job VERIFIES the replacement comes back Ready and fails loudly if it
+#    doesn't (#52). Before this, rotation was fire-and-forget: on 2026-07-05 it
+#    deleted the pod, the replacement crashlooped 121× over ~10h, and nothing
+#    noticed until a human did. A failed Job now surfaces it the same day.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -49,7 +54,9 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["pods"]
-    verbs: ["get", "list", "delete"]
+    # watch is needed by `delete` (blocking) and `wait`; still namespace- and
+    # pods-scoped, so the blast radius is unchanged.
+    verbs: ["get", "list", "watch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -79,15 +86,24 @@ spec:
   startingDeadlineSeconds: 600
   jobTemplate:
     spec:
-      backoffLimit: 1
+      # backoffLimit 0, NOT 1: the job now has a side effect (the delete)
+      # followed by verification. A retry would delete the replacement while
+      # it is still trying to come up — turning a slow start into an outage.
+      # One attempt, then fail visibly.
+      backoffLimit: 0
+      # bounds the whole rotation: delete + create-wait + ready-wait
+      activeDeadlineSeconds: 900
       template:
         spec:
           serviceAccountName: envoy-data-plane-rotator
           restartPolicy: Never
-          containers:
-            - name: kubectl
-              # rancher/kubectl is a slim image without `sh`; invoke kubectl
-              # directly via args rather than wrapping in a shell.
+          # rancher/kubectl is a slim image without `sh` — no shell loops are
+          # possible here, so each step is a separate kubectl invocation and
+          # the initContainer sequence provides the ordering.
+          initContainers:
+            # blocking delete (no --wait=false): returns only once the old pod
+            # is actually gone, so the readiness check below can't match it
+            - name: rotate
               image: rancher/kubectl:v1.35.1
               command: ["kubectl"]
               args:
@@ -96,18 +112,47 @@ spec:
                 - --namespace=envoy-gateway-system
                 - --selector=app.kubernetes.io/component=proxy
                 - --grace-period=30
-                # --ignore-not-found makes the CronJob a no-op (exit 0)
-                # when no matching pod exists — defensive against running
-                # the rotation while the data plane is already mid-restart
-                # from some other cause.
+                # no-op (exit 0) when nothing matches — defensive against
+                # rotating while the data plane is already mid-restart
                 - --ignore-not-found=true
-                # --wait=false skips the watch-for-termination poll. We
-                # don't need to babysit deletion — the Deployment
-                # controller recreates the pod independently. Without
-                # this flag kubectl tries to watch and hits a Role-scope
-                # permission error (we deliberately didn't grant `watch`
-                # — minimum-privilege).
-                - --wait=false
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 64Mi
+            # the Deployment controller needs a moment to create the
+            # replacement; without this the readiness wait below can race it
+            # and exit "no matching resources found"
+            - name: await-create
+              image: rancher/kubectl:v1.35.1
+              command: ["kubectl"]
+              args:
+                - wait
+                - --for=create
+                - pod
+                - --namespace=envoy-gateway-system
+                - --selector=app.kubernetes.io/component=proxy
+                - --timeout=120s
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 64Mi
+          containers:
+            # the actual point of #52: a sick replacement fails the Job today
+            # instead of running degraded until someone notices next week
+            - name: await-ready
+              image: rancher/kubectl:v1.35.1
+              command: ["kubectl"]
+              args:
+                - wait
+                - --for=condition=Ready
+                - pod
+                - --namespace=envoy-gateway-system
+                - --selector=app.kubernetes.io/component=proxy
+                - --timeout=300s
               resources:
                 requests:
                   cpu: 10m
