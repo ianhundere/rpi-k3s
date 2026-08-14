@@ -118,7 +118,7 @@ spec:
               resources:
                 requests:
                   cpu: 10m
-                  memory: 32Mi
+                  memory: 64Mi
                 limits:
                   memory: 64Mi
             # the Deployment controller needs a moment to create the
@@ -137,7 +137,7 @@ spec:
               resources:
                 requests:
                   cpu: 10m
-                  memory: 32Mi
+                  memory: 64Mi
                 limits:
                   memory: 64Mi
           containers:
@@ -156,6 +156,6 @@ spec:
               resources:
                 requests:
                   cpu: 10m
-                  memory: 32Mi
+                  memory: 64Mi
                 limits:
                   memory: 64Mi

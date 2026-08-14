@@ -26,6 +26,22 @@ spec:
   values:
     config:
       enableGatewayAPI: true
+    # all three pods previously ran unbounded — on a memory-saturated fleet that
+    # makes cert renewal a possible OOM casualty. mem req==lim, no cpu limits;
+    # ~2-3x observed steady state (controller 42Mi, cainjector 36Mi, webhook 63Mi).
+    resources:
+      requests:
+        cpu: 10m
+        memory: 128Mi
+      limits:
+        memory: 128Mi
+    cainjector:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 128Mi
+        limits:
+          memory: 128Mi
     startupapicheck:
       timeout: 5m
     crds:
@@ -33,3 +49,9 @@ spec:
     webhook:
       hostNetwork: true
       securePort: 10260
+      resources:
+        requests:
+          cpu: 10m
+          memory: 128Mi
+        limits:
+          memory: 128Mi
