@@ -1,0 +1,54 @@
+---
+# Adopts the tailscale-operator Helm release that was installed out-of-band
+# (manual `helm install`, revisions 1-25) into Flux on 2026-08-14.
+#
+# Pinned to 1.78.3 = exactly what was already running, so adoption is a
+# no-op upgrade. Bump deliberately as a separate change. Revision 24 tried
+# 1.84.3 in Jul 2025 and hung in `pending-upgrade` for over a year while the
+# cluster quietly kept serving 1.78.3 — rolled back before adopting.
+#
+# NO oauth values here on purpose. The chart renders its operator-oauth Secret
+# only when .Values.oauth.clientId is set; setting it would put the client
+# secret in plaintext inside this HelmRelease object. The Secret is managed
+# directly instead (oauth-secret.yaml), fed from cluster-secrets.enc.yaml.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tailscale-operator
+  namespace: tailscale
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: tailscale-operator
+      version: "1.78.3"
+      sourceRef:
+        kind: HelmRepository
+        name: tailscale
+        namespace: flux-system
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    # exposes the k8s API server over the tailnet — was set on the adopted
+    # release, kept as-is
+    apiServerProxyConfig:
+      mode: "true"
+    # previously unbounded. mem req==lim, no cpu limits per repo convention;
+    # operator idles ~28Mi.
+    # NOTE: the chart has no proxyConfig.resources — setting it is silently
+    # ignored. Proxy pods are sized via the ProxyClass in proxyclass.yml,
+    # applied to every Service-backed proxy via defaultProxyClass below.
+    proxyConfig:
+      defaultProxyClass: bounded
+    operatorConfig:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 128Mi
+        limits:
+          memory: 128Mi

@@ -1,0 +1,22 @@
+---
+# Bounds the operator-created ts-* proxy pods, which the chart cannot size
+# itself (no proxyConfig.resources — setting it is silently ignored).
+# Wired in as proxyConfig.defaultProxyClass in release.yml so it applies to
+# every Service-backed proxy without annotating each app's Service.
+#
+# 128Mi mem req==lim, no cpu limits, per repo convention. Proxies idle at
+# ~53-63Mi each; 7 of them, so this reserves ~896Mi across the fleet.
+apiVersion: tailscale.com/v1alpha1
+kind: ProxyClass
+metadata:
+  name: bounded
+spec:
+  statefulSet:
+    pod:
+      tailscaleContainer:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 128Mi
+          limits:
+            memory: 128Mi

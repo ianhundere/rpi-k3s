@@ -22,6 +22,10 @@ resources:
   - envoy-gateway/envoyproxy.yml
   - envoy-gateway/gateway.yml
   - envoy-gateway/cronjob-rotate.yml
+  # tailscale (adopted from a manual helm install 2026-08-14)
+  - tailscale/oauth-secret.yaml
+  - tailscale/proxyclass.yml
+  - tailscale/release.yml
   # csi-driver-nfs (replaced the deprecated nfs-subdir-external-provisioner)
   - csi-driver-nfs/release.yml
   - csi-driver-nfs/storageclass-rpik3s.yml
