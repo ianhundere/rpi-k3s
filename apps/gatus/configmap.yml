@@ -94,17 +94,6 @@ data:
         alerts:
           - type: ntfy
 
-      # temporary canary - proves gatus->ntfy delivery end to end; revert after the push arrives
-      - name: canary
-        url: https://canary.invalid
-        interval: 1m
-        conditions:
-          - "[STATUS] == 200"
-        alerts:
-          - type: ntfy
-            failure-threshold: 1
-            success-threshold: 1
-
       # healthchecks.io dead-man leg. a broken ping URL must page in-band;
       # healthchecks.io stays the out-of-band layer for gatus/cluster death.
       - name: deadman
