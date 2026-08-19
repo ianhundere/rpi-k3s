@@ -38,7 +38,7 @@ data:
 
       - name: auth
         url: https://${TUFKIN_HOST}/api/health
-        interval: 5m
+        interval: 2m
         conditions:
           - "[STATUS] == 200"
           - "[CERTIFICATE_EXPIRATION] > 336h"
@@ -80,6 +80,90 @@ data:
         conditions:
           - "[CONNECTED] == true"
           - "[CERTIFICATE_EXPIRATION] > 336h"
+        alerts:
+          - type: ntfy
+
+      # splits auth-app-down from ingress-down (quixit logins depend on it)
+      - name: tufkin-internal
+        url: http://tufkin.tufkin.svc.cluster.local:8080/api/health
+        interval: 2m
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: ntfy
+
+      # media stack, in-cluster dns; /ping on the *arrs needs no auth
+      - name: sonarr
+        url: http://sonarr.media.svc.cluster.local/ping
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: ntfy
+
+      - name: radarr
+        url: http://radarr.media.svc.cluster.local/ping
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: ntfy
+
+      - name: lidarr
+        url: http://lidarr.media.svc.cluster.local/ping
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: ntfy
+
+      - name: prowlarr
+        url: http://prowlarr.media.svc.cluster.local/ping
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: ntfy
+
+      - name: calibre
+        url: http://calibre.media.svc.cluster.local/
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: ntfy
+
+      - name: qbittorrent
+        url: http://qbittorrent.media.svc.cluster.local/
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: ntfy
+
+      - name: soulseek
+        url: http://soulseek.media.svc.cluster.local/health
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: ntfy
+
+      - name: media-postgres
+        url: tcp://media-postgres.media.svc.cluster.local:5432
+        interval: 5m
+        conditions:
+          - "[CONNECTED] == true"
+        alerts:
+          - type: ntfy
+
+      # alert channel itself; delivery of this alert rides ntfy, so a red tile +
+      # resolved push after recovery is the realistic signal
+      - name: ntfy-health
+        url: https://ntfy.sh/v1/health
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
         alerts:
           - type: ntfy
 
