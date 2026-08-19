@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gatus
+  namespace: gatus
+  labels:
+    app: gatus
+  annotations:
+    tailscale.com/hostname: "gatus"
+    tailscale.com/expose: "true"
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: gatus
+  type: ClusterIP

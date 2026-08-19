@@ -153,3 +153,17 @@ spec:
   policy:
     semver:
       range: ">=0.9.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: gatus
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: gatus
+  policy:
+    semver:
+      # major bounded on purpose — updates stop silently at v6;
+      # bump the range after checking the gatus changelog
+      range: ">=5.36.0 <6.0.0"

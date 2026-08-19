@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gatus-config
+  namespace: gatus
+data:
+  # $${GATUS_...} is flux-escaped: gatus expands it from env at runtime.
+  # bare ${*_HOST} vars are filled by flux postBuild from cluster-vars.
+  config.yaml: |
+    alerting:
+      ntfy:
+        url: https://ntfy.sh
+        topic: $${GATUS_NTFY_TOPIC}
+        priority: 4
+        default-alert:
+          failure-threshold: 3
+          success-threshold: 2
+          send-on-resolved: true
+
+    endpoints:
+      - name: quixit
+        url: https://${QUIXIT_HOST}/api/health
+        interval: 2m
+        conditions:
+          - "[STATUS] == 200"
+          - "[CERTIFICATE_EXPIRATION] > 336h"
+        alerts:
+          - type: ntfy
+
+      # splits app-down from ingress-down
+      - name: quixit-internal
+        url: http://quixit.quixit.svc.cluster.local:8080/api/health
+        interval: 2m
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: ntfy
+
+      - name: auth
+        url: https://${TUFKIN_HOST}/api/health
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+          - "[CERTIFICATE_EXPIRATION] > 336h"
+        alerts:
+          - type: ntfy
+
+      - name: share
+        url: https://${FILEBROWSER_HOST}
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+          - "[CERTIFICATE_EXPIRATION] > 336h"
+        alerts:
+          - type: ntfy
+
+      - name: unifi
+        url: https://${UNIFI_HOST}
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+          - "[CERTIFICATE_EXPIRATION] > 336h"
+        alerts:
+          - type: ntfy
+
+      # 401 = healthy unauthenticated; any() keeps a 404 misroute from
+      # reading as healthy.
+      - name: plex
+        url: https://${PLEX_HOST}
+        interval: 5m
+        conditions:
+          - "[STATUS] == any(200, 401)"
+          - "[CERTIFICATE_EXPIRATION] > 336h"
+        alerts:
+          - type: ntfy
+
+      - name: irc
+        url: tls://${SOJU_HOST}:443
+        interval: 5m
+        conditions:
+          - "[CONNECTED] == true"
+          - "[CERTIFICATE_EXPIRATION] > 336h"
+        alerts:
+          - type: ntfy
+
+      # port-80 301 keeps the HTTP-01 renewal path alive; loss is otherwise silent
+      - name: acme-80
+        url: http://${QUIXIT_HOST}
+        interval: 5m
+        client:
+          ignore-redirect: true
+        conditions:
+          - "[STATUS] == 301"
+        alerts:
+          - type: ntfy
+
+      # healthchecks.io dead-man leg. a broken ping URL must page in-band;
+      # healthchecks.io stays the out-of-band layer for gatus/cluster death.
+      - name: deadman
+        url: $${GATUS_HC_PING_URL}
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: ntfy

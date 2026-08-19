@@ -159,3 +159,15 @@ spec:
     name: ghcr-secret
   exclusionList:
     - "^latest$"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: gatus
+  namespace: flux-system
+spec:
+  image: ghcr.io/twin/gatus
+  interval: 30m0s
+  exclusionList:
+    - "^latest$"
+    - "^stable$"
