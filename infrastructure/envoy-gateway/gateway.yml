@@ -165,3 +165,11 @@ spec:
     allowedRoutes:
       namespaces:
         from: All
+  # --- gatus dashboard - HTTP only (internal, LAN dns only; no public record) ---
+  - name: monitor-http
+    hostname: monitor.clusterian.pw
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
