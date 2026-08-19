@@ -9,7 +9,7 @@ data:
   # FileBrowser Quantum config. Admin creds are rendered at pod start via
   # an init-container envsubst pass (see deployment.yml). The $${VAR}
   # escape keeps Flux's postBuild from substituting plaintext creds into
-  # this ConfigMap at apply time — Flux rewrites $${VAR} → ${VAR}, and
+  # this ConfigMap at apply time — Flux strips the doubled dollar, and
   # envsubst in the init-container expands to the real value at pod start.
   # Without the escape, `kubectl get cm filebrowser-config -o yaml` would
   # leak the admin password to anyone with namespace RBAC.
