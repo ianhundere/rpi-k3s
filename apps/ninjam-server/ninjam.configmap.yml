@@ -35,7 +35,9 @@ data:
 
 
     #user/password/permissions sets
-    User ${NINJAM_USER} ${NINJAM_PASSWORD} # allow all functions
+    # admin disabled: creds were never minted into the sops store (audit catch).
+    # to revive: mint NINJAM_USER/NINJAM_PASSWORD, un-comment, drop the $$ escapes.
+    # User $${NINJAM_USER} $${NINJAM_PASSWORD} # allow all functions
     User                                   # allow chat, bpm/bpi, topic changing, and kicking, a reserved slot, and multiple logins
     User                                   # allow default functions (chat, no topic)
 

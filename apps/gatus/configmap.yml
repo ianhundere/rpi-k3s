@@ -157,6 +157,32 @@ data:
         alerts:
           - type: ntfy
 
+      # prod quixit path databases
+      - name: quixit-postgres
+        url: tcp://quixit-postgres.quixit.svc.cluster.local:5432
+        interval: 5m
+        conditions:
+          - "[CONNECTED] == true"
+        alerts:
+          - type: ntfy
+
+      - name: tufkin-postgres
+        url: tcp://tufkin-postgres.tufkin.svc.cluster.local:5432
+        interval: 5m
+        conditions:
+          - "[CONNECTED] == true"
+        alerts:
+          - type: ntfy
+
+      # the NAS export every media PVC rides on
+      - name: nfs
+        url: tcp://${NFS_IP}:2049
+        interval: 5m
+        conditions:
+          - "[CONNECTED] == true"
+        alerts:
+          - type: ntfy
+
       # alert channel itself; delivery of this alert rides ntfy, so a red tile +
       # resolved push after recovery is the realistic signal
       - name: ntfy-health
