@@ -44,3 +44,28 @@ patches:
   target:
     kind: Deployment
     name: (source-controller|kustomize-controller)
+# image-reflector is the only controller carrying a badger db (/data); stock
+# badger defaults don't fit the 256Mi tier. GOMEMLIMIT is detached from
+# limits.memory so go's gc runs before the cgroup killer, not at the same byte.
+- patch: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: image-reflector-controller
+    spec:
+      template:
+        spec:
+          containers:
+          - name: manager
+            env:
+            - name: GOMEMLIMIT
+              value: 448MiB
+              valueFrom: null
+            resources:
+              requests:
+                memory: 512Mi
+              limits:
+                memory: 512Mi
+  target:
+    kind: Deployment
+    name: image-reflector-controller
