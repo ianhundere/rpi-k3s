@@ -8,3 +8,4 @@ resources:
   - deployment.yml
   - service.yml
   - gateway.yml
+  - cronjob-restart-watch.yml

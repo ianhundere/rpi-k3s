@@ -1,0 +1,115 @@
+---
+# Black-box probes can't see a crashlooping controller: image-reflector OOMKilled
+# 132x over 3d12h in Aug 2026 behind a green dashboard. This alerts on any
+# container that restarted recently, cluster-wide.
+#
+# Lives in the gatus namespace to reuse gatus-env (GATUS_NTFY_TOPIC) rather than
+# duplicating the ntfy secret; the RBAC below is cluster-wide but read-only.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: restart-watch
+  namespace: gatus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: restart-watch
+rules:
+  - apiGroups: ['']
+    resources: ['pods']
+    verbs: ['get', 'list']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: restart-watch
+subjects:
+  - kind: ServiceAccount
+    name: restart-watch
+    namespace: gatus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: restart-watch
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: restart-watch
+  namespace: gatus
+spec:
+  # every 30m against a 35m lookback: the overlap means a restart near a run
+  # boundary alerts twice rather than slipping through unseen
+  schedule: '*/30 * * * *'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      # generous: the first run on a node pays a 70MB image pull over rpi wifi
+      activeDeadlineSeconds: 900
+      template:
+        spec:
+          serviceAccountName: restart-watch
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+          containers:
+            - name: restart-watch
+              # alpine/kubectl, not rancher/kubectl (no shell) or alpine/k8s
+              # (937MB of cloud clis we don't need)
+              image: alpine/kubectl:1.34.1
+              env:
+                # kubectl caches discovery under HOME; root fs is read-only
+                - name: HOME
+                  value: /tmp
+              envFrom:
+                - secretRef:
+                    name: gatus-env
+              command: ['/bin/sh', '-c']
+              args:
+                # $$ escapes are load-bearing: GATUS_NTFY_TOPIC is a real
+                # cluster-secrets key, so unescaped flux would substitute the
+                # value straight into this manifest as plaintext.
+                - |
+                  set -eu
+                  CUT="$(date -u -d "@$(( $(date +%s) - 2100 ))" +%Y-%m-%dT%H:%M:%SZ)"
+                  TPL='{{range .items}}{{if ne .status.phase "Succeeded"}}{{$$p := printf "%s/%s" .metadata.namespace .metadata.name}}{{range .status.containerStatuses}}{{if .lastState.terminated}}{{if gt .lastState.terminated.finishedAt "'"$${CUT}"'"}}{{printf "%s [%s] x%v %s\n" $$p .name .restartCount .lastState.terminated.reason}}{{end}}{{end}}{{end}}{{end}}{{end}}'
+                  OUT="$(kubectl get pods -A -o go-template="$${TPL}")"
+                  if [ -z "$${OUT}" ]; then
+                    echo "no container restarts since $${CUT}"
+                    exit 0
+                  fi
+                  echo "$${OUT}"
+                  # -f so a failed post fails the job rather than silently
+                  # dropping the alert this exists to deliver
+                  printf '%s' "$${OUT}" | curl -fsS \
+                    -H "Title: pod restarts" \
+                    -H "Priority: high" \
+                    -H "Tags: warning" \
+                    --data-binary @- \
+                    "https://ntfy.sh/$${GATUS_NTFY_TOPIC}"
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ['ALL']
+                seccompProfile:
+                  type: RuntimeDefault
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 128Mi
+                limits:
+                  memory: 128Mi
+          volumes:
+            - name: tmp
+              emptyDir: {}
