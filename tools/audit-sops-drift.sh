@@ -54,8 +54,20 @@ for doc in yaml.safe_load_all(sys.stdin):
     if p.returncode != 0:
         print("    NOT IN CLUSTER — nothing to compare"); overall = 1; continue
 
+    obj = json.loads(p.stdout)
     live = {k: digest(base64.b64decode(v))
-            for k, v in (json.loads(p.stdout).get("data") or {}).items()}
+            for k, v in (obj.get("data") or {}).items()}
+
+    # A client-side `kubectl apply` writes every decrypted value into this
+    # annotation in plaintext. It leaked 2026-04-11, was stripped, and was back
+    # by 2026-08-22 — so assert its absence rather than trust it stays fixed.
+    lac = "kubectl.kubernetes.io/last-applied-configuration"
+    if lac in ((obj.get("metadata") or {}).get("annotations") or {}):
+        print(f"    PLAINTEXT  {lac}")
+        print(f"               every value readable in the clear via `kubectl "
+              f"describe secret {name} -n {ns}`")
+        print(f"               fix: kubectl -n {ns} annotate secret {name} {lac}-")
+        overall = 1
 
     ok = drift = missing = 0
     for k in sorted(want):
