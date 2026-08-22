@@ -47,22 +47,31 @@ spec:
               cpu: "500m"
             limits:
               memory: "512Mi"
+          # httpGet, not tcpSocket: the socket accepts in 5ms while the app
+          # needs ~1.8s to answer, so a hung calibre-web passed tcp probes
+          # forever and only a human ever noticed. timeouts sized off that 1.8s.
           startupProbe:
-            tcpSocket:
+            httpGet:
+              path: /
               port: http
             initialDelaySeconds: 15
             periodSeconds: 10
-            failureThreshold: 18
+            failureThreshold: 30
+            timeoutSeconds: 10
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /
               port: http
             periodSeconds: 10
             failureThreshold: 3
+            timeoutSeconds: 5
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /
               port: http
             periodSeconds: 30
             failureThreshold: 5
+            timeoutSeconds: 10
       volumes:
         - name: media-config
           persistentVolumeClaim:
