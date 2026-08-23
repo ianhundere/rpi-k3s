@@ -28,17 +28,12 @@ spec:
       initContainers:
         - name: sysctl-setup
           image: busybox
-          command:
-            [
-              'sh',
-              '-c',
-              'sysctl -w net.ipv4.conf.all.rp_filter=2 && sysctl -w net.ipv6.conf.all.disable_ipv6=1 && sysctl -w net.ipv4.ip_forward=1',
-            ]
+          command: ['sh', '-c', 'sysctl -w net.ipv4.conf.all.rp_filter=2 && sysctl -w net.ipv6.conf.all.disable_ipv6=1 && sysctl -w net.ipv4.ip_forward=1']
           securityContext:
             privileged: true
       containers:
         - name: gluetun
-          image: qmcgaw/gluetun:v3.41.1 # {"$imagepolicy": "flux-system:gluetun"}
+          image: qmcgaw/gluetun:v3.41.3 # {"$imagepolicy": "flux-system:gluetun"}
           securityContext:
             capabilities:
               add:
@@ -76,7 +71,7 @@ spec:
             limits:
               memory: 256Mi
         - name: slskd
-          image: slskd/slskd:0.25.1 # {"$imagepolicy": "flux-system:slskd"}
+          image: slskd/slskd:0.26.0 # {"$imagepolicy": "flux-system:slskd"}
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
