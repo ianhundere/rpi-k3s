@@ -26,8 +26,15 @@ jobs:
             exit 0
           fi
           if ! git merge-base --is-ancestor origin/main origin/flux-image-updates; then
-            echo "::notice::flux-image-updates is stale (predates current main) — Flux will rebuild it when new bumps appear"
-            exit 0
+            # This used to notice-and-exit-0 on the assumption Flux rebuilds the
+            # branch. It doesn't — it commits on top of the existing one, so the
+            # branch diverges and never recovers. That hid dead image automation
+            # from 2026-04-16 to 2026-08-23: 62 bumps stranded, workflow green
+            # daily. Fail instead, so a stale branch is visible.
+            ahead=$(git rev-list origin/main..origin/flux-image-updates --count)
+            echo "::error::flux-image-updates has diverged from main ($ahead commits stranded)."
+            echo "::error::Flux will not rebuild it. Reset with: git push --force origin main:flux-image-updates"
+            exit 1
           fi
           count=$(git rev-list origin/main..origin/flux-image-updates --count)
           if [ "$count" -eq 0 ]; then
