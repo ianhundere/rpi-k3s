@@ -49,10 +49,12 @@ spec:
               memory: "512Mi"
           # httpGet, not tcpSocket: the socket accepts in 5ms while the app
           # needs ~1.8s to answer, so a hung calibre-web passed tcp probes
-          # forever and only a human ever noticed. timeouts sized off that 1.8s.
+          # forever and only a human ever noticed. probe /login (49ms), never /
+          # (2.7s) -- / renders the library off sqlite and probing it that often
+          # starved the worker it was meant to be watching.
           startupProbe:
             httpGet:
-              path: /
+              path: /login
               port: http
             initialDelaySeconds: 15
             periodSeconds: 10
@@ -60,14 +62,14 @@ spec:
             timeoutSeconds: 10
           readinessProbe:
             httpGet:
-              path: /
+              path: /login
               port: http
             periodSeconds: 10
             failureThreshold: 3
             timeoutSeconds: 5
           livenessProbe:
             httpGet:
-              path: /
+              path: /login
               port: http
             periodSeconds: 30
             failureThreshold: 5
