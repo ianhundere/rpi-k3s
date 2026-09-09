@@ -26,9 +26,9 @@ kubelet-arg:
 # deliberately NO node-taint: the master is the only 8GB/amd64 node, so it
 # must keep hosting unifi + postgres workloads (2026-08-03 design decision)
 
-# etcd snapshots every 6h, 8 retained locally (~2 days); the off-node copy to
-# the Synology is handled by etcd-snapshot-sync.timer on the node itself —
-# local-only snapshots died with the SD card on 2026-07-29
+# etcd snapshots every 6h, 8 retained locally. the built-in cron silently
+# stopped 2026-08-13 (back ~09-07), so the etcd-snapshot-take/verify/sync
+# timers on the node (tools/etcd-snapshot) run alongside it and push to the nas.
 etcd-snapshot-schedule-cron: "0 */6 * * *"
 etcd-snapshot-retention: 8
 

@@ -1,0 +1,7 @@
+---
+# created by the original manual helm install and never in git; listed here
+# so a rebuild has the namespace before oauth-secret + the operator release.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tailscale

@@ -1,11 +1,6 @@
-# SOLUTION: UniFi uses HTTPS backend (port 8443) with self-signed cert.
-# Gateway API BackendTLSPolicy requires CA cert validation, but UniFi's cert changes on each deployment.
-# We use an nginx sidecar proxy that accepts the self-signed cert (proxy_ssl_verify off)
-# and exposes HTTP on port 8080 for the Gateway to connect to.
-# References:
-# - https://github.com/linuxserver/docker-unifi-network-application
-# - https://docs.nginx.com/nginx-gateway-fabric/traffic-security/secure-backend/
-# - https://gateway-api.sigs.k8s.io/geps/gep-1897/
+# unifi serves https on 8443 with a self-signed cert that changes per deploy,
+# so an nginx sidecar (proxy_ssl_verify off) exposes plain http :8080 for the
+# gateway to target instead of a BackendTLSPolicy that would need its ca.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:

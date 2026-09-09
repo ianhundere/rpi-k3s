@@ -22,10 +22,10 @@ cluster_cidr: "10.42.0.0/16"
 service_cidr: "10.43.0.0/16"
 
 # --- NFS ---------------------------------------------------------------
-# nfs-common is always installed (required by the in-cluster
-# nfs-subdir-external-provisioner). A direct OS-level fstab mount is NOT
-# needed for normal operation — leave nfs_direct_mount false unless you want
-# a debug/maintenance mount on the nodes themselves.
+# nfs-common is always installed (required by the in-cluster csi-driver-nfs
+# node plugin). A direct OS-level fstab mount is NOT needed for normal
+# operation — leave nfs_direct_mount false unless you want a debug/maintenance
+# mount on the nodes themselves.
 nfs_server: "192.168.3.85" # Synology NAS
 nfs_direct_mount: false
 nfs_mount_path: "/mnt/nfs"

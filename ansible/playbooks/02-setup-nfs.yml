@@ -1,8 +1,8 @@
 ---
 # NFS client setup.
 #
-# The in-cluster nfs-subdir-external-provisioner handles all Kubernetes NFS
-# access, so only the nfs-common package is strictly required. A direct
+# The in-cluster csi-driver-nfs driver handles all Kubernetes NFS access,
+# so only the nfs-common package is strictly required. A direct
 # OS-level mount is useful for debugging/maintenance but is OFF by default;
 # enable it by setting nfs_direct_mount: true in group_vars/all.yml.
 #
