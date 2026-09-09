@@ -53,7 +53,7 @@ spec:
       certificateRefs:
       - kind: Secret
         name: quixit-cert
-  # --- tufkin - auth.clusterian.pw ---
+  # --- tufkin - auth.quixit.us ---
   - name: tufkin-http
     hostname: ${TUFKIN_HOST}
     port: 80
@@ -137,29 +137,8 @@ spec:
     tls:
       mode: Passthrough
   # --- media tools - HTTP only (internal) ---
-  - name: calibre-media-tools-http
-    hostname: calibre.media.tools
-    port: 80
-    protocol: HTTP
-    allowedRoutes:
-      namespaces:
-        from: All
   - name: media-tools-http
     hostname: media.tools
-    port: 80
-    protocol: HTTP
-    allowedRoutes:
-      namespaces:
-        from: All
-  - name: qbt-media-tools-http
-    hostname: qbt.media.tools
-    port: 80
-    protocol: HTTP
-    allowedRoutes:
-      namespaces:
-        from: All
-  - name: soulseek-media-tools-http
-    hostname: soulseek.media.tools
     port: 80
     protocol: HTTP
     allowedRoutes:

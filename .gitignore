@@ -10,3 +10,5 @@ ansible/.kubeconfig
 .claude/
 _bmad/
 _bmad-output/
+.agents/
+skills-lock.json

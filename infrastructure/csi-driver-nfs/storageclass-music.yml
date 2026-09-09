@@ -1,6 +1,6 @@
 ---
-# csi-driver-nfs equivalent of the old nfs-music SC (/volume2/music). For future
-# dynamic PVCs; the live music library rides the static music-data PV.
+# future dynamic PVCs under /volume2/music only; the live music library rides
+# the static music-data PV.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:

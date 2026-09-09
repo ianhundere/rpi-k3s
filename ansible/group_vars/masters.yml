@@ -1,10 +1,7 @@
 ---
-# Master-specific k3s server flags.
-# Source of truth: k3s-config/k3s_server-config.yml
-#   - servicelb disabled (we use MetalLB)
-#   - traefik disabled (we use Envoy Gateway)
-#   - cluster-init enables embedded etcd for HA
-#   - tls-san adds the master IP to the API server cert so kubectl works by IP
+# master k3s server flags: a first-boot approximation for DR. the record is
+# k3s-config/k3s_server-config.yml (copy it to /etc/rancher/k3s/config.yaml on
+# the node, fill node-ip / tls-san); keep these in sync with it.
 k3s_server_args:
   - "--disable servicelb"
   - "--disable traefik"

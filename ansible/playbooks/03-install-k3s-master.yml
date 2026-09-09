@@ -61,17 +61,8 @@
       become: false
       no_log: true # cluster join token — never echo to console/log
 
-    - name: Taint master node NoSchedule
-      ansible.builtin.command: >-
-        kubectl taint node {{ inventory_hostname }}
-        node-role.kubernetes.io/master:NoSchedule
-      environment:
-        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
-      register: taint_result
-      changed_when: '"tainted" in taint_result.stdout'
-      failed_when:
-        - taint_result.rc != 0
-        - '"already has" not in taint_result.stderr'
+    # deliberately no NoSchedule taint: the master must keep hosting unifi +
+    # postgres (k3s-config/k3s_server-config.yml, 2026-08-03 decision).
 
     - name: Fetch kubeconfig to control machine
       # Only on first install — re-running must not clobber a kubeconfig whose

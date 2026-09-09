@@ -1,6 +1,6 @@
 ---
-# csi-driver-nfs equivalent of the old nfs-video SC (/volume1/media). For future
-# dynamic PVCs; the live media library rides the static media-data PV.
+# future dynamic PVCs under /volume1/media only; the live media library rides
+# the static media-data PV.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:

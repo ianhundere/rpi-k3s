@@ -12,7 +12,7 @@ spec:
     kind: GitRepository
     name: flux-system
   path: ./infrastructure
-  prune: false  # set to false initially to avoid deleting existing resources
+  prune: true
   wait: true
   postBuild:
     substitute: {}
