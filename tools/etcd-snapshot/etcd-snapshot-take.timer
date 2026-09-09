@@ -1,0 +1,12 @@
+[Unit]
+Description=Six-hourly etcd snapshot
+
+[Timer]
+# offset 3h from k3s's built-in cron (0 */6 * * *) so the two producers
+# interleave: effective snapshot coverage every 3h, not two files then a 6h gap.
+OnCalendar=*-*-* 03,09,15,21:00:00
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

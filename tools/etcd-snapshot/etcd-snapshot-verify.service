@@ -1,0 +1,6 @@
+[Unit]
+Description=Fail if the newest etcd snapshot is stale
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/etcd-snapshot-verify

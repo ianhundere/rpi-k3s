@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Fail loudly when EITHER snapshot producer goes stale. Two write into this dir --
+# k3s's built-in cron as etcd-snapshot-*, our timer as scheduled-* -- so watching
+# only the newest file of any name lets one die silently behind the other, which
+# is the exact 2026-08-13 failure this tool exists to catch. Freshness, not activity.
+set -euo pipefail
+SRC=${SNAPSHOT_DIR:-/var/lib/rancher/k3s/server/db/snapshots}  # override for testing
+MAX_AGE_HOURS=${1:-7}   # each producer runs every 6h; 7h allows one slow/skewed run
+MAX_AGE_MIN=$(( MAX_AGE_HOURS * 60 ))
+
+if [ -z "$(find "$SRC" -maxdepth 1 -type f -print -quit 2>/dev/null)" ]; then
+  logger -p daemon.crit -t etcd-snapshot-verify "CRITICAL: no etcd snapshots at all in $SRC"
+  echo "CRITICAL: no etcd snapshots found in $SRC" >&2
+  exit 1
+fi
+
+now=$(date +%s)
+rc=0
+report=""
+
+for prefix in scheduled etcd-snapshot; do
+  newest=$(find "$SRC" -maxdepth 1 -type f -name "${prefix}-*" -printf '%T@ %f\n' 2>/dev/null \
+             | sort -rn | head -1)
+  if [ -z "$newest" ]; then
+    logger -p daemon.crit -t etcd-snapshot-verify \
+      "CRITICAL: no ${prefix}-* etcd snapshots in $SRC (that producer is dead)"
+    echo "CRITICAL: no ${prefix}-* etcd snapshots in $SRC (that producer is dead)" >&2
+    rc=1
+    continue
+  fi
+  epoch=${newest%% *}
+  epoch=${epoch%.*}
+  name=${newest#* }
+  age_min=$(( ( now - epoch ) / 60 ))
+  age="$(( age_min / 60 ))h$(( age_min % 60 ))m"
+  if [ "$age_min" -gt "$MAX_AGE_MIN" ]; then
+    logger -p daemon.crit -t etcd-snapshot-verify \
+      "CRITICAL: newest ${prefix}-* etcd snapshot is ${age} old (max ${MAX_AGE_HOURS}h): ${name}"
+    echo "CRITICAL: newest ${prefix}-* etcd snapshot is ${age} old (max ${MAX_AGE_HOURS}h): ${name}" >&2
+    rc=1
+  else
+    report="${report}${report:+, }${prefix}-* ${age} old (${name})"
+  fi
+done
+
+if [ "$rc" -eq 0 ]; then
+  echo "ok: $report"
+fi
+exit "$rc"
