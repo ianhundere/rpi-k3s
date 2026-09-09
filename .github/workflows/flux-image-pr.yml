@@ -1,6 +1,7 @@
 name: Create Image Update PR
-# Daily schedule (not push): Flux force-rebuilds flux-image-updates from main
-# whenever it has pending bumps, so a stale/orphaned branch means nothing to PR.
+# Flux stacks commits on the existing flux-image-updates branch, so the branch
+# outlives its PR. Order matters: an emptied branch (bumps landed by hand) and a
+# conflicting one both get deleted (contents: write); Flux re-derives bumps in <15m.
 on:
   schedule:
     - cron: '23 16 * * *'
@@ -12,7 +13,7 @@ jobs:
   create-pr:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -20,40 +21,45 @@ jobs:
           fetch-depth: 0
       - name: Check for pending image updates
         id: pending
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if ! git fetch origin flux-image-updates 2>/dev/null; then
             echo "::notice::flux-image-updates branch does not exist — nothing pending"
             exit 0
           fi
-          if ! git merge-base --is-ancestor origin/main origin/flux-image-updates; then
-            # This used to notice-and-exit-0 on the assumption Flux rebuilds the
-            # branch. It doesn't — it commits on top of the existing one, so the
-            # branch diverges and never recovers. That hid dead image automation
-            # from 2026-04-16 to 2026-08-23: 62 bumps stranded, workflow green
-            # daily. Fail instead, so a stale branch is visible.
-            ahead=$(git rev-list origin/main..origin/flux-image-updates --count)
-            echo "::error::flux-image-updates has diverged from main ($ahead commits stranded)."
-            echo "::error::Flux will not rebuild it. Reset with: git push --force origin main:flux-image-updates"
-            exit 1
-          fi
-          count=$(git rev-list origin/main..origin/flux-image-updates --count)
-          if [ "$count" -eq 0 ]; then
-            echo "::notice::flux-image-updates has no commits ahead of main"
+          # net diff first, PR state second: a PR whose bumps were landed on main
+          # by hand still reports MERGEABLE, so checking the PR first leaves an
+          # empty PR open forever. Deleting the branch closes it.
+          if git diff --quiet origin/main origin/flux-image-updates; then
+            echo "::notice::flux-image-updates has no net diff vs main — deleting the leftover branch (closes any open PR)"
+            git push origin --delete flux-image-updates
             exit 0
           fi
+          existing_pr=$(gh pr list --head flux-image-updates --state open --json number --jq '.[0].number')
+          if [ -n "$existing_pr" ]; then
+            mergeable=$(gh pr view "$existing_pr" --json mergeable --jq .mergeable)
+            case "$mergeable" in
+              CONFLICTING)
+                echo "::notice::PR #$existing_pr conflicts with main — deleting flux-image-updates (closes the PR); Flux re-pushes fresh bumps within 15m"
+                git push origin --delete flux-image-updates ;;
+              MERGEABLE)
+                echo "::notice::PR #$existing_pr open and mergeable — Flux pushes update it automatically" ;;
+              *)
+                echo "::notice::PR #$existing_pr mergeability is '$mergeable' — checking again next run" ;;
+            esac
+            exit 0
+          fi
+          # no ancestry check: a branch merely BEHIND main still merges, and one
+          # that genuinely cannot shows up as CONFLICTING on the next run.
           echo "pending=true" >> "$GITHUB_OUTPUT"
           git log origin/main..origin/flux-image-updates --pretty='- %s' > /tmp/pending-commits.md
-      - name: Create PR if none open
+      - name: Create PR
         if: steps.pending.outputs.pending == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh label create image-update --description "Automated image updates" --color "0E8A16" --force
-          existing_pr=$(gh pr list --head flux-image-updates --json number --jq '.[0].number')
-          if [ -n "$existing_pr" ]; then
-            echo "::notice::PR #$existing_pr already open — Flux pushes update it automatically"
-            exit 0
-          fi
           {
             echo "Automated image version bumps by Flux image-automation-controller."
             echo
