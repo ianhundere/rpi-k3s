@@ -1,3 +1,6 @@
+# tufkin's own postgres 18 (quixit login depends on it). no PGDATA env, so pg18
+# defaults to /var/lib/postgresql/18/docker => data is at /volume3/rpi-k3s/tufkin/18/docker
+# on the static PV; setting PGDATA now would strand it. see tufkin-postgres-pv-csi.yml.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

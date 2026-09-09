@@ -1,419 +1,198 @@
 # rpi-k3s
 
-These manifests are supported by 4 Raspberry Pi 4s with 4GB RAM, a Beelink Mini S with a N5095 CPU and 8GB RAM and Synology ds723+.
+flux-managed k3s cluster on four raspberry pi 4s (4gb), a beelink mini s (n5095, 8gb) and a synology ds723+ for storage. flux applies everything in kubernetes from this repo except the metallb install (deferred) and the two hand-applied objects in `config/`.
 
-## initial setup
+## layout
 
-1. download latest vers of raspberry pi OS (e.g. <https://www.raspberrypi.com/software/operating-systems/>)
-2. flash sd card
-3. create empty ssh file under `/boot/`
-    - `touch ssh`
-4. connect via ssh
-    - `ssh pi@<pi_ip>`
-5. configure static ip via router; you'll also want to do this via `/etc/dhcpcd.conf` file.
-6. set password
-    - `passwd`
-7. set hostname (e.g. master/worker)
-    - `sudo vi /etc/hostname`
-    - `sudo vi /etc/hosts`
-8. upgrade / reboot
-    - `sudo apt-get update && sudo apt-get -y dist-upgrade && sudo reboot`
-9. enable container features by adding the following to `/boot/cmdline.txt`:
+- `clusters/rpi-k3s/` - flux entry point: `flux-system/` (bootstrap manifests + controller memory tiers), `infrastructure.yml`, `apps.yml`. both kustomizations prune, so removing a manifest removes the object
+- `infrastructure/` - cert-manager, envoy gateway, metallb pool, tailscale operator, csi-driver-nfs, image automation, system-upgrade-controller (disabled between upgrades)
+- `apps/` - one dir per app; the media stack under `apps/media/`
+- `config/` - `cluster-vars.yaml` (plaintext hostnames and lan ips) and `cluster-secrets.enc.yaml` (sops). the only objects applied by hand
+- `ansible/` - node bootstrap and dr path; ips are placeholders on purpose
+- `k3s-config/` - the k3s server and agent config of record
+- `tools/` - `audit-flux-tiers.sh`, `audit-sops-drift.sh`, `kubeconfig-refresh/`, `rpi-kernel-48bit/`, `etcd-snapshot/`
+- `.github/workflows/flux-image-pr.yml` - turns flux image bumps into a daily pr
+- `AGENTS.md`, `CONTEXT.md`, `docs/adr/` - agent rules, vocabulary, decisions
 
-    - `cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory`
+## nodes
 
-10. edit `/etc/dhcp/dhclient.conf`
+| node | hardware | role | ssh |
+|---|---|---|---|
+| kube-master | beelink mini s n5095, 8gb, amd64, dietpi | control plane + etcd on the internal ssd; untainted, hosts unifi and the heavier postgres pods | `dietpi@kube-master` |
+| kube-worker1-3 | raspberry pi 4, 4gb, arm64, sd card | workers; custom 48-bit kernel from `tools/rpi-kernel-48bit/` | `pi@kube-worker1..3` |
+| kube-worker4 | raspberry pi 4, 4gb, arm64, usb boot (the ex-master) | worker; same 48-bit kernel as the other three; never etcd again | `pi@kube-worker4` |
 
-    - ```interface eth0
-         static ip_address=<pi_ip>/24
-         static routers=<router_ip>
-         static domain_name_servers=<router_ip>
-      ```
+all nodes run debian 13 and k3s v1.35.1+k3s1. addresses are dhcp reservations and stay out of git - fill `ansible/inventory.yml` locally. the nas exports `/volume1/media`, `/volume2/music` and `/volume3/rpi-k3s`.
 
-11. configure poe hat fan control via `/boot/config.txt` and use `/opt/vc/bin/vcgencmd measure_temp` to check temp (the config may be diff depending on poe hat used):
+## bootstrap
 
-    - ```[all]
-         dtoverlay=i2c-fan,emc2301`
-      ```
+### nodes
 
-## configure nfs storage
-
-no matter what, the `nfs-common` package must be installed on all nodes unless a node acts as the primary, otherwise the `nfs-kernel-server` package must be installed.
-
-### recommended
-
-#### synology nas
-
-1. enable the folowing on the synology nas:
-    - [nfs service](https://kb.synology.com/en-us/DSM/tutorial/How_to_access_files_on_Synology_NAS_within_the_local_network_NFS#7MrLJcRf6d)
-    - [nfs file permissions](https://kb.synology.com/en-us/DSM/tutorial/How_to_access_files_on_Synology_NAS_within_the_local_network_NFS#sZtk71ItBX)
-2. follow the [nfs-subdir-external-provisioner](#install-nfs-provisioner) steps below for automated provisioning
-
-### not recommended
-
-#### nodes
-
-1. list all connected devices and find the correct drive:
-    - `sudo fdisk -l`
-2. create partition
-    - `sudo mkfs.ext4 /dev/sda1`
-3. mount the disk manually
-    - `sudo mkdir <nfs_path>`
-    - `sudo chown -R pi:pi <nfs_path>/`
-    - `sudo mount /dev/sda1 <nfs_path>`
-4. configure disk to automatically mount
-    - find the uuid of your mounted drive
-        - `sudo blkid`
-    - add the following with the correct uuid to `/etc/fstab`
-        - `UUID=23e4863c-6568-4dd1-abde-0b128a81b0ba <nfs_path> ext4 defaults 0 0`
-    - reboot and make sure the drive has mount
-        - `df -ha /dev/sda1`
-5. configure nfs
-    - install nfs on master
-        - `sudo apt-get install nfs-kernel-server -y`
-    - add the following to `/etc/exports`
-        - `<nfs_path> *(rw,no_root_squash,insecure,async,no_subtree_check,anonuid=1000,anongid=1000)`
-    - start the nfs server
-        - `sudo exportfs -ra`
-    - install nfs on workers
-        - `sudo apt-get install nfs-common -y`
-    - create directory to mount nfs share
-        - `sudo mkdir <nfs_path>`
-        - `sudo chown -R pi:pi <nfs_path>/`
-    - configure disk to automatically mount by adding the master's ip etc to `/etc/fstab`
-        - `sudo vi /etc/fstab`
-        - `<master_ip>:<nfs_path> <nfs_path> nfs rw 0 0`
-
-## configure k3s master node
-
-> **note**: since 2026-08-03 the master is the amd64 beelink (dietpi, user
-> `dietpi`, etcd on its internal ssd) and the ex-master rpi rejoined as
-> kube-worker4. the steps below still describe a from-scratch bootstrap.
-
-1. ssh to master node
-    - `ssh dietpi@kube-master`
-2. if you're not root, you'll want to enable the ability to write to the k3s config file `/etc/rancher/k3s/k3s.yaml`. you'll also want to tell k3s not to deploy its default load balancer, servicelb, and proxy, traefik, since we'll install metallb as load balancer and nginx as proxy manually later on. finally we want to run the k3s installer
-    - `export K3S_KUBECONFIG_MODE="644"; export INSTALL_K3S_EXEC="--disable servicelb --disable traefik --kubelet-arg=container-log-max-files=5 --kubelet-arg=container-log-max-size=50Mi --kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80 --cluster-init"; curl -sfL https://get.k3s.io | sh -`
-3. verify the master is up
-    - `sudo systemctl status k3s`
-    - `kubectl get nodes -o wide`
-    - `kubectl get pods -A -o wide`
-4. ~~taint the master node~~ — since 2026-08-03 the master is deliberately
-   untainted: it is the only 8GB/amd64 node, so it must host unifi + the
-   heavier postgres pods. do not re-add the taint.
-5. save the access token to configure the agents
-    - `sudo cat /var/lib/rancher/k3s/server/node-token`
-
-## configure k3s worker nodes
-
-<sub>for the beelink mini s (n5095) — my x86 node, the master since 2026-08-03 — i had to install:
-
-- `apt-get install apparmor apparmor-utils`</sub>
-
-1. ssh to work node
-    - `ssh pi@kube-worker1`
-2. set permissions on config file, set the endpoint for the agent, set the token saved from configuring the k3s master node, and run the k3s installer
-    - `export K3S_KUBECONFIG_MODE="644"; export K3S_URL="https://<master_ip>:6443"; export K3S_TOKEN=<master_node_token>; export INSTALL_K3S_EXEC="--kubelet-arg=container-log-max-files=5 --kubelet-arg=container-log-max-size=50Mi --kubelet-arg=image-gc-high-threshold=85 --kubelet-arg=image-gc-low-threshold=80"; curl -sfL https://get.k3s.io | sh -`
-3. verify agent is up
-    - `sudo systemctl status k3s-agent`
-    - `kubectl get nodes -o wide`
-    - `kubectl get pods -A -o wide`
-4. label the worker nodes
-    - `kubectl label node <worker_name> node-role.kubernetes.io/node=""`
-5. if mixing cpu architectures, include `nodeSelector` or `nodeAffinity` to ensure workloads get deployed to the relevant node.
-
-## connect remotely to cluster
-
-1. install `kubectl` if it's not already installed local computer, [Install Guide](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
-2. create the necessary directory and file
-    - `mkdir ~/.kube/`
-    - `touch ~/.kube/config`
-3. copy the file using `scp`
-    - `scp dietpi@<master_ip>:/etc/rancher/k3s/k3s.yaml ~/.kube/config`
-4. you can either simply edit the `config` file and locate `127.0.0.1` and replace it with the IP address of the master node or use `sed`
-    - `sed -i '' 's/127\.0\.0\.1/192\.168\.1\.1/g' ~/.kube/config`
-5. the embedded admin cert expires (k3s renews it server-side on restarts), so set up the refresh timer from [`tools/kubeconfig-refresh/`](tools/kubeconfig-refresh/) to keep the local copy in sync — see [automatic cert rotation/renewal](#automatic-cert-rotationrenewal).
-
-## gitops with flux
-
-> **note**: this cluster uses [flux cd](https://fluxcd.io) for gitops. all deployments are automated from this git repo. secrets are encrypted with [sops](https://github.com/getsops/sops) and [age](https://github.com/FiloSottile/age).
-
-### bootstrap flux (one-time setup)
-
-1. install flux cli
-    - `curl -s https://fluxcd.io/install.sh | sudo bash`
-2. bootstrap flux to cluster (requires github token)
-    - `export GITHUB_TOKEN=$(gh auth token)`
-    - `flux bootstrap github --owner=ianhundere --repository=rpi-k3s --branch=main --path=clusters/rpi-k3s --personal --components-extra=image-reflector-controller,image-automation-controller`
-3. install age and sops
-    - arch: `sudo pacman -S age sops`
-    - debian/ubuntu: `sudo apt install age sops`
-    - mac: `brew install age sops`
-4. generate age key (backup this file!)
-    - `mkdir -p ~/.config/sops/age`
-    - `age-keygen -o ~/.config/sops/age/keys.txt`
-5. create age secret in cluster
-    - `cat ~/.config/sops/age/keys.txt | kubectl create secret generic sops-age --namespace=flux-system --from-file=age.agekey=/dev/stdin`
-
-### managing secrets
-
-**view/edit secrets:**
+flash raspberry pi os (enable ssh in the imager), reserve the ips on the router, fill the `# TODO` placeholders in `ansible/inventory.yml`, then:
 
 ```bash
-# edit secrets (opens in $EDITOR, auto-encrypts on save)
-sops config/cluster-secrets.enc.yaml
-
-# view decrypted secrets
-sops -d config/cluster-secrets.enc.yaml
+cd ansible && ansible-playbook playbooks/99-full-bootstrap.yml
 ```
 
-**deploy workflow:**
+the playbooks set hostname and timezone, append `cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory` to the pi `cmdline.txt`, install `nfs-common` (plus apparmor on amd64), install the k3s server, join the agents and print the remaining manual steps. the master is deliberately not tainted (`docs/adr/0005-master-untainted.md`). copy `k3s-config/k3s_server-config.yml` to `/etc/rancher/k3s/config.yaml` on the master (fill `node-ip` and `tls-san`) so the disabled servicelb/traefik and the etcd snapshot schedule survive a reinstall; `k3s_agent-config.yml` is the same for workers. `vcgencmd measure_temp` checks poe-hat temps.
+
+### local kubectl
 
 ```bash
-# 1. edit manifests or secrets
-sops config/cluster-secrets.enc.yaml
+scp dietpi@kube-master:/etc/rancher/k3s/k3s.yaml ~/.kube/config
+sed -i 's/127\.0\.0\.1/<master_ip>/' ~/.kube/config   # gnu sed; mac: sed -i ''
+```
 
-# 2. commit and push
-git add -A
-git commit -m "update: whatever you changed"
+the admin cert rotates when k3s restarts, after which every `kubectl` fails with `You must be logged in to the server`. `tools/kubeconfig-refresh/` installs a user timer that keeps the local copy current; one-off: `~/bin/refresh-k3s-kubeconfig`.
+
+### flux
+
+```bash
+export GITHUB_TOKEN=$(gh auth token)
+flux bootstrap github --owner=ianhundere --repository=rpi-k3s --branch=main \
+  --path=clusters/rpi-k3s --personal \
+  --components-extra=image-reflector-controller,image-automation-controller
+cat ~/.config/sops/age/keys.txt | kubectl create secret generic sops-age \
+  --namespace=flux-system --from-file=age.agekey=/dev/stdin
+```
+
+the `flux` cli must match the version in `clusters/rpi-k3s/flux-system/gotk-components.yaml` before a bootstrap or upgrade. after regenerating `gotk-components.yaml` run `tools/audit-flux-tiers.sh`: the controller memory patches in `clusters/rpi-k3s/flux-system/kustomization.yaml` fail open, so kustomize silently drops any whose target no longer matches and a whole tier can vanish with no error.
+
+### disaster recovery
+
+1. nodes: the ansible bootstrap above
+2. the host steps ansible does not do: copy `k3s-config/k3s_server-config.yml` to `/etc/rancher/k3s/config.yaml` on the master (fill `node-ip` and `tls-san`) and `k3s-config/k3s_agent-config.yml` to the same path on each worker, then `sudo bash install.sh` from `tools/etcd-snapshot/` on the master for the take/verify/sync timers
+3. is the datastore gone? if a snapshot survives, restore it and skip to step 7: copy the newest file from `/volume3/rpi-k3s/etcd-backup/<hostname>/` on the nas to the master and run `k3s server --cluster-reset --cluster-reset-restore-path=<file>`. flux, the `sops-age` secret, the two `config/` objects and the by-hand metallb install all come back with it, so rebuilding them first is wasted work. steps 4-6 are the other branch: bootstrap from scratch, only when there is no usable snapshot
+4. install metallb (v0.14.8) by hand. it is not in git - `infrastructure/metallb/config.yml` is only the pool and its crds arrive with the install, so without it the pool never applies, `infrastructure` never goes ready (`wait: true`) and `apps` never starts (`dependsOn`)
+5. flux bootstrap and the age key (above) - the age key backup is the whole secret
+6. apply `config/` by hand (deploy workflow below); flux fills every `${VAR}` from it
+7. `flux get all -A` until everything is ready. pvcs bind to static pvs that point at the existing nas dirs, so no data moves
+
+## deploy workflow
+
+```bash
+git add apps/<app>/<file>.yml        # named files, never -A
+git commit -m "..."
 git push
+flux reconcile source git flux-system && flux get sources git   # confirm the new sha first
+flux reconcile kustomization apps    # or: infrastructure
+```
 
-# 3. for manifests under apps/ or infrastructure/, flux auto-applies
-# within 1 minute (or force sync):
-flux reconcile kustomization flux-system --with-source
+`apps` and `infrastructure` reconcile every 2m on their own; the two `flux reconcile` commands only shorten the wait. keep them as two: `flux reconcile source git flux-system` first, then `flux reconcile kustomization` once the new sha shows. do not collapse them into `flux reconcile kustomization --with-source`, which races the fetch and reconciles the old sha. squash fix-up commits before pushing.
 
-# 4. config/cluster-secrets.enc.yaml and config/cluster-vars.yaml
-# are NOT managed by flux — apply them manually with server-side apply.
-# cluster-secrets.enc.yaml is SOPS-encrypted; cluster-vars.yaml is plaintext
-# (it only holds non-secret hostnames and LAN IPs):
+### secrets and variables
+
+per-app `secret.yml` files are plaintext templates: every value is a `${VAR}` that flux fills at postbuild from the `cluster-vars` configmap and the `cluster-secrets` secret. the only file holding real secret values is `config/cluster-secrets.enc.yaml`. write `$${VAR}` for anything flux must leave alone (shell vars in scripts, gatus env). adding a secret: add the key with `sops config/cluster-secrets.enc.yaml`, re-apply as below, reference `${VAR}` in the manifest.
+
+flux does not manage `config/` (`docs/adr/0002-config-applied-by-hand.md`); apply both objects server-side after every edit:
+
+```bash
 sops -d config/cluster-secrets.enc.yaml | kubectl apply --server-side --force-conflicts -f -
 kubectl apply --server-side --force-conflicts -f config/cluster-vars.yaml
 ```
 
-**⚠ do not use plain `kubectl apply -f` for these:** client-side apply
-stores the entire decrypted object (including every secret value in
-plaintext) in the `kubectl.kubernetes.io/last-applied-configuration`
-annotation, where anyone with `get secrets`/`get configmaps` RBAC on
-`flux-system` can read it. Server-side apply tracks field ownership via
-`.metadata.managedFields` and does not write that annotation. If you
-ever did a plain `kubectl apply` on these in the past, strip the stale
-annotation on the live object:
+plain `kubectl apply` writes the decrypted values into the `last-applied-configuration` annotation. `tools/audit-sops-drift.sh` diffs the sops store against the live secret, asserts that annotation is absent, and fails on any manifest `${VAR}` defined in neither store.
+
+### suspend
 
 ```bash
-kubectl -n flux-system annotate secret cluster-secrets \
-    kubectl.kubernetes.io/last-applied-configuration-
-kubectl -n flux-system annotate cm cluster-vars \
-    kubectl.kubernetes.io/last-applied-configuration-
+flux suspend kustomization apps      # freezes every app dir; there is no per-app kustomization
+flux resume kustomization apps
+flux suspend source git flux-system  # stops every sync
+flux resume source git flux-system
 ```
 
-**check flux status:**
+### image updates
+
+`infrastructure/image-automation/` scans the registries and commits tag bumps to the `flux-image-updates` branch, rewriting only image lines under `apps/` that carry a `# {"$imagepolicy": "flux-system:<name>"}` marker. `.github/workflows/flux-image-pr.yml` opens the pr daily; squash-merge it. the repo deletes the branch on merge and the workflow deletes a stale or conflicting one, so flux rebuilds it from main on the next bump. check the changelog before merging lidarr (nightly, tubifarry) or unifi bumps. the private quixit and tufkin registries are scanned with the `ghcr-secret` templated in `infrastructure/image-automation/ghcr-secret.yml` (`${GHCR_TOKEN}` from the sops store, `config/cluster-secrets.enc.yaml`), so a rebuild keeps scanning.
+
+## storage
+
+csi-driver-nfs (`infrastructure/csi-driver-nfs/`, chart 4.13.4 in `kube-system`) mounts the nas. every live workload rides a static pv (`apps/<app>/*pv-csi.yml`: `storageClassName: ""` plus `claimRef`, bound by the pvc's `volumeName`) that points at its existing dir: `/volume3/rpi-k3s/<ns>/<name>` (tufkin is the literal `/volume3/rpi-k3s/tufkin`), `/volume1/media` for `media-data`, `/volume2/music` for `music-data`. the `nfs-csi-rpik3s`, `nfs-csi-music` and `nfs-csi-video` storage classes exist for future dynamic pvcs only. `local-path` is the cluster default and holds slskd's app dir, which pins that pod to one node. the split is deliberate: music sits on nvme (`/volume2`) and is backed up, while movies, tv and downloads sit on sata (`/volume1`) and are not. it is the split itself, not the backup policy, that stops lidarr hardlinking - its downloads are on `/volume1` and its library on `/volume2`, two filesystems, so every import is a copy.
+
+## ingress
+
+metallb hands one lan ip to the envoy data plane (pool in `infrastructure/metallb/config.yml`; the metallb install itself is not in git yet). `shared-gateway` in `envoy-gateway-system` carries one listener pair per public host and apps attach httproutes by `sectionName`. cert-manager's gateway-shim reads the `cert-manager.io/cluster-issuer` annotation on the gateway and issues a let's encrypt cert per https listener over http-01, so tls secrets live in `envoy-gateway-system`. the lb exposes only 80 and 443; non-http services ride 443 by sni passthrough (soju). `media.tools` and `monitor.clusterian.pw` are http-only lan names.
+
+adding a public host: a listener pair in `infrastructure/envoy-gateway/gateway.yml`, a `<X>_HOST` key in `config/cluster-vars.yaml`, redirect + https routes in the app dir, an endpoint in `apps/gatus/configmap.yml`.
 
 ```bash
-flux get all -A
-flux get kustomizations
-kubectl get pods -n flux-system
+kubectl get gateway -n envoy-gateway-system shared-gateway
+kubectl get certificates,orders,challenges -n envoy-gateway-system
+kubectl get httproute,tlsroute -A
 ```
 
-### suspend flux for local testing
+## apps
 
-when testing changes locally without git commits overwriting your work:
+public, https via cert-manager:
 
-```bash
-# suspend a specific app/namespace
-flux suspend kustomization media
-flux resume kustomization media  # when done
+- filebrowser (share.clusterian.pw) - `apps/filebrowser/`
+- unifi (unifi.clusterian.pw) - network controller; an nginx sidecar terminates the self-signed backend tls; needs kube-master's 8gb - `apps/unifi/`
+- quixit (quixit.us) - music collaboration challenge; phase transitions run in-app; source in the quixit repo - `apps/quixit/`
+- tufkin (auth.quixit.us) - oauth for quixit - `apps/tufkin/`
+- plex (media.clusterian.pw) - runs on the nas; an endpointslice points the service there - `apps/media/plex/`
+- soju (irc.clusterian.pw:443) - irc bouncer, tls passthrough - `apps/irc/` (readme there)
 
-# or suspend entire git source (stops all syncs)
-flux get sources git  # list sources
-flux suspend source git flux-system
-flux resume source git flux-system  # when done
+lan and tailnet, http:
 
-# check what's suspended (READY=False)
-flux get kustomizations
-flux get sources git
-```
+- gatus (monitor.clusterian.pw, `http://gatus` on the tailnet) - 22 black-box checks, ntfy alerts, healthchecks.io deadman - `apps/gatus/`
+- media-postgres - postgres 18 shared by sonarr, radarr, prowlarr and lidarr - `apps/media/postgres/`
+- sonarr, radarr, prowlarr, lidarr, calibre (a calibre-web image), qbittorrent, soulseek (a slskd image) - `media.tools/<app>`, except qbittorrent at `media.tools/qbit` - `apps/media/<app>/`
+- ninjam-server - parked: every resource is commented out of its kustomization and the configmap says how to revive it - `apps/ninjam-server/`
 
-suspending kustomizations is safer - only affects that app. suspending git source stops all flux syncs from the repo.
+the media apps and gatus carry `tailscale.com/expose` on their service; the operator in `infrastructure/tailscale/` runs one proxy per service, sized by the `bounded` proxyclass.
 
-### disaster recovery
+media notes:
 
-if cluster is lost:
+- the arrs (sonarr, radarr, prowlarr, lidarr) use `media-postgres` via `<APP>__POSTGRES__*` env. `config.xml` still holds `<UrlBase>/<app></UrlBase>` and lives at `/volume3/rpi-k3s/media/media-config/<app>/config.xml` (the `media-config` pvc, subpath `<app>`)
+- prowlarr manages indexers and syncs them to sonarr, radarr and lidarr. lidarr additionally runs the tubifarry plugin as its own slskd indexer and download client (install via system > plugins; remote path mapping `host=soulseek, remote=/downloads/, local=/downloads/soulseek/` or every import fails)
+- download clients from the arrs: qbittorrent at `qbittorrent.media:80`, soulseek at `soulseek.media:80`
+- qbittorrent, soulseek and prowlarr share a pod with a gluetun sidecar (protonvpn wireguard). qbittorrent and soulseek also run a `port-sync` sidecar that rewrites the listen port when proton rotates the forwarded one (`port-sync.configmap.yml`)
+- qbittorrent's service is a clusterip on port 80; envoy and the tailscale proxy reach it in-cluster
+- calibre probes `httpGet /login` with `timeoutSeconds` 5-10. not `/`, which renders the whole library; not `tcpSocket`, which a hung app still passes
+- linuxserver `DOCKER_MODS` install on every pod start; on arm64 only the vuetorrent mod is cheap enough to keep
 
-1. restore age private key from backup (`~/.config/sops/age/keys.txt`)
-2. bootstrap flux to new cluster (step 2 above)
-3. create age secret in new cluster (step 5 above)
-4. flux will restore all resources automatically from git
+## k3s upgrades
 
-## install metallb - k8s load balancer
+`infrastructure/system-upgrade-controller/` stays commented out of `infrastructure/kustomization.yml` between upgrades. one minor version at a time:
 
-> **automated via flux**: metallb is deployed automatically via flux. see `infrastructure/metallb/` for configuration.
-
-## install gateway api & envoy gateway - web proxy
-
-> **note**: this cluster uses the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) with [Envoy Gateway](https://gateway.envoyproxy.io/) deployed via flux. see `infrastructure/envoy-gateway/` for configuration. supports simultaneous TLS passthrough and HTTPS termination on port 443.
-
-**verify installation:**
-
-```bash
-kubectl get pods -n envoy-gateway-system
-kubectl get gatewayclass
-kubectl get svc -n envoy-gateway-system
-flux get helmreleases -n envoy-gateway-system
-```
-
-## install cert-manager
-
-> **automated via flux**: cert-manager is deployed automatically via flux. see `infrastructure/cert-manager/` for configuration.
-
-cert-manager is configured with Gateway API support (`enableGatewayAPI: true` in Helm values). the `letsencrypt-prod` ClusterIssuer uses `http01.gatewayHTTPRoute` solver referencing the shared-gateway in `envoy-gateway-system`. the Gateway is annotated with `cert-manager.io/cluster-issuer: letsencrypt-prod`, so cert-manager's gateway-shim auto-creates Certificate resources for each HTTPS listener and handles renewal.
-
-**important**: cert-manager's gateway-shim does not support cross-namespace `certificateRefs`. all TLS secrets must live in the Gateway's namespace (`envoy-gateway-system`).
-
-**verify certificates:**
-
-```bash
-kubectl get certificates -n envoy-gateway-system
-kubectl get orders,challenges -n envoy-gateway-system
-```
-
-## deployed applications
-
-> **automated via flux**: applications in `apps/` are deployed automatically via flux. infrastructure components in `infrastructure/` are also flux-managed.
-
-### flux-managed apps
-
-**public-facing (with HTTPS/TLS):**
-
-- **filebrowser** (share.clusterian.pw) - file management interface
-  - see: `apps/filebrowser/`
-- **unifi** (unifi.clusterian.pw) - network controller
-  - uses nginx sidecar proxy to handle self-signed backend TLS certificates
-  - see: `apps/unifi/`
-- **quixit** (quixit.us) - music collaboration challenge platform
-  - automated phase transitions via cronjobs, file-watcher sidecar
-  - see: `apps/quixit/` (app source + docs live in the separate quixit repo)
-- **plex** (media.clusterian.pw) - media server routing
-  - uses EndpointSlice to route traffic to NAS (${NFS_IP})
-  - see: `apps/media/plex/`
-- **tufkin** (auth.clusterian.pw) - OAuth authentication for quixit
-  - see: `apps/quixit/`
-- **soju** (irc.clusterian.pw) - IRC bouncer via TLS passthrough
-  - see: `apps/irc/`
-
-**internal media apps (HTTP only, accessible via media.tools):**
-
-- **qbittorrent** - torrent client (media.tools/qbit)
-  - see: `apps/media/qbittorrent/`
-- **prowlarr** - indexer manager (media.tools/prowlarr)
-  - auto-syncs indexers to sonarr/radarr, replaces jackett
-  - see: `apps/media/prowlarr/`
-- **sonarr** - tv automation (media.tools/sonarr)
-  - see: `apps/media/sonarr/`
-- **radarr** - movie automation (media.tools/radarr)
-  - see: `apps/media/radarr/`
-- **calibre** - ebook management (media.tools/calibre)
-  - see: `apps/media/calibre/`
-- **lidarr** - music automation (media.tools/lidarr)
-  - nightly image + Tubifarry plugin for native slskd integration (search, grab, download, import)
-  - see: `apps/media/lidarr/`
-- **soulseek/slskd** - music sharing (media.tools/soulseek)
-  - slskd REST-API fork of Soulseek; behind gluetun VPN sidecar with dynamic port forwarding
-  - see: `apps/media/soulseek/`
-
-**application notes:**
-
-- all public-facing apps use Let's Encrypt TLS certificates via cert-manager (auto-renewed via gateway-shim)
-- TLS secrets live in the `envoy-gateway-system` namespace (cert-manager gateway-shim requirement)
-- unifi's nginx sidecar accepts self-signed certs with `proxy_ssl_verify off`
-- Envoy Gateway handles all HTTP/HTTPS routing including TLS passthrough for soju (IRC)
-
-**media apps configuration notes:**
-
-- prowlarr: set URL base to `/prowlarr` in Settings > General. manages all indexers centrally and auto-syncs to sonarr/radarr via app-sync
-- sonarr: requires `config.xml` in `<nfs_path>/sonarr/` with `<Config><UrlBase>/sonarr</UrlBase></Config>`
-- radarr: requires `config.xml` in `<nfs_path>/radarr/` with `<Config><UrlBase>/radarr</UrlBase></Config>`
-- lidarr: Postgres-backed (shared `media-postgres`). Install the Tubifarry plugin via Lidarr System → Plugins (source: `https://github.com/TypNull/Tubifarry`). Delay Profile in Lidarr's Postgres state has `Torrent=5min, Soulseek=0` so slskd has time to return slower results before qBit wins the race. Mount `/downloads/soulseek` aligned with slskd's `SLSKD_DOWNLOADS_DIR`.
-- **Tubifarry Remote Path Mapping (required)**: Settings → Download Clients → Remote Path Mappings → `host=soulseek, remote=/downloads/, local=/downloads/soulseek/`. Tubifarry reports import paths without the `/soulseek/` prefix regardless of slskd's `downloads_dir`; without this mapping every Lidarr import from slskd fails with `path does not exist or is not accessible by Lidarr`. Observed on Tubifarry net8.0 nightly (2026-04-18).
-- connections: radarr/sonarr connect to qbittorrent at `qbittorrent.media:9091`; lidarr uses both qbittorrent (torrent) and slskd (via Tubifarry, `http://soulseek:80`)
-- indexers: managed by prowlarr — add indexers in prowlarr UI and they auto-sync to sonarr/radarr. Lidarr uses Tubifarry as its own slskd indexer (not synced from prowlarr)
-- **gluetun port-sync sidecars** (slskd + qbittorrent pods): a small `curlimages/curl` sidecar watches gluetun's `/tmp/gluetun/forwarded_port` (shared via emptyDir) and patches each app's listen port whenever ProtonVPN rotates the forwarded port. No manual updates required when the VPN port changes. Config lives in each app's `port-sync.configmap.yml`.
-- **calibre-web probes**: use `tcpSocket` probes, not `httpGet /`. Calibre-web's `/` renders the full book list (can take 60+s on RPi for a 1.6GB library), which blows past HTTP liveness timeouts and triggers kubelet kills. TCP probes only check the listener is up.
-
-## install nfs-provisioner
-
-> **automated via flux**: nfs-provisioner (3 instances for video, music, and config storage) is deployed automatically via flux. see `infrastructure/nfs-provisioner/` for configuration.
-
-**storage classes available:**
-
-- `nfs-video` - for video storage
-- `nfs-music` - for music storage
-- `nfs-rpik3s` - for config storage
-
-apply pvcs with the appropriate `storageClass` and they will provision automatically.
-
-## k3s system upgrade controller
-
-> **automated via flux**: [system-upgrade-controller](https://docs.k3s.io/upgrades/automated) can be deployed via flux. see `infrastructure/system-upgrade-controller/` for configuration.
-
-**controller status:**
-
-- currently disabled in `infrastructure/kustomization.yml` (commented out)
-- requires master node taint to schedule successfully
-- upgrade Plans are commented out in kustomization.yml (apply manually when ready to upgrade)
-
-**to enable and perform k3s upgrade:**
-
-1. ~~taint juggling~~ — obsolete since 2026-08-03: the master carries no
-   taint, so the controller schedules without any taint changes.
-
-2. uncomment system-upgrade-controller in `infrastructure/kustomization.yml` and commit
-3. flux will deploy the controller automatically
-4. verify controller is running: `kubectl get pods -n system-upgrade`
-5. update version in `infrastructure/system-upgrade-controller/config.yml`
-6. uncomment config.yml in kustomization.yml and commit
-7. flux will apply the upgrade Plans and k3s will upgrade automatically
-
-**to disable after upgrade:**
-
-- re-comment system-upgrade-controller in `infrastructure/kustomization.yml`
-- delete the deployment: `kubectl delete deployment -n system-upgrade system-upgrade-controller`
-
-## tailscale
-
-> **automated via flux**: tailscale operator is deployed via flux. see `infrastructure/tailscale/` for configuration.
-
-provides vpn access to cluster resources. configuration in `infrastructure/tailscale/`.
-
-## automatic cert rotation/renewal
-
-[k3s client/server certs are valid for 365 days](https://docs.k3s.io/cli/certificate#client-and-server-certificates) and any that are expired, or within 90 days of expiring, are automatically renewed every time k3s starts. in other words, access to cluster will cease until local `kube-config` certs are updated. the symptom is every `kubectl` command failing with:
-
-```text
-error: You must be logged in to the server (the server has asked for the client to provide credentials)
-```
-
-### keeping the local kubeconfig in sync
-
-the master's `/etc/rancher/k3s/k3s.yaml` renews itself on k3s restarts, but the copy in `~/.kube/config` goes stale. [`tools/kubeconfig-refresh/`](tools/kubeconfig-refresh/) has a script + systemd user timer that pulls the current admin cert from the master monthly and updates the local config only when it changed. see its README for install steps; a manual one-off refresh is just:
-
-```bash
-~/bin/refresh-k3s-kubeconfig
-```
-
-> **note**: don't try to suppress rotation by rolling back the master's clock (stopping ntp and faking the date). etcd and TLS validation both depend on accurate time, so clock skew can break the cluster in worse ways than an expired cert — and with the refresh timer above, rotation is a non-event anyway.
+1. bump `version` in both plans in `infrastructure/system-upgrade-controller/config.yml`
+2. uncomment `system-upgrade-controller/` in `infrastructure/kustomization.yml`, push
+3. `kubectl get pods,plans -n system-upgrade`; the job deadline is 3600s because pulls on the pis are slow
+4. re-comment the dir and push; infrastructure prunes, so the controller and its namespace go away
 
 ## backups
 
-make a copy of `/var/lib/rancher/k3s/server/`
+- etcd: k3s snapshots every 6h with 8 kept (`k3s-config/k3s_server-config.yml`), plus the systemd timers vendored in `tools/etcd-snapshot/` and installed on kube-master by its `install.sh`: `etcd-snapshot-take` (every 6h, prunes `scheduled-*` to the same retention), `etcd-snapshot-verify` (hourly, fails when the newest snapshot is older than 7h) and `etcd-snapshot-sync` (hourly rsync to the nas at `/volume3/rpi-k3s/etcd-backup/<hostname>/`). the built-in cron died silently once, so check freshness, not job status: `ssh kube-master 'sudo /usr/local/bin/etcd-snapshot-verify'`
+- app data lives on the nas. the nas pushes its shares, including `/volume3/rpi-k3s` (app configs, postgres dirs, etcd snapshots) and `/volume2/music`, to borgbase nightly from scripts on the nas itself, not this repo. `/volume1/media` has no offsite copy on purpose
+- the age key at `~/.config/sops/age/keys.txt` - without it nothing decrypts
 
-### uninstall
+## monitoring
 
-1. master
-    - `sudo /usr/local/bin/k3s-uninstall.sh`
-2. workers
-    - `sudo /usr/local/bin/k3s-agent-uninstall.sh`
+gatus (`apps/gatus/configmap.yml`) probes every public host and its cert expiry, the acme port-80 redirect, the media stack in-cluster, the three postgres instances, nfs, ntfy itself and a healthchecks.io deadman. alerts go to an ntfy topic; the topic and ping url live only in the sops store. `cronjob-restart-watch.yml` pages on any container restart, which black-box checks cannot see. gatus reads its config once at start, so after pushing a config change bounce it: `kubectl delete pod -n gatus -l app=gatus`.
+
+```bash
+kubectl get --raw /api/v1/namespaces/gatus/services/gatus:80/proxy/api/v1/endpoints/statuses \
+  | jq -r '.[]|"\(.name) \(.results[-1].success)"'
+```
 
 ## debugging
 
-- `journalctl -u k3s.service -e` last logs of the server
-- `journalctl -u k3s-agent.service -e` last logs of the agent
+```bash
+flux get all -A                                   # one-screen view
+flux logs --level=error -A --since=1h             # why a kustomization is not ready
+kubectl get pods -A --field-selector=status.phase!=Running,status.phase!=Succeeded
+kubectl delete pod -n <ns> -l app=<app>           # bounce; never rollout restart, flux reverts the annotation and bounces again
+tools/audit-flux-tiers.sh                         # controller memory tiers still applied
+tools/audit-sops-drift.sh                         # sops store vs live secret, unresolved ${VAR}s
+ssh kube-master 'sudo journalctl -u k3s -e'       # server logs; workers: k3s-agent
+```
+
+image pulls on the pis are slow; wait for the pod watch before calling a rollout stuck. kube-master's clock is america/new_york; containers log utc.
+
+## uninstall
+
+```bash
+sudo /usr/local/bin/k3s-uninstall.sh          # master
+sudo /usr/local/bin/k3s-agent-uninstall.sh    # workers
+```

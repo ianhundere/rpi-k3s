@@ -1,3 +1,6 @@
+# quixit (private ghcr image, pulled with ghcr-secret) at quixit.us; login via
+# tufkin. cycle phase transitions run on the in-app scheduler — there are no
+# cronjobs. waits for quixit-postgres before starting.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

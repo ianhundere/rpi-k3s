@@ -1,3 +1,6 @@
+# qbittorrent behind gluetun (protonvpn, port-forward on) at media.tools/qbit.
+# port-sync sidecar rewrites the listen port when proton rotates it.
+# vuetorrent via DOCKER_MODS is the one arm64 mod cheap enough to start.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

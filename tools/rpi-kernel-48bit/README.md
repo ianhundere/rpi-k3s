@@ -6,7 +6,7 @@ Envoy's statically-linked Google TCMalloc **requires a 48-bit virtual address
 space**. Stock Raspberry Pi OS kernels ship `CONFIG_ARM64_VA_BITS=39`, so every
 official arm64 Envoy binary aborts instantly on an RPi node:
 
-```
+```text
 MmapAligned() failed … TCMalloc assumes a 48-bit virtual address space
 ```
 
@@ -81,9 +81,9 @@ kubectl get node <node>              # Ready,SchedulingDisabled (cordoned until 
 kubectl get pods -A -o wide --field-selector spec.nodeName=<node>   # daemonsets Running
 ```
 
-### Fleet check (the un-pin gate)
+### Fleet check (run after any kernel apt update)
 
-All four RPi nodes must pass before removing the Envoy amd64 pin:
+All four RPi nodes must pass, or Envoy crash-loops on that node (exit 133):
 
 ```bash
 for n in kube-worker1 kube-worker2 kube-worker3 kube-worker4; do
@@ -104,12 +104,13 @@ done   # each line: <release ending -v8-48bit+> 1 guard-ok
 - Node reboots move single-replica workloads. unifi + the heavier postgres
   pods live on kube-master (amd64) and are untouched by RPi worker reboots.
 
-## Un-pin criteria (rpi-k3s#49)
+## If the pin ever breaks
 
-Once the **fleet check** above passes on all four RPi nodes, remove the
-`kubernetes.io/arch: amd64` nodeSelector from
-`infrastructure/envoy-gateway/envoyproxy.yml` (revert of #49) so the Envoy data
-plane can schedule anywhere again — eliminating the worker4 ingress SPOF.
+The amd64 pin (rpi-k3s#49) was removed on 2026-07-05 (#51) once every RPi node
+passed the fleet check; the Envoy data plane schedules anywhere. Fast stopgap
+while a node is repaired: re-add `pod.nodeSelector: {kubernetes.io/arch: amd64}`
+in `infrastructure/envoy-gateway/envoyproxy.yml`, run the fleet check, then
+remove it again.
 
 ## Refresh procedure
 

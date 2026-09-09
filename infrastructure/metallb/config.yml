@@ -1,4 +1,7 @@
 ---
+# pool + l2 advertisement only. metallb itself (v0.14.8) was kubectl-applied
+# in 2023-04 and is not flux-managed yet. envoy's LB ip and unifi's externalIPs
+# are both pinned to the first address (METAL_LB_IP1).
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:

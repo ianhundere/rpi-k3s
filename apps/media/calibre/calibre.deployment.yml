@@ -1,3 +1,6 @@
+# calibre-web at media.tools/calibre; library + config live on media-config
+# via subPaths. no DOCKER_MODS on purpose: universal-calibre reinstalls ~40 apt
+# packages per start (~30 min on arm64). probes hit /login, never / (see below).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
