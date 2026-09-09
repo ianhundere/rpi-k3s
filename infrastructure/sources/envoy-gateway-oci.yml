@@ -1,4 +1,7 @@
 ---
+# envoy gateway chart as an oci artifact (no HelmRepository index to poll).
+# bump the tag here; release.yml runs crds CreateReplace so the bundled
+# gateway-api + eg crds move with it.
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:

@@ -1,3 +1,6 @@
+# lidarr nightly (the only channel with plugins) + tubifarry for slskd
+# search/download; db on media-postgres. arm64-pinned, Recreate: an uncached
+# image pull is ~3-4 min of downtime, not a stuck rollout.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

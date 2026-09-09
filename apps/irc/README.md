@@ -11,7 +11,7 @@ Pair with any IRC client — [senpai](https://sr.ht/~taiite/senpai/), weechat, i
 ## architecture
 
 - **soju** — bouncer, SQLite DB + filesystem message store on a PVC
-- **TLS** — cert-manager issues for `irc.clusterian.pw`; envoy-gateway terminates at the edge via passthrough on port 6697
+- **TLS** — cert-manager issues `irc.clusterian.pw` into the irc namespace (Certificate `soju-cert`, Secret `soju-tls`), envoy passes 443 through by SNI without terminating it, soju terminates with the mounted cert on 6697, and a busybox sidecar SIGHUPs soju on renewal
 - deployed via flux; see root [README](../../README.md)
 
 ## client config (senpai)
@@ -33,7 +33,7 @@ Multi-network — append the network to username: `admin/libera@laptop`.
 Run inside the pod — `sojuctl` writes directly to soju's control socket.
 
 ```bash
-alias sojuctl='kubectl exec -it -n irc deployment/soju -- sojuctl -config /etc/soju/config'
+alias sojuctl='kubectl exec -it -n irc deployment/soju -c soju -- sojuctl -config /etc/soju/config'
 
 # bootstrap the first admin
 sojuctl user create -admin -username admin -password "..."
@@ -77,24 +77,17 @@ For networks like Libera, ChanServ handles registered-channel ops:
 
 ## backup & restore
 
-```bash
-# dump
-kubectl exec -n irc deployment/soju -- \
-  sqlite3 /var/lib/soju/soju.db .dump > soju-backup.sql
+the image has no shell of its own and no sqlite3. soju's db, message logs and log file live on the pvc, which is the nas dir `/volume3/rpi-k3s/irc/soju/` (`soju.db`, `logs/`, `soju.log`) — back up and restore there, not through the pod. the nas-side backup of `/volume3/rpi-k3s` includes it (see the root readme).
 
-# restore
-kubectl cp ./soju-backup.sql irc/$(kubectl get pod -n irc -l app=soju -o name | cut -d/ -f2):/tmp/
-kubectl exec -n irc deployment/soju -- \
-  sh -c 'sqlite3 /var/lib/soju/soju.db < /tmp/soju-backup.sql'
-kubectl rollout restart -n irc deployment/soju
-```
+to restore: set `replicas: 0` on the deployment in git and push (flux owns the replica count, so `kubectl scale` gets reverted), copy `soju.db` back on the nas, revert the commit.
 
 ## troubleshooting
 
 ```bash
-kubectl logs -n irc -l app=soju --tail=100 -f
-kubectl exec -n irc deployment/soju -- sqlite3 /var/lib/soju/soju.db "PRAGMA integrity_check;"
-kubectl exec -n irc deployment/soju -- ping irc.libera.chat
+kubectl logs -n irc -l app=soju -c soju --tail=100 -f
+kubectl delete pod -n irc -l app=soju        # not rollout restart — flux double-bounces
+kubectl exec -n irc deployment/soju -c soju -- sojuctl -config /etc/soju/config user status
+kubectl exec -it -n irc deployment/soju -c soju -- /tools/busybox sh   # staged busybox; still no sqlite3
 ```
 
 ## references

@@ -1,3 +1,6 @@
+# rancher system-upgrade-controller, kept disabled (commented out in
+# infrastructure/kustomization.yml) between k3s upgrades to save memory.
+# to upgrade: bump version in config.yml (both Plans), uncomment, push.
 apiVersion: v1
 kind: Namespace
 metadata:

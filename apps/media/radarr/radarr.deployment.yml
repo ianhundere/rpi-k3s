@@ -1,3 +1,6 @@
+# radarr at media.tools/radarr; db on media-postgres, config on media-config.
+# /downloads and /movies are different subPaths (different st_dev), so imports
+# copy instead of hardlinking — known, not a bug.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

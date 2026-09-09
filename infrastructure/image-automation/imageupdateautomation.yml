@@ -1,4 +1,7 @@
 ---
+# rewrites every `$imagepolicy` marker under ./apps and pushes the result to
+# flux-image-updates every 15m; .github/workflows/flux-image-pr.yml makes the
+# daily PR. flux stacks commits on that branch, so it is deleted after merge.
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageUpdateAutomation
 metadata:

@@ -1,3 +1,6 @@
+# plex runs on the nas, not in-cluster. the EndpointSlice points this service
+# at the nas ip (NFS_IP from cluster-vars) :32400 so envoy can terminate tls
+# for media.clusterian.pw in front of it.
 apiVersion: v1
 kind: Service
 metadata:

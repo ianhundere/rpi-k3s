@@ -1,3 +1,6 @@
+# sonarr at media.tools/sonarr; db on media-postgres, config on media-config.
+# 1536Mi is evidence-backed (hit 94% of 1Gi importing) — don't trim on a quiet
+# day. /downloads and /tv are separate subPaths, so imports copy, not hardlink.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
