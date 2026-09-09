@@ -5,7 +5,7 @@
 # every Service-backed proxy without annotating each app's Service.
 #
 # 128Mi mem req==lim, no cpu limits, per repo convention. Proxies idle at
-# ~53-63Mi each; 7 of them, so this reserves ~896Mi across the fleet.
+# ~53-63Mi each; 8 of them (prowlarr on bounded-192 below), ~1.1Gi fleet-wide.
 apiVersion: tailscale.com/v1alpha1
 kind: ProxyClass
 metadata:
@@ -20,3 +20,20 @@ spec:
             memory: 128Mi
           limits:
             memory: 128Mi
+---
+# ts-prowlarr runs at ~105Mi of 128Mi (84%); one bigger class for it alone,
+# picked by the `tailscale.com/proxy-class` label on the prowlarr Service.
+apiVersion: tailscale.com/v1alpha1
+kind: ProxyClass
+metadata:
+  name: bounded-192
+spec:
+  statefulSet:
+    pod:
+      tailscaleContainer:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 192Mi
+          limits:
+            memory: 192Mi

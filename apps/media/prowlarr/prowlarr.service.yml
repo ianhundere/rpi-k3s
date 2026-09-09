@@ -3,6 +3,7 @@ kind: Service
 metadata:
   labels:
     app: prowlarr
+    tailscale.com/proxy-class: bounded-192
   name: prowlarr
   namespace: media
   annotations:

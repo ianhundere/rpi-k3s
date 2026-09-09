@@ -1,4 +1,6 @@
 ---
+# resources go under deployment.envoyGateway (config.* silently ignores them);
+# crds CreateReplace so the bundled gateway-api + eg crds follow the chart.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -11,25 +13,19 @@ spec:
     name: envoy-gateway
     namespace: flux-system
   install:
-    crds: Skip
+    crds: CreateReplace
     remediation:
       retries: 3
   upgrade:
-    crds: Skip
+    crds: CreateReplace
     remediation:
       retries: 3
   values:
-    config:
+    deployment:
       envoyGateway:
         resources:
           requests:
-            memory: 256Mi
             cpu: 50m
-          # Control-plane limit raised from 256Mi → 512Mi as a defensive
-          # parity move after the data-plane (envoyproxy.yml) hit a
-          # cgroup-pressure crash at its 256Mi ceiling. Controller current
-          # usage is ~75Mi steady-state — far less leaky than the data
-          # plane — but the same failure pattern is theoretically reachable
-          # over long uptime, and 512Mi cheaply removes that risk.
+            memory: 256Mi
           limits:
-            memory: 512Mi
+            memory: 256Mi

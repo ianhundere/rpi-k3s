@@ -16,5 +16,4 @@ spec:
       targetPort: 9091
   selector:
     app: qbittorrent
-  type: NodePort
-  externalTrafficPolicy: Local
+  type: ClusterIP

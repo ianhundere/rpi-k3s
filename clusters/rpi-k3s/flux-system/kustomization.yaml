@@ -5,7 +5,8 @@ resources:
 - gotk-sync.yaml
 patches:
 # house conventions: memory request == limit, no cpu limits (upstream ships
-# 64Mi req / 1Gi lim + cpu 1000m). sized from observed usage + headroom.
+# 64Mi req / 1Gi lim + cpu 1000m). GOMEMLIMIT detached from limits.memory so
+# go's gc runs before the cgroup killer, not at the same byte (~80% of the tier).
 - patch: |
     apiVersion: apps/v1
     kind: Deployment
@@ -16,6 +17,10 @@ patches:
         spec:
           containers:
           - name: manager
+            env:
+            - name: GOMEMLIMIT
+              value: 200MiB
+              valueFrom: null
             resources:
               requests:
                 memory: 256Mi
@@ -36,6 +41,10 @@ patches:
         spec:
           containers:
           - name: manager
+            env:
+            - name: GOMEMLIMIT
+              value: 320MiB
+              valueFrom: null
             resources:
               requests:
                 memory: 384Mi
@@ -45,8 +54,7 @@ patches:
     kind: Deployment
     name: (source-controller|kustomize-controller)
 # image-reflector is the only controller carrying a badger db (/data); stock
-# badger defaults don't fit the 256Mi tier. GOMEMLIMIT is detached from
-# limits.memory so go's gc runs before the cgroup killer, not at the same byte.
+# badger defaults don't fit the 256Mi tier.
 - patch: |
     apiVersion: apps/v1
     kind: Deployment

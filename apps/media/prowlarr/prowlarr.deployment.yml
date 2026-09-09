@@ -1,3 +1,6 @@
+# prowlarr behind gluetun (protonvpn hungary, no port-forward) at
+# media.tools/prowlarr; db on media-postgres. dns stays ClusterFirst with
+# DNS_KEEP_NAMESERVER because it pushes indexers to the arrs over cluster dns.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -62,9 +65,9 @@ spec:
         resources:
           requests:
             cpu: 100m
-            memory: 512Mi
+            memory: 256Mi
           limits:
-            memory: 512Mi
+            memory: 256Mi
       - name: prowlarr
         image: linuxserver/prowlarr:2.5.2 # {"$imagepolicy": "flux-system:prowlarr"}
         imagePullPolicy: IfNotPresent
