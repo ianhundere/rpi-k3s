@@ -1,0 +1,8 @@
+[Unit]
+Description=Copy k3s etcd snapshots to the NAS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/etcd-snapshot-sync

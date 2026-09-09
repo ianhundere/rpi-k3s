@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# six-hourly etcd snapshot (etcd-snapshot-take.timer), second producer beside k3s's own
+# --etcd-snapshot-schedule-cron (kept: the built-in went silent 2026-08-13). on-demand saves
+# skip retention, so prune applies config.yaml's 8; no --snapshot-retention flag (dup errors).
+set -euo pipefail
+/usr/local/bin/k3s etcd-snapshot save --name scheduled
+/usr/local/bin/k3s etcd-snapshot prune --name scheduled

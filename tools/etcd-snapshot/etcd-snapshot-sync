@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Copy local etcd snapshots to the NAS. Local-only snapshots are worthless when
+# the boot media dies (see 2026-07-29 kube-master SD failure).
+# Destination keyed on $(hostname) so a future node rename follows automatically.
+set -euo pipefail
+SRC=/var/lib/rancher/k3s/server/db/snapshots
+MNT=/mnt/etcd-backup
+
+# --delete propagates an empty SRC, wiping the mirror a rebuilt node restores
+# FROM. Empty/unreadable means "nothing to say", not "delete everything".
+if [ -z "$(find "$SRC" -maxdepth 1 -type f -print -quit 2>/dev/null)" ]; then
+  echo "refusing to sync: no snapshots in $SRC — --delete would wipe the nas mirror" >&2
+  exit 1
+fi
+
+mkdir -p "$MNT"
+mounted_here=0
+if ! mountpoint -q "$MNT"; then
+  mount -t nfs4 -o vers=4.1,soft,timeo=100,retrans=2 192.168.3.85:/volume3/rpi-k3s "$MNT"
+  mounted_here=1
+fi
+# unmount only what this run mounted: an operator may be mid-restore off the same mount
+trap '[ "$mounted_here" -eq 1 ] && umount "$MNT" 2>/dev/null || true' EXIT
+DEST="$MNT/etcd-backup/$(hostname)"
+mkdir -p "$DEST"
+rsync -a --delete "$SRC/" "$DEST/"
+echo "synced $(ls -1 "$SRC" 2>/dev/null | wc -l) snapshots to $DEST"

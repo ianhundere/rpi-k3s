@@ -1,0 +1,10 @@
+[Unit]
+Description=Take a k3s etcd snapshot (second producer beside the k3s built-in cron)
+# Requisite, not Requires: during a --cluster-reset restore k3s is deliberately
+# stopped, and Requires would have the timer start it back up under the operator.
+After=k3s.service
+Requisite=k3s.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/etcd-snapshot-take
