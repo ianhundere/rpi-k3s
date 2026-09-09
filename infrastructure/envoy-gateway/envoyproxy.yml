@@ -1,27 +1,15 @@
 ---
-# EnvoyProxy configures the data plane proxy pods.
-#
-# NO arch pin: the Envoy data plane may schedule on any node again (2026-07-05).
-# Background: Envoy's TCMalloc requires a 48-bit virtual address space; stock
-# RPi OS kernels ship CONFIG_ARM64_VA_BITS=39, so Envoy aborts at startup
-# ("MmapAligned() failed ... TCMalloc assumes a 48-bit virtual address space",
-# exit 133). This was pinned to amd64 (rpi-k3s#49) as a stopgap after a stock
-# linux-image-rpi-v8 update clobbered the March 48-bit kernels. All four RPi
-# nodes now run custom 48-bit kernels (kernel8-48bit.img, pinned in config.txt,
-# guarded against apt clobber — see tools/rpi-kernel-48bit), verified with the
-# official envoy image starting cleanly on each, so the amd64 pin is removed to
-# eliminate the worker4 ingress SPOF. If this ever recurs (exit 133 at startup),
-# re-add `pod.nodeSelector: {kubernetes.io/arch: amd64}` here as the fast stopgap
-# and check the 48-bit boot pin on the RPi nodes.
+# data-plane pod config for the eg GatewayClass. no arch pin since 2026-07-05:
+# all four pis run the 48-bit-VA kernels envoy's tcmalloc needs (exit 133 on
+# stock 39-bit) — see tools/rpi-kernel-48bit; nodeSelector amd64 is the stopgap.
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
   name: proxy-config
   namespace: envoy-gateway-system
 spec:
-  # Merge multiple Gateway resources (shared-gateway + internal-gateway) into
-  # one Envoy deployment sharing the same MetalLB IP. Without this, each
-  # Gateway would try to claim its own LoadBalancer IP and fight over ports.
+  # mergeGateways keeps one envoy deployment / one metallb ip even if a second
+  # Gateway is ever added; today shared-gateway is the only one.
   mergeGateways: true
   provider:
     type: Kubernetes
@@ -32,15 +20,26 @@ spec:
             requests:
               memory: "256Mi"
               cpu: "50m"
-            # Limit raised from 256Mi → 1Gi after a 33-day Envoy data-plane
-            # crashloop traced to TCMalloc CHECK failure (exit 133) under
-            # cgroup memory pressure. Fresh-pod baseline is ~50Mi but Envoy's
-            # internal counters / connection pools / leaks grow over weeks; the
-            # 256Mi ceiling left no headroom for TCMalloc arena expansion and
-            # the allocator aborted rather than retried. 1Gi gives multi-month
-            # headroom (RPi nodes have 3.7Gi; the amd64 node more).
+            # deliberate req!=lim exemption: 1Gi is the tcmalloc-drift ceiling
+            # paired with the weekly recycle in cronjob-rotate.yml (2026-05-14).
             limits:
               memory: "1Gi"
+        # the shutdown-manager sidecar ships with no limit and sits at ~97Mi;
+        # bound it like everything else (req==lim, no cpu limit).
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              template:
+                spec:
+                  containers:
+                    - name: shutdown-manager
+                      resources:
+                        requests:
+                          cpu: 10m
+                          memory: 128Mi
+                        limits:
+                          memory: 128Mi
       envoyService:
         externalTrafficPolicy: Local
         # In merged-gateway mode, the per-Gateway `metallb` annotation on

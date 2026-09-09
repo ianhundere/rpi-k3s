@@ -126,7 +126,7 @@ data:
           - type: ntfy
 
       - name: calibre
-        url: http://calibre.media.svc.cluster.local/
+        url: http://calibre.media.svc.cluster.local/login
         interval: 5m
         conditions:
           - "[STATUS] == 200"

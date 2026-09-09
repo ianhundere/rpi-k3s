@@ -1,10 +1,7 @@
 ---
-# Maintained replacement for the deprecated nfs-subdir-external-provisioner.
-# Installed alongside it (coexistence) so PVCs can migrate one at a time onto
-# csi static PVs pointing at their existing NFS dirs (no data movement).
-# kube-system: the node DaemonSet needs privileged hostPath access; this avoids
-# PodSecurity friction a dedicated namespace would hit. Chart default resources
-# already set NO cpu limits (only memory), so they satisfy the cluster convention.
+# replacement for the deprecated nfs-subdir provisioner; kube-system because
+# the node DaemonSet needs privileged hostPath. sidecars sized req==lim at
+# ~1.2x observed peak; snapshotter off — no VolumeSnapshot CRDs on this cluster.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -15,7 +12,7 @@ spec:
   chart:
     spec:
       chart: csi-driver-nfs
-      version: "4.13.3"
+      version: "4.13.4"
       sourceRef:
         kind: HelmRepository
         name: csi-driver-nfs
@@ -31,5 +28,51 @@ spec:
     controller:
       replicas: 1
       runOnControlPlane: false
+      enableSnapshotter: false
+      resources:
+        csiProvisioner:
+          requests:
+            cpu: 10m
+            memory: 80Mi
+          limits:
+            memory: 80Mi
+        csiResizer:
+          requests:
+            cpu: 10m
+            memory: 80Mi
+          limits:
+            memory: 80Mi
+        livenessProbe:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 32Mi
+        nfs:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 64Mi
+    node:
+      resources:
+        livenessProbe:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 32Mi
+        nfs:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 64Mi
+        nodeDriverRegistrar:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 32Mi
     externalSnapshotter:
       enabled: false
