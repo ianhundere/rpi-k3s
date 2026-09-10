@@ -77,3 +77,18 @@ patches:
   target:
     kind: Deployment
     name: image-reflector-controller
+# the repo carries a 31MB prebuilt kernel tarball (tools/rpi-kernel-48bit/out/),
+# so even a shallow clone moves ~31MB. github currently delivers ~240KB/s to
+# this cluster, which overruns the stock 60s clone timeout and wedges every
+# deploy with "context deadline exceeded". headroom, not a cure: dropping the
+# tarball from HEAD is the real fix.
+- patch: |
+    apiVersion: source.toolkit.fluxcd.io/v1
+    kind: GitRepository
+    metadata:
+      name: flux-system
+    spec:
+      timeout: 5m0s
+  target:
+    kind: GitRepository
+    name: flux-system
