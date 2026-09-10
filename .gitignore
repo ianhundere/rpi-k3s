@@ -12,3 +12,7 @@ _bmad/
 _bmad-output/
 .agents/
 skills-lock.json
+
+# built kernel artifacts — regenerable via tools/rpi-kernel-48bit/build-48bit-kernel.sh.
+# a 31MB tarball in HEAD made every flux clone move 31MB and blew the 60s timeout.
+tools/rpi-kernel-48bit/out/
