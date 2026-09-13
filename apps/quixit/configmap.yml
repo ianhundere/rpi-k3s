@@ -14,11 +14,11 @@ data:
   LEGACY_ARCHIVE_ROOT: "/var/quixit/files/quixit"
 
   # tufkin OAuth 2.1
-  # Issuer must match JWT iss claim (external URL set in tufkin configmap)
+  # tufkin's public URL: the browser is sent here, and quixit builds the tufkin
+  # logout link from it. quixit validates no tufkin JWT (session cookie only).
   TUFKIN_ISSUER: "https://${TUFKIN_HOST}"
   TUFKIN_CLIENT_ID: "${TUFKIN_CLIENT_ID}"
   # Server-to-server: use internal cluster DNS (no external DNS needed)
-  TUFKIN_JWKS_URL: "http://tufkin.tufkin.svc.cluster.local:8080/.well-known/jwks.json"
   TUFKIN_TOKEN_ENDPOINT: "http://tufkin.tufkin.svc.cluster.local:8080/api/oauth/token"
   TUFKIN_USERINFO_ENDPOINT: "http://tufkin.tufkin.svc.cluster.local:8080/api/userinfo"
   # Server-to-server: base URL for registration proxy endpoints

@@ -180,7 +180,7 @@ spec:
         - name: Access-Control-Allow-Methods
           value: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
         - name: Access-Control-Allow-Headers
-          value: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+          value: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type"
         - name: Permissions-Policy
           value: "camera=(), microphone=(), geolocation=()"
         - name: Content-Security-Policy
