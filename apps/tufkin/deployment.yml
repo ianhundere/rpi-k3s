@@ -54,11 +54,6 @@ spec:
                 secretKeyRef:
                   name: tufkin-credentials
                   key: db-password
-            - name: TUFKIN_JWT_SESSION_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: tufkin-credentials
-                  key: jwt-session-secret
             - name: TUFKIN_SECURITY_IP_HASH_SALT
               valueFrom:
                 secretKeyRef:
@@ -86,12 +81,14 @@ spec:
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 10
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /api/health
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 5
+            timeoutSeconds: 5
           resources:
             requests:
               memory: "128Mi"
