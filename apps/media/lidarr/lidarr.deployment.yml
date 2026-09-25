@@ -60,9 +60,9 @@ spec:
             memory: 1Gi
           limits:
             memory: 1Gi
-        # lsio's init recursively walks/chowns /config on the nfs pvc before
-        # lidarr binds 8686; that walk outruns a 195s budget on the pis, so the
-        # kubelet killed it mid-walk and every restart re-walked from scratch.
+        # lsio's init walks all 39k files under /config on the nfs pvc before
+        # lidarr binds 8686 (38,895 of them are MediaCover); that walk needs
+        # more than 10 minutes on a pi, and a kill mid-walk restarts it.
         startupProbe:
           httpGet:
             path: /lidarr/ping
@@ -70,7 +70,7 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 10
           timeoutSeconds: 5
-          failureThreshold: 60
+          failureThreshold: 240
         readinessProbe:
           httpGet:
             path: /lidarr/ping
