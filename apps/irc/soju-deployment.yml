@@ -98,8 +98,8 @@ spec:
                 last=$(sha256sum "$crt" 2>/dev/null | cut -d' ' -f1)
                 [ -z "$last" ] && { n=$((n + 1)); sleep 1; }
               done
-              # $$ escapes the brace-form var so Flux postBuild substitution
-              # (substituteFrom cluster-vars) leaves ${last} for the shell.
+              # $$ escapes the brace-form var so flux postBuild substitution
+              # (substituteFrom cluster-vars) leaves it for the shell.
               echo "cert-reloader: watching $crt (baseline $${last:-none})"
               while true; do
                 sleep 3600
