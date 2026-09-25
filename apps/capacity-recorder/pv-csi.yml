@@ -1,0 +1,38 @@
+---
+# Static csi-driver-nfs PV. The samples have to outlive the pod that wrote
+# them -- a CronJob pod lands on a different node run to run, so an emptyDir
+# or a node-local path would lose the series that is the whole point.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: capacity-recorder-csi
+  labels:
+    app: capacity-recorder
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ''
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=3
+    - proto=tcp
+    - rsize=1048576
+    - wsize=1048576
+    - noatime
+    - nodiratime
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ${NFS_IP}#volume3/rpi-k3s/capacity-recorder##
+    volumeAttributes:
+      server: ${NFS_IP}
+      share: /volume3/rpi-k3s/capacity-recorder
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    namespace: capacity-recorder
+    name: capacity-recorder

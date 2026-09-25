@@ -1,0 +1,19 @@
+---
+# ReadWriteMany because successive CronJob pods land on different nodes; only
+# one writes at a time (concurrencyPolicy Forbid). Static-bound to the PV at
+# /volume3/rpi-k3s/capacity-recorder.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: capacity-recorder
+  namespace: capacity-recorder
+  labels:
+    app: capacity-recorder
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ''
+  volumeName: capacity-recorder-csi
+  resources:
+    requests:
+      storage: 1Gi

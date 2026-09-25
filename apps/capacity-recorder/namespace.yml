@@ -1,0 +1,8 @@
+---
+# Own namespace on purpose: this whole app is disposable once the right-sizing
+# it feeds is done, and apps.yml prunes -- deleting the directory removes the
+# namespace and everything in it in one commit.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: capacity-recorder
