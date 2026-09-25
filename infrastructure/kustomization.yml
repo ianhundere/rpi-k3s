@@ -37,4 +37,4 @@ resources:
   - image-automation/imagepolicies.yml
   - image-automation/imageupdateautomation.yml
   # system-upgrade-controller - uncomment when ready to upgrade k3s
-  - system-upgrade-controller/
+  # - system-upgrade-controller/
