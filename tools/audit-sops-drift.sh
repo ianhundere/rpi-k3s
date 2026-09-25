@@ -111,9 +111,10 @@ sys.exit(overall)
 done
 
 # --- reverse pass: a ${KEY} referenced by manifests but defined in neither
-# cluster-vars nor a sops file substitutes to the literal string at build time,
-# and non-strict flux won't even warn. Key names only; values never printed.
-refs=$(grep -rhoP --include='*.yml' --include='*.yaml' '(?<!\$)\$\{[A-Z][A-Z0-9_]*\}' \
+# cluster-vars nor a sops file fails the flux build (strict substitution is on
+# by default since flux 2.9). Any case: a lowercase shell var left unescaped
+# in a script counts too. Key names only; values never printed.
+refs=$(grep -rhoP --include='*.yml' --include='*.yaml' '(?<!\$)\$\{[A-Za-z_][A-Za-z0-9_]*\}' \
          apps infrastructure clusters 2>/dev/null | tr -d '${}' | sort -u)
 defined=$(
   { python3 -c '
