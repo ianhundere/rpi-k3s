@@ -28,7 +28,7 @@ spec:
   serviceAccountName: system-upgrade
   upgrade:
     image: rancher/k3s-upgrade
-  version: v1.35.1+k3s1
+  version: v1.36.4+k3s1
 ---
 # Agent plan
 apiVersion: upgrade.cattle.io/v1
@@ -43,9 +43,8 @@ spec:
     matchExpressions:
       - key: node-role.kubernetes.io/control-plane
         operator: DoesNotExist
-  drain:
-    force: true
-    skipWaitForDeleteTimeout: 60
+  # cordon, no drain: restarting k3s leaves running containers up, while a drain
+  # evicts ~3-3.7Gi per pi into a fleet with no 1Gi hole left to put it in.
   prepare:
     args:
       - prepare
@@ -54,4 +53,4 @@ spec:
   serviceAccountName: system-upgrade
   upgrade:
     image: rancher/k3s-upgrade
-  version: v1.35.1+k3s1
+  version: v1.36.4+k3s1
