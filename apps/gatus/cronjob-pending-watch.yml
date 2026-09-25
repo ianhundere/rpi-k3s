@@ -90,7 +90,7 @@ spec:
                   # Title and priority differ from the endpoint-down alerts on
                   # purpose: the sonarr outage proved a red endpoint check in the
                   # usual stream is easy to stop seeing.
-                  printf '%s' "$${OUT}" | curl -fsS \
+                  printf '%s' "$${OUT}" | curl -fsS -o /dev/null \
                     -H "Title: pod unschedulable" \
                     -H "Priority: urgent" \
                     -H "Tags: rotating_light" \

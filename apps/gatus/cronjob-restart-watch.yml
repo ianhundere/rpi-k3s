@@ -88,7 +88,7 @@ spec:
                   echo "$${OUT}"
                   # -f so a failed post fails the job rather than silently
                   # dropping the alert this exists to deliver
-                  printf '%s' "$${OUT}" | curl -fsS \
+                  printf '%s' "$${OUT}" | curl -fsS -o /dev/null \
                     -H "Title: pod restarts" \
                     -H "Priority: high" \
                     -H "Tags: warning" \
