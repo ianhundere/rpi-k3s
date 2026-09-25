@@ -1,8 +1,7 @@
 ---
-# metrics-server only reports the instantaneous value, and nothing in this
-# cluster retains it -- so requests get set from a cold-start reading and the
-# fleet ends up 88% requested at 35% used. This samples per-container memory
-# to a file so peaks exist to right-size against.
+# metrics-server keeps no history, so requests get sized from cold-start
+# readings. This samples per-container memory to the nas every 5m so peaks
+# exist to right-size against; delete the app once that is done.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -44,12 +43,16 @@ spec:
                   set -eu
                   TS="$$(date -u +%Y-%m-%dT%H:%M:%SZ)"
                   F="/data/$$(date -u +%Y-%m-%d).tsv"
+                  # capture before piping: in a pipe, a failed kubectl top leaves awk
+                  # to exit 0 on empty input and the job "succeeds" recording nothing
+                  ROWS="$$(kubectl top pods -A --containers --no-headers)"
+                  [ -n "$${ROWS}" ] || { echo "kubectl top returned no rows" >&2; exit 1; }
                   # ts, namespace, pod, container, cpu, memory -- one row per
                   # container, because requests are set per container.
-                  kubectl top pods -A --containers --no-headers \
+                  printf '%s\n' "$${ROWS}" \
                     | awk -v ts="$${TS}" '{print ts"\t"$$1"\t"$$2"\t"$$3"\t"$$4"\t"$$5}' \
                     >> "$${F}"
-                  echo "appended $$(wc -l < "$${F}") total rows to $${F}"
+                  echo "appended $$(printf '%s\n' "$${ROWS}" | wc -l) rows, $$(wc -l < "$${F}") total in $${F}"
               securityContext:
                 readOnlyRootFilesystem: true
                 allowPrivilegeEscalation: false
