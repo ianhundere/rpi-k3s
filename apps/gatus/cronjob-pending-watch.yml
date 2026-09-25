@@ -1,0 +1,117 @@
+---
+# Black-box probes can't tell "unschedulable" from "down": sonarr sat Pending
+# 5d22h in Sep 2026 while its gatus check was red the whole time and read as
+# just another app outage. This alerts on pods the scheduler cannot place.
+#
+# Same namespace and shape as cronjob-restart-watch.yml, for the same reason:
+# reuse gatus-env (GATUS_NTFY_TOPIC) instead of duplicating the ntfy secret.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pending-watch
+  namespace: gatus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pending-watch
+rules:
+  - apiGroups: ['']
+    resources: ['pods']
+    verbs: ['get', 'list']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pending-watch
+subjects:
+  - kind: ServiceAccount
+    name: pending-watch
+    namespace: gatus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pending-watch
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pending-watch
+  namespace: gatus
+spec:
+  # every 10m against a 3m grace: worst case is grace + interval = 13m, inside
+  # the 15m the spec asks for. The grace keeps a Recreate rollout's brief
+  # vacancy from paging -- terminating pods take ~60s on the pis.
+  schedule: '*/10 * * * *'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          serviceAccountName: pending-watch
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+          containers:
+            - name: pending-watch
+              image: alpine/kubectl:1.34.1
+              env:
+                # kubectl caches discovery under HOME; root fs is read-only
+                - name: HOME
+                  value: /tmp
+              envFrom:
+                - secretRef:
+                    name: gatus-env
+              command: ['/bin/sh', '-c']
+              args:
+                # $$ escapes are load-bearing: GATUS_NTFY_TOPIC is a real
+                # cluster-secrets key, so unescaped flux would substitute the
+                # value straight into this manifest as plaintext.
+                - |
+                  set -eu
+                  CUT="$(date -u -d "@$(( $(date +%s) - 180 ))" +%Y-%m-%dT%H:%M:%SZ)"
+                  # PodScheduled=False carries the scheduler's own message, which
+                  # is the useful part: "0/5 nodes are available: ... Insufficient
+                  # memory". String compare works because these are RFC3339 Z.
+                  TPL='{{range .items}}{{$$p := printf "%s/%s" .metadata.namespace .metadata.name}}{{range .status.conditions}}{{if and (eq .type "PodScheduled") (eq .status "False")}}{{if lt .lastTransitionTime "'"$${CUT}"'"}}{{printf "%s\n  %s\n" $$p .message}}{{end}}{{end}}{{end}}{{end}}'
+                  OUT="$(kubectl get pods -A --field-selector status.phase=Pending -o go-template="$${TPL}")"
+                  if [ -z "$${OUT}" ]; then
+                    echo "no pod unschedulable longer than 3m (cutoff $${CUT})"
+                    exit 0
+                  fi
+                  echo "$${OUT}"
+                  # Title and priority differ from the endpoint-down alerts on
+                  # purpose: the sonarr outage proved a red endpoint check in the
+                  # usual stream is easy to stop seeing.
+                  printf '%s' "$${OUT}" | curl -fsS \
+                    -H "Title: pod unschedulable" \
+                    -H "Priority: urgent" \
+                    -H "Tags: rotating_light" \
+                    --data-binary @- \
+                    "https://ntfy.sh/$${GATUS_NTFY_TOPIC}"
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ['ALL']
+                seccompProfile:
+                  type: RuntimeDefault
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 128Mi
+                limits:
+                  memory: 128Mi
+          volumes:
+            - name: tmp
+              emptyDir: {}

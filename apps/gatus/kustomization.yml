@@ -9,3 +9,4 @@ resources:
   - service.yml
   - gateway.yml
   - cronjob-restart-watch.yml
+  - cronjob-pending-watch.yml
