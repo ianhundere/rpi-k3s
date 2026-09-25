@@ -1,0 +1,34 @@
+---
+# Read-only and cluster-wide: the point is a fleet picture, and right-sizing
+# one namespace against another's peaks is exactly the comparison needed.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: capacity-recorder
+  namespace: capacity-recorder
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: capacity-recorder
+rules:
+  - apiGroups: ['metrics.k8s.io']
+    resources: ['pods']
+    verbs: ['get', 'list']
+  # kubectl top resolves pod metadata against the core API before printing
+  - apiGroups: ['']
+    resources: ['pods']
+    verbs: ['get', 'list']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: capacity-recorder
+subjects:
+  - kind: ServiceAccount
+    name: capacity-recorder
+    namespace: capacity-recorder
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: capacity-recorder

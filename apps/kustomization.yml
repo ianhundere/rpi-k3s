@@ -9,3 +9,4 @@ resources:
   - irc/
   - tufkin/
   - gatus/
+  - capacity-recorder/
