@@ -1,10 +1,7 @@
 ---
-# Black-box probes can't tell "unschedulable" from "down": sonarr sat Pending
-# 5d22h in Sep 2026 while its gatus check was red the whole time and read as
-# just another app outage. This alerts on pods the scheduler cannot place.
-#
-# Same namespace and shape as cronjob-restart-watch.yml, for the same reason:
-# reuse gatus-env (GATUS_NTFY_TOPIC) instead of duplicating the ntfy secret.
+# gatus black-box probes can't tell "unschedulable" from "down"; this alerts on
+# pods the scheduler can't place. Lives in the gatus namespace to reuse
+# gatus-env (GATUS_NTFY_TOPIC), same as cronjob-restart-watch.yml.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -87,9 +84,8 @@ spec:
                     exit 0
                   fi
                   echo "$${OUT}"
-                  # Title and priority differ from the endpoint-down alerts on
-                  # purpose: the sonarr outage proved a red endpoint check in the
-                  # usual stream is easy to stop seeing.
+                  # priority 5 on purpose: the endpoint-down alerts are 4, and a
+                  # stuck pod must not blend into that stream.
                   printf '%s' "$${OUT}" | curl -fsS -o /dev/null \
                     -H "Title: pod unschedulable" \
                     -H "Priority: urgent" \
