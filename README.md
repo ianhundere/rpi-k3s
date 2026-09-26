@@ -112,7 +112,7 @@ csi-driver-nfs (`infrastructure/csi-driver-nfs/`, chart 4.13.4 in `kube-system`)
 
 ## ingress
 
-metallb hands one lan ip to the envoy data plane (pool in `infrastructure/metallb/config.yml`; the metallb install itself is not in git yet). `shared-gateway` in `envoy-gateway-system` carries one listener pair per public host and apps attach httproutes by `sectionName`. cert-manager's gateway-shim reads the `cert-manager.io/cluster-issuer` annotation on the gateway and issues a let's encrypt cert per https listener over http-01, so tls secrets live in `envoy-gateway-system`. the lb exposes only 80 and 443; non-http services ride 443 by sni passthrough (soju). `media.tools` and `monitor.clusterian.pw` are http-only lan names.
+metallb hands one lan ip to the envoy data plane (pool in `infrastructure/metallb/config.yml`; the metallb install itself is not in git yet). `shared-gateway` in `envoy-gateway-system` carries one listener pair per public host and apps attach httproutes by `sectionName`. cert-manager's gateway-shim reads the `cert-manager.io/cluster-issuer` annotation on the gateway and issues a let's encrypt cert per https listener over http-01, so tls secrets live in `envoy-gateway-system`. the lb exposes only 80 and 443; non-http services ride 443 by sni passthrough (soju). `media.tools`, `monitor.clusterian.pw` and `llm.clusterian.pw` are http-only lan names; `llm.clusterian.pw` is the first route with a lan-only `SecurityPolicy` (192.168.3.0/24 and the pod cidr), which holds only while envoy judges the tcp peer (`externalTrafficPolicy: Local`, no xff trust).
 
 adding a public host: a listener pair in `infrastructure/envoy-gateway/gateway.yml`, a `<X>_HOST` key in `config/cluster-vars.yaml`, redirect + https routes in the app dir, an endpoint in `apps/gatus/configmap.yml`.
 
@@ -135,7 +135,8 @@ public, https via cert-manager:
 
 lan and tailnet, http:
 
-- gatus (monitor.clusterian.pw, `http://gatus` on the tailnet) - 23 black-box checks, ntfy alerts, healthchecks.io deadman - `apps/gatus/`
+- gatus (monitor.clusterian.pw, `http://gatus` on the tailnet) - 24 black-box checks, ntfy alerts, healthchecks.io deadman - `apps/gatus/`
+- llm front door (llm.clusterian.pw) - a small proxy to the sys-restore-desktop llm box at 192.168.3.227 (chat on :8742, api on :8741, mode page on :8740 when reached by address); when the box is silent or in gaming mode it answers from the last state the box pushed. its program is sys-restore-desktop's `homelab/front-door/front_door.py`, copied byte for byte - `apps/llm-front-door/`
 - media-postgres - postgres 18 shared by sonarr, radarr, prowlarr and lidarr - `apps/media/postgres/`
 - sonarr, radarr, prowlarr, lidarr, calibre (a calibre-web image), qbittorrent, soulseek (a slskd image) - `media.tools/<app>`, except qbittorrent at `media.tools/qbit` - `apps/media/<app>/`
 - ninjam-server - parked: every resource is commented out of its kustomization and the configmap says how to revive it - `apps/ninjam-server/`
@@ -169,7 +170,7 @@ media notes:
 
 ## monitoring
 
-gatus (`apps/gatus/configmap.yml`) probes every public host and its cert expiry, the acme port-80 redirect, the media stack in-cluster, the three postgres instances, nfs, ntfy itself, a healthchecks.io deadman, and the llm box's mode agent (sys-restore-desktop, off-cluster at 192.168.3.227) by address. alerts go to an ntfy topic; the topic and ping url live only in the sops store. `cronjob-restart-watch.yml` pages on any container restart, which black-box checks cannot see. gatus reads its config once at start, so after pushing a config change bounce it: `kubectl delete pod -n gatus -l app=gatus`.
+gatus (`apps/gatus/configmap.yml`) probes every public host and its cert expiry, the acme port-80 redirect, the media stack in-cluster, the three postgres instances, nfs, ntfy itself, a healthchecks.io deadman, and the llm box (sys-restore-desktop, off-cluster at 192.168.3.227): its mode agent by address, and its `/health` through `llm.clusterian.pw` with the monitor key. alerts go to an ntfy topic; the topic and ping url live only in the sops store. `cronjob-restart-watch.yml` pages on any container restart, which black-box checks cannot see. gatus reads its config once at start, so after pushing a config change bounce it: `kubectl delete pod -n gatus -l app=gatus`.
 
 ```bash
 kubectl get --raw /api/v1/namespaces/gatus/services/gatus:80/proxy/api/v1/endpoints/statuses \

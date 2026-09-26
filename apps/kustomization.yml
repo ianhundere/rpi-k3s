@@ -10,3 +10,4 @@ resources:
   - tufkin/
   - gatus/
   - capacity-recorder/
+  - llm-front-door/

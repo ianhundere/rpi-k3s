@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-front-door
+  namespace: llm-front-door
+spec:
+  selector:
+    app: llm-front-door
+  ports:
+    - { name: http, port: 80, targetPort: 8080 }

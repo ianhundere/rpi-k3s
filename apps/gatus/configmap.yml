@@ -225,3 +225,18 @@ data:
           - "[BODY].last_transition.outcome != failed"
         alerts:
           - type: ntfy
+
+      # the llm box through its name: 200 in gaming or switching, and in llm mode only when the resident model
+      # answers; 503 on a failed switch, or from the front door's cache when the box is silent
+      - name: llm-box
+        url: http://llm.clusterian.pw/health
+        interval: 5m
+        client:
+          timeout: 60s
+        headers:
+          Authorization: "Bearer $${GATUS_LLM_MONITOR_KEY}"
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].mode == any(gaming, llm, switching)"
+        alerts:
+          - type: ntfy

@@ -1,0 +1,33 @@
+---
+# Static csi-driver-nfs PV for the last pushed state, so a pod restart keeps it (FR-15: held off the Box).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: llm-front-door-csi
+  labels:
+    app: llm-front-door
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=3
+    - proto=tcp
+    - noatime
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ${NFS_IP}#volume3/rpi-k3s/llm-front-door##
+    volumeAttributes:
+      server: ${NFS_IP}
+      share: /volume3/rpi-k3s/llm-front-door
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    namespace: llm-front-door
+    name: llm-front-door-state
