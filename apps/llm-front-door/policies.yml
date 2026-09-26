@@ -1,0 +1,38 @@
+# long answers stream for minutes; the WAN forwards 80/443 to this ingress for the public hosts, so the route
+# answers the LAN and the cluster only (FR-6: the API Endpoint is never reachable from the internet)
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: llm-long-answers
+  namespace: llm-front-door
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: llm
+  timeout:
+    http:
+      requestTimeout: 900s
+      connectionIdleTimeout: 900s
+---
+# lan-only rests on envoy judging the tcp peer: externalTrafficPolicy Local on the envoy service, and no
+# ClientTrafficPolicy trusting X-Forwarded-For. change either and wan traffic arrives from a cluster address
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: llm-lan-only
+  namespace: llm-front-door
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: llm
+  authorization:
+    defaultAction: Deny
+    rules:
+      - name: lan-and-cluster
+        action: Allow
+        principal:
+          clientCIDRs:
+            - 192.168.3.0/24
+            - 10.42.0.0/16

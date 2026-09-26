@@ -152,3 +152,11 @@ spec:
     allowedRoutes:
       namespaces:
         from: All
+  # --- llm box front door - HTTP only (internal, LAN dns only; no public record) ---
+  - name: llm-http
+    hostname: llm.clusterian.pw
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All

@@ -1,0 +1,30 @@
+# the Box is off-cluster: a selector-less Service with an EndpointSlice (the Plex pattern), used only as the
+# Front Door pod's upstream. LLM_IP (192.168.3.227, the ER-X reservation) is in config/cluster-vars.yaml.
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-box
+  namespace: llm-front-door
+spec:
+  ports:
+    - { name: chat, port: 8742, targetPort: 8742 }
+    - { name: api, port: 8741, targetPort: 8741 }
+    - { name: agent, port: 8740, targetPort: 8740 }
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  namespace: llm-front-door
+  name: llm-box
+  labels:
+    kubernetes.io/service-name: llm-box
+addressType: IPv4
+ports:
+  - { name: chat, appProtocol: http, protocol: TCP, port: 8742 }
+  - { name: api, appProtocol: http, protocol: TCP, port: 8741 }
+  - { name: agent, appProtocol: http, protocol: TCP, port: 8740 }
+endpoints:
+  - addresses:
+      - "${LLM_IP}"
+    conditions:
+      ready: true

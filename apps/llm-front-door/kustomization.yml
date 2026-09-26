@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yml
+  - secret.yml
+  - pv-csi.yml
+  - pvc.yml
+  - box.yml
+  - deployment.yml
+  - service.yml
+  - gateway.yml
+  - policies.yml
+configMapGenerator:
+  # the program is sys-restore-desktop's homelab/front-door/front_door.py byte for byte (its tests fail when the
+  # copies differ); flux leaves it unsubstituted, so no character in it can stop the apps build
+  - name: llm-front-door
+    namespace: llm-front-door
+    files:
+      - front_door.py
+    options:
+      annotations:
+        kustomize.toolkit.fluxcd.io/substitute: disabled
