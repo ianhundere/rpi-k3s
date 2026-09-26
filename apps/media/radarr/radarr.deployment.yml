@@ -43,6 +43,10 @@ spec:
           value: radarr-main
         - name: RADARR__POSTGRES__LOGDB
           value: radarr-log
+        - name: RADARR__SERVER__TRUSTEDNETWORKS
+          value: '10.42.0.0/16,192.168.0.0/16,100.64.0.0/10,127.0.0.1'
+        - name: RADARR__AUTH__REQUIRED
+          value: DisabledForLocalAddresses
         image: linuxserver/radarr:6.4.4 # {"$imagepolicy": "flux-system:radarr"}
         imagePullPolicy: IfNotPresent
         name: radarr
