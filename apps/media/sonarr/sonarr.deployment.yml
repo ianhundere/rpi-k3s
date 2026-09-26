@@ -43,6 +43,10 @@ spec:
           value: sonarr-main
         - name: SONARR__POSTGRES__LOGDB
           value: sonarr-log
+        - name: SONARR__SERVER__TRUSTEDNETWORKS
+          value: '10.42.0.0/16,192.168.0.0/16,100.64.0.0/10,127.0.0.1'
+        - name: SONARR__AUTH__REQUIRED
+          value: DisabledForLocalAddresses
         image: linuxserver/sonarr:4.0.20 # {"$imagepolicy": "flux-system:sonarr"}
         imagePullPolicy: IfNotPresent
         name: sonarr
