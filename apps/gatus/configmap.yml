@@ -213,3 +213,15 @@ data:
           - "[STATUS] == 200"
         alerts:
           - type: ntfy
+
+      # the llm box (sys-restore-desktop) by address: silent, or its last switch failed and nobody cleared it.
+      # /state needs no key; the address is its er-x reservation, so this needs no variable and no lan name
+      - name: llm-box-agent
+        url: http://192.168.3.227:8740/state
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].mode == any(gaming, llm, switching)"
+          - "[BODY].last_transition.outcome != failed"
+        alerts:
+          - type: ntfy

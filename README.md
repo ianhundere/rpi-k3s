@@ -135,7 +135,7 @@ public, https via cert-manager:
 
 lan and tailnet, http:
 
-- gatus (monitor.clusterian.pw, `http://gatus` on the tailnet) - 22 black-box checks, ntfy alerts, healthchecks.io deadman - `apps/gatus/`
+- gatus (monitor.clusterian.pw, `http://gatus` on the tailnet) - 23 black-box checks, ntfy alerts, healthchecks.io deadman - `apps/gatus/`
 - media-postgres - postgres 18 shared by sonarr, radarr, prowlarr and lidarr - `apps/media/postgres/`
 - sonarr, radarr, prowlarr, lidarr, calibre (a calibre-web image), qbittorrent, soulseek (a slskd image) - `media.tools/<app>`, except qbittorrent at `media.tools/qbit` - `apps/media/<app>/`
 - ninjam-server - parked: every resource is commented out of its kustomization and the configmap says how to revive it - `apps/ninjam-server/`
@@ -169,7 +169,7 @@ media notes:
 
 ## monitoring
 
-gatus (`apps/gatus/configmap.yml`) probes every public host and its cert expiry, the acme port-80 redirect, the media stack in-cluster, the three postgres instances, nfs, ntfy itself and a healthchecks.io deadman. alerts go to an ntfy topic; the topic and ping url live only in the sops store. `cronjob-restart-watch.yml` pages on any container restart, which black-box checks cannot see. gatus reads its config once at start, so after pushing a config change bounce it: `kubectl delete pod -n gatus -l app=gatus`.
+gatus (`apps/gatus/configmap.yml`) probes every public host and its cert expiry, the acme port-80 redirect, the media stack in-cluster, the three postgres instances, nfs, ntfy itself, a healthchecks.io deadman, and the llm box's mode agent (sys-restore-desktop, off-cluster at 192.168.3.227) by address. alerts go to an ntfy topic; the topic and ping url live only in the sops store. `cronjob-restart-watch.yml` pages on any container restart, which black-box checks cannot see. gatus reads its config once at start, so after pushing a config change bounce it: `kubectl delete pod -n gatus -l app=gatus`.
 
 ```bash
 kubectl get --raw /api/v1/namespaces/gatus/services/gatus:80/proxy/api/v1/endpoints/statuses \
