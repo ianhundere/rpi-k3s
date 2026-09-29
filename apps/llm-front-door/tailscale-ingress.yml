@@ -1,0 +1,19 @@
+# the Front Door on the tailnet, like the media apps (their Services carry tailscale.com/expose): the Tailscale
+# operator's ingress proxy gives it https://llm.<tailnet>.ts.net with a certificate, for the Operator's devices away
+# from home. Tailnet only, never public: no tailscale.com/funnel annotation, ever (docs/REMOTE-ACCESS.md in
+# sys-restore-desktop). It reaches the Front Door's Service, so the state page and /v1 work as on the LAN.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: llm-tailnet
+  namespace: llm-front-door
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: llm-front-door
+      port:
+        number: 80
+  tls:
+    - hosts:
+        - llm
