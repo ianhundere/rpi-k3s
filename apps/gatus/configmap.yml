@@ -226,8 +226,11 @@ data:
         alerts:
           - type: ntfy
 
-      # the llm box through its name: 200 in gaming or switching, and in llm mode only when the resident model
-      # answers; 503 on a failed switch, or from the front door's cache when the box is silent
+      # the llm box through its name: 200 in gaming or switching; in llm mode 200 while model work is in flight
+      # (busy: no probe queues behind the coder), after an answer in the last 5 min, or when the resident model
+      # answers a one-token probe; 503 on a failed switch, past either 900 s limit (a request in flight, or work
+      # waiting for an answer), or from the front door's cache when the box is silent
+      # (sys-restore-desktop services/mode-agent/README.md)
       - name: llm-box
         url: http://llm.clusterian.pw/health
         interval: 5m
