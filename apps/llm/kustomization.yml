@@ -14,8 +14,8 @@ resources:
 configMapGenerator:
   # the program is sys-restore-desktop's homelab/front-door/front_door.py byte for byte (its tests fail when the
   # copies differ); flux leaves it unsubstituted, so no character in it can stop the apps build
-  - name: llm-front-door
-    namespace: llm-front-door
+  - name: llm
+    namespace: llm
     files:
       - front_door.py
     options:

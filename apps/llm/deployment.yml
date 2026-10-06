@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: llm-front-door
-  namespace: llm-front-door
+  name: llm
+  namespace: llm
   labels:
-    app: llm-front-door
+    app: llm
 spec:
   replicas: 1
   revisionHistoryLimit: 3
@@ -12,11 +12,11 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app: llm-front-door
+      app: llm
   template:
     metadata:
       labels:
-        app: llm-front-door
+        app: llm
     spec:
       # stock python image, the program from the configmap (the Box's repository has no image registry)
       automountServiceAccountToken: false
@@ -33,12 +33,12 @@ spec:
             - containerPort: 8080
           env:
             - { name: PYTHONDONTWRITEBYTECODE, value: "1" }
-            - { name: SRD_BOX, value: llm-box.llm-front-door.svc.cluster.local }
+            - { name: SRD_BOX, value: llm-box.llm.svc.cluster.local }
             - { name: SRD_STATE_FILE, value: /data/state.json }
             - { name: TZ, value: America/Los_Angeles }
           envFrom:
             - secretRef:
-                name: llm-front-door-env
+                name: llm-env
           volumeMounts:
             - { name: program, mountPath: /app, readOnly: true }
             - { name: state, mountPath: /data }
@@ -65,7 +65,7 @@ spec:
       volumes:
         - name: program
           configMap:
-            name: llm-front-door
+            name: llm
         - name: state
           persistentVolumeClaim:
-            claimName: llm-front-door-state
+            claimName: llm-state
