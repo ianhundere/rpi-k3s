@@ -136,7 +136,7 @@ public, https via cert-manager:
 lan and tailnet, http:
 
 - gatus (monitor.clusterian.pw, `http://gatus` on the tailnet) - 24 black-box checks, ntfy alerts, healthchecks.io deadman - `apps/gatus/`
-- llm front door (llm.clusterian.pw) - a small proxy to the sys-restore-desktop llm box at 192.168.3.227 (chat on :8742, api on :8741, mode page on :8740 when reached by address); when the box is silent or in gaming mode it answers from the last state the box pushed. its program is sys-restore-desktop's `homelab/front-door/front_door.py`, copied byte for byte - `apps/llm-front-door/`
+- llm (llm.clusterian.pw) - a small proxy to the sys-restore-desktop llm box at 192.168.3.227 (chat on :8742, api on :8741, mode page on :8740 when reached by address); when the box is silent or in gaming mode it answers from the last state the box pushed. its program is sys-restore-desktop's `homelab/front-door/front_door.py`, copied byte for byte - `apps/llm/`
 - media-postgres - postgres 18 shared by sonarr, radarr, prowlarr and lidarr - `apps/media/postgres/`
 - sonarr, radarr, prowlarr, lidarr, calibre (a calibre-web image), qbittorrent, soulseek (a slskd image) - `media.tools/<app>`, except qbittorrent at `media.tools/qbit` - `apps/media/<app>/`
 - ninjam-server - parked: every resource is commented out of its kustomization and the configmap says how to revive it - `apps/ninjam-server/`

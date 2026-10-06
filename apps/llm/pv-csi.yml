@@ -3,9 +3,9 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: llm-front-door-csi
+  name: llm-csi
   labels:
-    app: llm-front-door
+    app: llm
 spec:
   capacity:
     storage: 1Gi
@@ -22,12 +22,12 @@ spec:
     - noatime
   csi:
     driver: nfs.csi.k8s.io
-    volumeHandle: ${NFS_IP}#volume3/rpi-k3s/llm-front-door##
+    volumeHandle: ${NFS_IP}#volume3/rpi-k3s/llm##
     volumeAttributes:
       server: ${NFS_IP}
-      share: /volume3/rpi-k3s/llm-front-door
+      share: /volume3/rpi-k3s/llm
   claimRef:
     apiVersion: v1
     kind: PersistentVolumeClaim
-    namespace: llm-front-door
-    name: llm-front-door-state
+    namespace: llm
+    name: llm-state

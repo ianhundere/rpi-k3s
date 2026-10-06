@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: llm-front-door-state
-  namespace: llm-front-door
+  name: llm-state
+  namespace: llm
 spec:
   accessModes:
     - ReadWriteMany
   storageClassName: ""
-  volumeName: llm-front-door-csi
+  volumeName: llm-csi
   resources:
     requests:
       storage: 1Gi

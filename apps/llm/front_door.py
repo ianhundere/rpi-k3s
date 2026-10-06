@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""llm-front-door: the Homelab's face for the Box (AD-3; Stories 3.1-3.4). Standard library only, so it runs from a
+"""llm (the Front Door): the Homelab's face for the Box (AD-3; Stories 3.1-3.4). Standard library only, so it runs from a
 stock python image with this file in a ConfigMap (the Box's repository has no image registry).
 
   POST /_srd/push     the Mode Agent's HMAC-signed state push; kept in memory and in STATE_FILE (an NFS PV)
@@ -13,7 +13,7 @@ Request bodies go to the Box in 64 KiB pieces as they arrive, so an upload of an
 import datetime, hashlib, hmac, html, http.client, json, os, select, socket, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-BOX = os.environ.get("SRD_BOX", "llm-box.llm-front-door.svc.cluster.local")
+BOX = os.environ.get("SRD_BOX", "llm-box.llm.svc.cluster.local")
 CHAT_PORT, API_PORT, AGENT_PORT = (int(os.environ.get(k, d)) for k, d in
                                    (("SRD_CHAT_PORT", "8742"), ("SRD_API_PORT", "8741"), ("SRD_AGENT_PORT", "8740")))
 CONNECT_S = float(os.environ.get("SRD_CONNECT_S", "2"))
@@ -99,7 +99,7 @@ PAGE = """<!doctype html><meta name=viewport content="width=device-width,initial
 def make_handler():
     class H(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
-        server_version = "llm-front-door"
+        server_version = "llm"
 
         def log_message(self, fmt, *a):
             pass
@@ -317,7 +317,7 @@ def main():
     port = int(os.environ.get("SRD_PORT", "8080"))
     srv = ThreadingHTTPServer(("0.0.0.0", port), make_handler())
     srv.daemon_threads = True
-    print("llm-front-door on :%d -> %s (chat %d, api %d, agent %d)" % (port, BOX, CHAT_PORT, API_PORT, AGENT_PORT), flush=True)
+    print("llm on :%d -> %s (chat %d, api %d, agent %d)" % (port, BOX, CHAT_PORT, API_PORT, AGENT_PORT), flush=True)
     srv.serve_forever()
 
 
