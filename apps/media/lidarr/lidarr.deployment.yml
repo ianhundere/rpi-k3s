@@ -28,6 +28,8 @@ spec:
           value: '1000'
         - name: PGID
           value: '1000'
+        - name: UMASK
+          value: '002'  # group-writable dirs, so plex (nas user PlexMediaServer, the setgid group) can add Plex Versions/
         - name: TZ
           value: 'UTC'
         - name: LIDARR__POSTGRES__HOST
