@@ -1,11 +1,11 @@
 # rpi-k3s
 
-flux-managed k3s cluster on four raspberry pi 4s (4gb), a beelink mini s (n5095, 8gb) and a synology ds723+ for storage. flux applies everything in kubernetes from this repo except the metallb install (deferred) and the two hand-applied objects in `config/`.
+flux-managed k3s cluster on four raspberry pi 4s (4gb), a beelink mini s (n5095, 8gb) and a synology ds723+ for storage. flux applies everything in kubernetes from this repo except the two hand-applied objects in `config/`.
 
 ## layout
 
 - `clusters/rpi-k3s/` - flux entry point: `flux-system/` (bootstrap manifests + controller memory tiers), `infrastructure.yml`, `apps.yml`. both kustomizations prune, so removing a manifest removes the object
-- `infrastructure/` - cert-manager, envoy gateway, metallb pool, tailscale operator, csi-driver-nfs, image automation, system-upgrade-controller (disabled between upgrades)
+- `infrastructure/` - cert-manager, envoy gateway, metallb, tailscale operator, csi-driver-nfs, image automation, system-upgrade-controller (disabled between upgrades)
 - `apps/` - one dir per app; the media stack under `apps/media/`
 - `config/` - `cluster-vars.yaml` (plaintext hostnames and lan ips) and `cluster-secrets.enc.yaml` (sops). the only objects applied by hand
 - `ansible/` - node bootstrap and dr path; ips are placeholders on purpose
@@ -62,8 +62,8 @@ the `flux` cli must match the version in `clusters/rpi-k3s/flux-system/gotk-comp
 
 1. nodes: the ansible bootstrap above
 2. the host steps ansible does not do: copy `k3s-config/k3s_server-config.yml` to `/etc/rancher/k3s/config.yaml` on the master (fill `node-ip` and `tls-san`) and `k3s-config/k3s_agent-config.yml` to the same path on each worker, then `sudo bash install.sh` from `tools/etcd-snapshot/` on the master for the take/verify/sync timers
-3. is the datastore gone? if a snapshot survives, restore it and skip to step 7: copy the newest file from `/volume3/rpi-k3s/etcd-backup/<hostname>/` on the nas to the master and run `k3s server --cluster-reset --cluster-reset-restore-path=<file>`. flux, the `sops-age` secret, the two `config/` objects and the by-hand metallb install all come back with it, so rebuilding them first is wasted work. steps 4-6 are the other branch: bootstrap from scratch, only when there is no usable snapshot
-4. install metallb (v0.14.8) by hand. it is not in git - `infrastructure/metallb/config.yml` is only the pool and its crds arrive with the install, so without it the pool never applies, `infrastructure` never goes ready (`wait: true`) and `apps` never starts (`dependsOn`)
+3. is the datastore gone? if a snapshot survives, restore it and skip to step 7: copy the newest file from `/volume3/rpi-k3s/etcd-backup/<hostname>/` on the nas to the master and run `k3s server --cluster-reset --cluster-reset-restore-path=<file>`. flux, the `sops-age` secret and the two `config/` objects all come back with it, so rebuilding them first is wasted work. steps 4-6 are the other branch: bootstrap from scratch, only when there is no usable snapshot
+4. nothing to do for metallb: flux installs it from `infrastructure/metallb/` (vendored upstream v0.14.8 plus local patches) and applies its crds before the pool. there is no validating webhook by design, so the pool applies without waiting on the controller. every install object has prune disabled, so removing it from git orphans it rather than deleting it
 5. flux bootstrap and the age key (above) - the age key backup is the whole secret
 6. apply `config/` by hand (deploy workflow below); flux fills every `${VAR}` from it
 7. `flux get all -A` until everything is ready. pvcs bind to static pvs that point at the existing nas dirs, so no data moves
@@ -112,7 +112,7 @@ csi-driver-nfs (`infrastructure/csi-driver-nfs/`, chart 4.13.4 in `kube-system`)
 
 ## ingress
 
-metallb hands one lan ip to the envoy data plane (pool in `infrastructure/metallb/config.yml`; the metallb install itself is not in git yet). `shared-gateway` in `envoy-gateway-system` carries one listener pair per public host and apps attach httproutes by `sectionName`. cert-manager's gateway-shim reads the `cert-manager.io/cluster-issuer` annotation on the gateway and issues a let's encrypt cert per https listener over http-01, so tls secrets live in `envoy-gateway-system`. the lb exposes only 80 and 443; non-http services ride 443 by sni passthrough (soju). `media.tools`, `monitor.clusterian.pw` and `llm.clusterian.pw` are http-only lan names; `llm.clusterian.pw` is the first route with a lan-only `SecurityPolicy` (192.168.3.0/24 and the pod cidr), which holds only while envoy judges the tcp peer (`externalTrafficPolicy: Local`, no xff trust).
+metallb hands one lan ip to the envoy data plane (pool in `infrastructure/metallb/config.yml`; the install is the vendored upstream v0.14.8 manifest plus local patches in `infrastructure/metallb/kustomization.yml`, prune disabled, no validating webhook by design). `shared-gateway` in `envoy-gateway-system` carries one listener pair per public host and apps attach httproutes by `sectionName`. cert-manager's gateway-shim reads the `cert-manager.io/cluster-issuer` annotation on the gateway and issues a let's encrypt cert per https listener over http-01, so tls secrets live in `envoy-gateway-system`. the lb exposes only 80 and 443; non-http services ride 443 by sni passthrough (soju). `media.tools`, `monitor.clusterian.pw` and `llm.clusterian.pw` are http-only lan names; `llm.clusterian.pw` is the first route with a lan-only `SecurityPolicy` (192.168.3.0/24 and the pod cidr), which holds only while envoy judges the tcp peer (`externalTrafficPolicy: Local`, no xff trust).
 
 adding a public host: a listener pair in `infrastructure/envoy-gateway/gateway.yml`, a `<X>_HOST` key in `config/cluster-vars.yaml`, redirect + https routes in the app dir, an endpoint in `apps/gatus/configmap.yml`.
 

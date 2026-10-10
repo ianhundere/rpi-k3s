@@ -11,8 +11,8 @@ resources:
   - cert-manager/namespace.yml
   - cert-manager/release.yml
   - cert-manager/clusterissuer.yml
-  # metallb
-  - metallb/namespace.yml
+  # metallb (adopted from a kubectl install; crds land before the pools)
+  - metallb/
   - metallb/config.yml
   # envoy-gateway
   - envoy-gateway/namespace.yml

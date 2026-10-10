@@ -1,0 +1,95 @@
+---
+# metallb v0.14.8, adopted from the 2023 kubectl install. metallb-native.yaml is
+# upstream config/manifests/metallb-native.yaml verbatim; every local change is a patch here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - metallb-native.yaml
+patches:
+  # a revert or removal must orphan metallb, not prune it: losing the crds takes
+  # the pools and every lb ip with them, losing the speaker stops arp for them.
+  - target:
+      name: ".*"
+    patch: |
+      apiVersion: v1
+      kind: any
+      metadata:
+        name: any
+        annotations:
+          kustomize.toolkit.fluxcd.io/prune: disabled
+  # live namespace has no pod-security labels and the cluster default is privileged.
+  - target:
+      kind: Namespace
+      name: metallb-system
+    patch: |
+      - op: remove
+        path: /metadata/labels
+  # the controller injects caBundle at runtime; shipping upstream's placeholder
+  # would make flux own the field and fight the cert rotator.
+  - target:
+      kind: CustomResourceDefinition
+      name: bgppeers.metallb.io
+    patch: |
+      - op: remove
+        path: /spec/conversion/webhook/clientConfig/caBundle
+  # the validating webhook and its service are absent live; adoption keeps it that way.
+  # metallb crs are not admission-checked, and flux applies the pools without a webhook hop.
+  - patch: |
+      $patch: delete
+      apiVersion: admissionregistration.k8s.io/v1
+      kind: ValidatingWebhookConfiguration
+      metadata:
+        name: metallb-webhook-configuration
+  - patch: |
+      $patch: delete
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: metallb-webhook-service
+        namespace: metallb-system
+  # req == lim, cpu request only (adr 0001). 14-day peaks: controller 33Mi, speaker 30Mi.
+  - patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: controller
+        namespace: metallb-system
+      spec:
+        template:
+          spec:
+            containers:
+              - name: controller
+                resources:
+                  requests:
+                    cpu: 25m
+                    memory: 64Mi
+                  limits:
+                    memory: 64Mi
+  - patch: |
+      apiVersion: apps/v1
+      kind: DaemonSet
+      metadata:
+        name: speaker
+        namespace: metallb-system
+      spec:
+        template:
+          spec:
+            containers:
+              - name: speaker
+                resources:
+                  requests:
+                    cpu: 25m
+                    memory: 64Mi
+                  limits:
+                    memory: 64Mi
+  # upstream probes time out at 1s, which crashloops on the pis; house rule is >= 5s.
+  - target:
+      kind: (Deployment|DaemonSet)
+      name: (controller|speaker)
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/livenessProbe/timeoutSeconds
+        value: 5
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe/timeoutSeconds
+        value: 5
