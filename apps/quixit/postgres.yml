@@ -36,6 +36,7 @@ spec:
     spec:
       containers:
         - name: postgres
+          # db-dump.cronjob.yml runs pg_dump from the same major version; bump both together
           image: postgres:18-alpine
           ports:
             - containerPort: 5432

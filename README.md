@@ -166,6 +166,7 @@ media notes:
 
 - etcd: k3s snapshots every 6h with 8 kept (`k3s-config/k3s_server-config.yml`), plus the systemd timers vendored in `tools/etcd-snapshot/` and installed on kube-master by its `install.sh`: `etcd-snapshot-take` (every 6h, prunes `scheduled-*` to the same retention), `etcd-snapshot-verify` (hourly, fails when the newest snapshot is older than 7h) and `etcd-snapshot-sync` (hourly rsync to the nas at `/volume3/rpi-k3s/etcd-backup/<hostname>/`). the built-in cron died silently once, so check freshness, not job status: `ssh kube-master 'sudo /usr/local/bin/etcd-snapshot-verify'`
 - app data lives on the nas. the nas pushes its shares, including `/volume3/rpi-k3s` (app configs, postgres dirs, etcd snapshots) and `/volume2/music`, to borgbase nightly from scripts on the nas itself, not this repo. `/volume1/media` has no offsite copy on purpose
+- quixit-postgres also gets a logical dump: `apps/quixit/db-dump.cronjob.yml` runs `pg_dump --format=custom` at 09:30 utc into `/volume3/rpi-k3s/quixit/quixit-db-dumps` (so the nas push carries it), keeps a dump only once it reads back in full, and deletes dumps older than 14 days after that. nothing alerts, so check freshness, not job status: `kubectl get cronjob quixit-db-dump -n quixit -o jsonpath='{.status.lastSuccessfulTime}'`. restoring is in quixit's `docs/deployment-guide.md`
 - the age key at `~/.config/sops/age/keys.txt` - without it nothing decrypts
 
 ## monitoring
