@@ -68,9 +68,11 @@ spec:
   # storm and dropping live cross-device message delivery (messages persisted
   # to the DB but never fanned out live). timeouts: 0s mirrors /api/sse;
   # BackendTrafficPolicy below still caps the connection at 600s.
-  # NOTE: every long route (server-sent events, long-poll, upload or stream)
-  # MUST be listed here. Current long routes: /api/sse, /api/chat/stream,
-  # /api/cycles/, /api/legacy/, /api/releases.
+  # NOTE: every server-sent-events / long-poll route MUST be listed here, as
+  # must any stream that has to outlive the 15s default. Listed today:
+  # /api/sse, /api/chat/stream, /api/cycles/, /api/legacy/, /api/releases.
+  # Sample and submission streams (/api/samples/:id/stream,
+  # /api/submissions/:id/stream) still ride the catch-all.
   - matches:
     - path:
         type: PathPrefix
@@ -160,10 +162,14 @@ spec:
     backendRefs:
     - name: quixit
       port: 8080
-  # Releases: members post a track of up to 25MB (POST /api/releases) and
-  # anyone streams it (GET /api/releases/:id/stream). A slow upload or a
-  # sequential play on a slow connection outlasts the 15s default, same as
-  # /api/legacy/ above. Short JSON reads under the prefix finish in ms.
+  # Releases: anyone streams a member's track (GET /api/releases/:id/stream),
+  # and a sequential play on a slow line outlasts the 15s default, same as
+  # /api/legacy/ above. The route timeout starts once the request body is in,
+  # so a 25MB POST /api/releases upload is bounded by quixit-client-traffic's
+  # requestReceivedTimeout (300s, about 85KB/s at 25MB), not by this rule;
+  # 0s here covers the handler's write after the body lands. Short JSON reads
+  # under the prefix finish in ms. Member-uploaded audio is served here, so
+  # the rule keeps the catch-all's same-origin CSP and frame denial.
   - matches:
     - path:
         type: PathPrefix
@@ -185,6 +191,10 @@ spec:
           value: "strict-origin-when-cross-origin"
         - name: X-Content-Type-Options
           value: "nosniff"
+        - name: X-Frame-Options
+          value: "DENY"
+        - name: Content-Security-Policy
+          value: "default-src 'self'"
     backendRefs:
     - name: quixit
       port: 8080
