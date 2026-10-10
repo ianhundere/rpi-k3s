@@ -4,9 +4,14 @@
 # pg_dump restores on its own, without a matching server binary or a quiet
 # moment. Dumps go to /volume3/rpi-k3s/quixit/quixit-db-dumps (same push).
 #
-# Retention: 14 days. Older dumps are pruned only after tonight's dump is
-# written and pg_restore can read it; a failed run deletes nothing.
-# A failed run stays in `kubectl get jobs -n quixit`; there is no alerting.
+# A dump counts only once pg_restore reads it back in full and it holds users
+# and song_comments; only then is it renamed into place and dumps older than
+# 14 days pruned. A failed run deletes nothing and stays in the job history.
+# Nothing alerts, so check freshness, not job status:
+#   kubectl get cronjob quixit-db-dump -n quixit -o jsonpath='{.status.lastSuccessfulTime}'
+# The file name carries the time, so a hand-triggered run never replaces the
+# nightly one. Keep the image's major version in step with postgres.yml:
+# pg_dump refuses to dump a newer server.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -56,12 +61,16 @@ spec:
                 # from cluster-vars.
                 - |
                   set -eu
-                  F="/dumps/quixit-$$(date -u +%Y-%m-%d).dump"
+                  F="/dumps/quixit-$$(date -u +%Y-%m-%dT%H%MZ).dump"
                   pg_dump --format=custom --file="$${F}.partial"
+                  # read every data block back (no database needed) and check
+                  # the tables that matter are in it, before it counts
+                  pg_restore --file=/dev/null "$${F}.partial"
+                  LIST="$$(pg_restore --list "$${F}.partial")"
+                  for T in users song_comments; do
+                    printf '%s\n' "$${LIST}" | grep -q "TABLE DATA public $${T} " || { echo "dump holds no $${T} data" >&2; exit 1; }
+                  done
                   mv "$${F}.partial" "$${F}"
-                  # the dump must be readable before anything older goes
-                  LIST="$$(pg_restore --list "$${F}")"
-                  printf '%s\n' "$${LIST}" | grep -q 'TABLE DATA public users ' || { echo "dump lists no users data" >&2; exit 1; }
                   find /dumps -maxdepth 1 -name 'quixit-*.dump' -mtime +13 -print -delete
                   # leftovers from earlier failed runs
                   find /dumps -maxdepth 1 -name 'quixit-*.dump.partial' -print -delete

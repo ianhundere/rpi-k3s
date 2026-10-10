@@ -15,8 +15,8 @@ spec:
     requests:
       storage: 60Gi
 ---
-# ReadWriteMany because successive CronJob pods land on different nodes; one
-# writes at a time (concurrencyPolicy Forbid). Static-bound to the dumps PV.
+# Only the dump job mounts this, one run at a time (concurrencyPolicy Forbid);
+# ReadWriteMany like the other quixit claims. Static-bound to the dumps PV.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
