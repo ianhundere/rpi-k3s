@@ -86,6 +86,8 @@ spec:
         image: linuxserver/qbittorrent:5.2.3 # {"$imagepolicy": "flux-system:qbittorrent"}
         imagePullPolicy: IfNotPresent
         name: qbittorrent
+        # 512Mi is sized on anon (~30Mi); usage sitting at the limit is page cache
+        # the cgroup reclaims, not demand (2026-10 soak).
         resources:
           requests:
             cpu: 800m

@@ -106,6 +106,7 @@ spec:
           ports:
             - containerPort: 5030
               name: http
+          # below the 1Gi stateful floor on 14-day soak evidence (peak 321Mi); rule in the 2026-10 right-size commits.
           resources:
             requests:
               cpu: 500m

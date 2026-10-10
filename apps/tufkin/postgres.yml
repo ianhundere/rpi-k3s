@@ -20,6 +20,16 @@ spec:
       labels:
         app: tufkin-postgres
     spec:
+      # 256Mi fits any pi; prefer master so it doesn't eat arm64 headroom.
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [kube-master]
       containers:
         - name: postgres
           image: postgres:18-alpine
@@ -38,6 +48,8 @@ spec:
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql
+          # 256Mi holds only while shared_buffers stays at the 128MB default;
+          # raise memory with it.
           resources:
             requests:
               cpu: 100m

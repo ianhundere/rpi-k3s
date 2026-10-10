@@ -64,6 +64,7 @@ spec:
               command: ["pg_isready", "-U", "media"]
             initialDelaySeconds: 5
             periodSeconds: 5
+          # below the 1Gi stateful floor on 14-day soak evidence (peak 465Mi); rule in the 2026-10 right-size commits.
           resources:
             requests:
               cpu: 250m
