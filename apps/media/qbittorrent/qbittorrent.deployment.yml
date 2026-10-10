@@ -54,6 +54,10 @@ spec:
           value: 'yes'
         - name: HEALTH_TARGET_ADDRESSES
           value: 'cloudflare.com:443,github.com:443'
+        # port-forwarding gluetun creeps ~5Mi/day toward its 256Mi limit; cap go's
+        # heap at ~80% so gc runs before the cgroup killer does.
+        - name: GOMEMLIMIT
+          value: 200MiB
         ports:
         - containerPort: 9091
           protocol: TCP
