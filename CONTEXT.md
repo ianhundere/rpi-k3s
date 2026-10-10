@@ -41,8 +41,12 @@ The two hand-applied objects flux reads to fill every `${VAR}` in a manifest: cl
 _Avoid_: env file, values
 
 **house resource tier**:
-The sizing rule every container follows: memory request equals limit, no cpu limit, stateful containers at least 1Gi, probe timeouts the pis can meet.
+The sizing rule every container follows: memory request equals limit, no cpu limit, stateful containers at least 1Gi unless a soaked peak says otherwise, probe timeouts the pis can meet.
 _Avoid_: guaranteed qos, resource quota
+
+**soaked peak**:
+A container's highest memory reading across a recorded window of at least 14 days. It is the only evidence that may size a stateful container below the house floor.
+_Avoid_: peak usage, cold-start reading
 
 ## Seams
 
