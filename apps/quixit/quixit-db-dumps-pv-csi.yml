@@ -1,0 +1,39 @@
+---
+# Static csi-driver-nfs PV for the nightly pg_dump files (db-dump.cronjob.yml).
+# The dir sits under /volume3/rpi-k3s, so the nas's nightly borgbase push
+# carries the dumps with everything else. Created on the nas as 70:70 0750 to
+# match the job's runAsUser (postgres in the alpine image).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: quixit-db-dumps-csi
+  labels:
+    app: quixit
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=3
+    - proto=tcp
+    - rsize=1048576
+    - wsize=1048576
+    - noatime
+    - nodiratime
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ${NFS_IP}#volume3/rpi-k3s/quixit/quixit-db-dumps##
+    volumeAttributes:
+      server: ${NFS_IP}
+      share: /volume3/rpi-k3s/quixit/quixit-db-dumps
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    namespace: quixit
+    name: quixit-db-dumps

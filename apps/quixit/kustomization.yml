@@ -9,7 +9,9 @@ resources:
   - quixit-postgres-pv-csi.yml
   - postgres.yml
   - quixit-storage-pv-csi.yml
+  - quixit-db-dumps-pv-csi.yml
   - pvc.yml
   - deployment.yml
   - service.yml
   - gateway.yml
+  - db-dump.cronjob.yml
