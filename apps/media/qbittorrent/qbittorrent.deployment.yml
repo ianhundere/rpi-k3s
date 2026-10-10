@@ -89,9 +89,9 @@ spec:
         resources:
           requests:
             cpu: 800m
-            memory: 1Gi
+            memory: 512Mi
           limits:
-            memory: 1Gi
+            memory: 512Mi
         volumeMounts:
         - mountPath: /config
           name: media-config
