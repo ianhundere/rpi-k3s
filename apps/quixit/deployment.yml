@@ -44,7 +44,7 @@ spec:
                   key: db-password
       containers:
         - name: quixit
-          image: ghcr.io/ianhundere/quixit:0.44.0 # {"$imagepolicy": "flux-system:quixit"}
+          image: ghcr.io/ianhundere/quixit:0.45.0 # {"$imagepolicy": "flux-system:quixit"}
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
