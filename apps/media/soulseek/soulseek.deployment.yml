@@ -109,9 +109,9 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 1Gi
+              memory: 640Mi
             limits:
-              memory: 1Gi
+              memory: 640Mi
           volumeMounts:
             - name: slskd-app
               mountPath: /app
