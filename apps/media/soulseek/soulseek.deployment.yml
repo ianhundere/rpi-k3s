@@ -59,6 +59,10 @@ spec:
               value: 'cloudflare.com:443,github.com:443'
             - name: FIREWALL_OUTBOUND_SUBNETS
               value: '10.42.0.0/16,10.43.0.0/16'
+            # port-forwarding gluetun creeps ~4Mi/day toward its 256Mi limit; cap
+            # go's heap at ~80% so gc runs before the cgroup killer does.
+            - name: GOMEMLIMIT
+              value: 200MiB
           volumeMounts:
             - mountPath: /dev/net/tun
               name: tun-device
