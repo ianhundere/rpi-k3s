@@ -14,3 +14,21 @@ spec:
   resources:
     requests:
       storage: 60Gi
+---
+# ReadWriteMany because successive CronJob pods land on different nodes; one
+# writes at a time (concurrencyPolicy Forbid). Static-bound to the dumps PV.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quixit-db-dumps
+  namespace: quixit
+  labels:
+    app: quixit
+spec:
+  storageClassName: ""
+  volumeName: quixit-db-dumps-csi
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi

@@ -1,0 +1,88 @@
+---
+# Nightly logical dump of quixit-postgres. The postgres data dir already rides
+# the nas's nightly borgbase push as a file copy of a live database; a
+# pg_dump restores on its own, without a matching server binary or a quiet
+# moment. Dumps go to /volume3/rpi-k3s/quixit/quixit-db-dumps (same push).
+#
+# Retention: 14 days. Older dumps are pruned only after tonight's dump is
+# written and pg_restore can read it; a failed run deletes nothing.
+# A failed run stays in `kubectl get jobs -n quixit`; there is no alerting.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: quixit-db-dump
+  namespace: quixit
+  labels:
+    app: quixit
+spec:
+  schedule: '30 9 * * *'
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 3600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: quixit-db-dump
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+          containers:
+            - name: pg-dump
+              image: postgres:18-alpine
+              env:
+                - name: PGHOST
+                  value: quixit-postgres
+                - name: PGUSER
+                  value: quixit
+                - name: PGDATABASE
+                  value: quixit
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: quixit-credentials
+                      key: db-password
+              command: ['/bin/sh', '-c']
+              args:
+                # $$ escapes are load-bearing -- flux substitutes bare ${...}
+                # from cluster-vars.
+                - |
+                  set -eu
+                  F="/dumps/quixit-$$(date -u +%Y-%m-%d).dump"
+                  pg_dump --format=custom --file="$${F}.partial"
+                  mv "$${F}.partial" "$${F}"
+                  # the dump must be readable before anything older goes
+                  LIST="$$(pg_restore --list "$${F}")"
+                  printf '%s\n' "$${LIST}" | grep -q 'TABLE DATA public users ' || { echo "dump lists no users data" >&2; exit 1; }
+                  find /dumps -maxdepth 1 -name 'quixit-*.dump' -mtime +13 -print -delete
+                  # leftovers from earlier failed runs
+                  find /dumps -maxdepth 1 -name 'quixit-*.dump.partial' -print -delete
+                  ls -l /dumps
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ['ALL']
+                seccompProfile:
+                  type: RuntimeDefault
+              volumeMounts:
+                - name: dumps
+                  mountPath: /dumps
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+          volumes:
+            - name: dumps
+              persistentVolumeClaim:
+                claimName: quixit-db-dumps
