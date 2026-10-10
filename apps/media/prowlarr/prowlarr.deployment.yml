@@ -23,6 +23,16 @@ spec:
     spec:
       hostname: prowlarr
       enableServiceLinks: false
+      # unpinned and 704Mi fits a pi; prefer master so it doesn't eat arm64 headroom.
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: [kube-master]
       initContainers:
       - name: sysctl-setup
         image: busybox
