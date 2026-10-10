@@ -32,7 +32,7 @@ flux gitops for a five-node k3s cluster: kube-master is an amd64 beelink (contro
 
 ## Conventions that differ from defaults
 
-- Memory request == limit and no cpu limit on every container, burstable on purpose (`docs/adr/0001-no-cpu-limits.md`). Stateful containers (postgres, mongo, the arrs) get at least 1Gi. One exemption: the envoy data plane is 256Mi request / 1Gi limit in `infrastructure/envoy-gateway/envoyproxy.yml`, a tcmalloc-drift ceiling paired with the weekly pod recycle in `infrastructure/envoy-gateway/cronjob-rotate.yml`; leave both halves alone.
+- Memory request == limit and no cpu limit on every container, burstable on purpose (`docs/adr/0001-no-cpu-limits.md`). Stateful containers (postgres, mongo, the arrs) default to at least 1Gi; a soaked peak can size one lower (`docs/adr/0006-stateful-floor-is-a-default.md`), and each such container carries a manifest comment citing its peak. One exemption: the envoy data plane is 256Mi request / 1Gi limit in `infrastructure/envoy-gateway/envoyproxy.yml`, a tcmalloc-drift ceiling paired with the weekly pod recycle in `infrastructure/envoy-gateway/cronjob-rotate.yml`; leave both halves alone.
 - Probes carry `timeoutSeconds` >= 5; the 1s default crashloops on the pis. Measure ttfb (time to first byte) before switching a tcpSocket probe to httpGet.
 - Manifest comments are 2-3 lines stating the constraint; the story goes in the commit message. User-facing copy is lowercase, terse, no emojis.
 - kube-master carries no taint and must keep hosting unifi and postgres (`docs/adr/0005-master-untainted.md`); never add `node-role.kubernetes.io/master:NoSchedule`.

@@ -11,7 +11,7 @@ the pis have four slow cores and 4gb. cpu limits are enforced by cfs quota, whic
 
 ## Decision
 
-every container sets memory request == limit and no cpu limit (cpu requests only, for scheduling), with the one exemption recorded below. stateful containers (postgres, mongo, the arrs) get at least 1Gi because 512Mi silently ooms after weeks of working-set creep. pods therefore sit in the burstable qos class on purpose.
+every container sets memory request == limit and no cpu limit (cpu requests only, for scheduling), with the one exemption recorded below. stateful containers (postgres, mongo, the arrs) default to at least 1Gi because 512Mi silently ooms after weeks of working-set creep; a 14-day soaked peak can override that default (0006). pods therefore sit in the burstable qos class on purpose.
 
 ## Consequences
 
