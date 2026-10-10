@@ -68,8 +68,9 @@ spec:
   # storm and dropping live cross-device message delivery (messages persisted
   # to the DB but never fanned out live). timeouts: 0s mirrors /api/sse;
   # BackendTrafficPolicy below still caps the connection at 600s.
-  # NOTE: every server-sent-events / long-poll route MUST be listed here.
-  # Current SSE/long-poll routes: /api/sse, /api/chat/stream.
+  # NOTE: every long route (server-sent events, long-poll, upload or stream)
+  # MUST be listed here. Current long routes: /api/sse, /api/chat/stream,
+  # /api/cycles/, /api/legacy/, /api/releases.
   - matches:
     - path:
         type: PathPrefix
@@ -139,6 +140,34 @@ spec:
     - path:
         type: PathPrefix
         value: /api/legacy/
+    timeouts:
+      request: "0s"
+      backendRequest: "0s"
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
+        - name: Access-Control-Allow-Origin
+          value: "*"
+        - name: Access-Control-Allow-Credentials
+          value: "true"
+        - name: Referrer-Policy
+          value: "strict-origin-when-cross-origin"
+        - name: X-Content-Type-Options
+          value: "nosniff"
+    backendRefs:
+    - name: quixit
+      port: 8080
+  # Releases: members post a track of up to 25MB (POST /api/releases) and
+  # anyone streams it (GET /api/releases/:id/stream). A slow upload or a
+  # sequential play on a slow connection outlasts the 15s default, same as
+  # /api/legacy/ above. Short JSON reads under the prefix finish in ms.
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/releases
     timeouts:
       request: "0s"
       backendRequest: "0s"
