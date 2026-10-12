@@ -30,78 +30,15 @@ spec:
     namespace: envoy-gateway-system
     sectionName: quixit-us-https
   rules:
-  # SSE long-poll: Envoy's default route timeout (15s) was killing the
-  # /api/sse stream before even the first keepalive (20s). timeouts.request:
-  # "0s" disables the request timeout for this path only — all other
-  # requests keep the default. Note: the BackendTrafficPolicy below still
-  # applies connectionIdleTimeout: 600s / maxConnectionDuration: 600s to
-  # this route, so the stream is "long but not infinite" — capped at 10min.
-  # Client auto-reconnects on drop.
-  - matches:
-    - path:
-        type: PathPrefix
-        value: /api/sse
-    timeouts:
-      request: "0s"
-      backendRequest: "0s"
-    filters:
-    - type: ResponseHeaderModifier
-      responseHeaderModifier:
-        add:
-        - name: Strict-Transport-Security
-          value: "max-age=31536000; includeSubDomains; preload"
-        - name: Access-Control-Allow-Origin
-          value: "*"
-        - name: Access-Control-Allow-Credentials
-          value: "true"
-        - name: Referrer-Policy
-          value: "strict-origin-when-cross-origin"
-        - name: X-Content-Type-Options
-          value: "nosniff"
-    backendRefs:
-    - name: quixit
-      port: 8080
-  # Chat live-stream SSE: identical failure mode to /api/sse above. This route
-  # was missed when the IRC chat bridge shipped its own stream endpoint, so
-  # Envoy's default 15s route timeout killed /api/chat/stream before the 20s
-  # keepalive could fire — every connection died at ~15s, forcing a reconnect
-  # storm and dropping live cross-device message delivery (messages persisted
-  # to the DB but never fanned out live). timeouts: 0s mirrors /api/sse;
-  # BackendTrafficPolicy below still caps the connection at 600s.
-  # NOTE: every server-sent-events / long-poll route MUST be listed here, as
-  # must any stream that has to outlive the 15s default. Listed today:
-  # /api/sse, /api/chat/stream, /api/cycles/, /api/legacy/, /api/releases.
-  # Sample and submission streams (/api/samples/:id/stream,
-  # /api/submissions/:id/stream) still ride the catch-all.
-  - matches:
-    - path:
-        type: PathPrefix
-        value: /api/chat/stream
-    timeouts:
-      request: "0s"
-      backendRequest: "0s"
-    filters:
-    - type: ResponseHeaderModifier
-      responseHeaderModifier:
-        add:
-        - name: Strict-Transport-Security
-          value: "max-age=31536000; includeSubDomains; preload"
-        - name: Access-Control-Allow-Origin
-          value: "*"
-        - name: Access-Control-Allow-Credentials
-          value: "true"
-        - name: Referrer-Policy
-          value: "strict-origin-when-cross-origin"
-        - name: X-Content-Type-Options
-          value: "nosniff"
-    backendRefs:
-    - name: quixit
-      port: 8080
+  # NOTE: every long-poll route or stream that has to outlive the 15s default
+  # MUST be listed in this route or in quixit-streams (SSE, no 600s cap).
+  # Listed here today: /api/cycles/, /api/legacy/, /api/releases,
+  # /api/samples/, /api/submissions/.
   # Long-tail downloads: Envoy's 15s default route timeout cuts ZIP
   # downloads mid-stream for users on modest connections (~12Mbps user
   # reported a "failed network error" at 22MB into a sample-pack
   # download on 2026-05-14 — math: 22MB / 15s = 1.5MB/s = ~12Mbps).
-  # Same fix pattern as the SSE rule above: timeouts: 0s removes the
+  # Same fix pattern as the SSE routes in quixit-streams: timeouts: 0s removes the
   # per-request cap; BackendTrafficPolicy still bounds the underlying
   # connection at 600s, so downloads are "long but not infinite."
   # PathPrefix covers:
@@ -198,6 +135,59 @@ spec:
     backendRefs:
     - name: quixit
       port: 8080
+  # Sample audio playback (GET /api/samples/:id/stream): a sequential play on a
+  # slow line outlasts the 15s default, same as /api/legacy/ above. Uploads
+  # are POST /api/cycles/:id/samples and already ride the /api/cycles/ rule.
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/samples/
+    timeouts:
+      request: "0s"
+      backendRequest: "0s"
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
+        - name: Access-Control-Allow-Origin
+          value: "*"
+        - name: Access-Control-Allow-Credentials
+          value: "true"
+        - name: Referrer-Policy
+          value: "strict-origin-when-cross-origin"
+        - name: X-Content-Type-Options
+          value: "nosniff"
+    backendRefs:
+    - name: quixit
+      port: 8080
+  # Submission audio playback (GET /api/submissions/:id/stream), same as
+  # /api/samples/ above.
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/submissions/
+    timeouts:
+      request: "0s"
+      backendRequest: "0s"
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
+        - name: Access-Control-Allow-Origin
+          value: "*"
+        - name: Access-Control-Allow-Credentials
+          value: "true"
+        - name: Referrer-Policy
+          value: "strict-origin-when-cross-origin"
+        - name: X-Content-Type-Options
+          value: "nosniff"
+    backendRefs:
+    - name: quixit
+      port: 8080
   - matches:
     - path:
         type: PathPrefix
@@ -223,12 +213,84 @@ spec:
         - name: Permissions-Policy
           value: "camera=(), microphone=(), geolocation=()"
         - name: Content-Security-Policy
-          # Google Fonts (googleapis stylesheet + gstatic font files) and the
-          # Workbox service-worker runtime (storage.googleapis.com CDN, loaded
-          # via importScripts in sw.js) are narrowly allowlisted — the app has
-          # always loaded these; the strict default-src 'self' just wasn't
-          # updated to match, so both were CSP-blocked in the console.
-          value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://storage.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'"
+          # No external origins: fonts are self-hosted and the service worker
+          # bundles Workbox (quixit 0.61.0).
+          value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'"
+    backendRefs:
+    - name: quixit
+      port: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: quixit-streams
+  namespace: quixit
+spec:
+  hostnames:
+  - ${QUIXIT_HOST}
+  parentRefs:
+  - name: shared-gateway
+    namespace: envoy-gateway-system
+    sectionName: quixit-us-https
+  rules:
+  # SSE long-poll: Envoy's default route timeout (15s) was killing the
+  # /api/sse stream before even the first keepalive (20s). timeouts.request:
+  # "0s" disables the request timeout for this path only — all other
+  # requests keep the default. These
+  # streams live on their own HTTPRoute (quixit-streams) so the
+  # BackendTrafficPolicy 600s connection caps on quixit-https do not apply;
+  # the server bounds each stream (1h) and the client auto-reconnects.
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/sse
+    timeouts:
+      request: "0s"
+      backendRequest: "0s"
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
+        - name: Access-Control-Allow-Origin
+          value: "*"
+        - name: Access-Control-Allow-Credentials
+          value: "true"
+        - name: Referrer-Policy
+          value: "strict-origin-when-cross-origin"
+        - name: X-Content-Type-Options
+          value: "nosniff"
+    backendRefs:
+    - name: quixit
+      port: 8080
+  # Chat live-stream SSE: identical failure mode to /api/sse above. This route
+  # was missed when the IRC chat bridge shipped its own stream endpoint, so
+  # Envoy's default 15s route timeout killed /api/chat/stream before the 20s
+  # keepalive could fire — every connection died at ~15s, forcing a reconnect
+  # storm and dropping live cross-device message delivery (messages persisted
+  # to the DB but never fanned out live). timeouts: 0s mirrors /api/sse.
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/chat/stream
+    timeouts:
+      request: "0s"
+      backendRequest: "0s"
+    filters:
+    - type: ResponseHeaderModifier
+      responseHeaderModifier:
+        add:
+        - name: Strict-Transport-Security
+          value: "max-age=31536000; includeSubDomains; preload"
+        - name: Access-Control-Allow-Origin
+          value: "*"
+        - name: Access-Control-Allow-Credentials
+          value: "true"
+        - name: Referrer-Policy
+          value: "strict-origin-when-cross-origin"
+        - name: X-Content-Type-Options
+          value: "nosniff"
     backendRefs:
     - name: quixit
       port: 8080
