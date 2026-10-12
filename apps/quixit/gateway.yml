@@ -213,10 +213,9 @@ spec:
         - name: Permissions-Policy
           value: "camera=(), microphone=(), geolocation=()"
         - name: Content-Security-Policy
-          # The Workbox service-worker runtime (storage.googleapis.com CDN,
-          # loaded via importScripts in sw.js) is the only external origin
-          # allowlisted; fonts are self-hosted.
-          value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://storage.googleapis.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'"
+          # No external origins: fonts are self-hosted and the service worker
+          # bundles Workbox (quixit 0.61.0).
+          value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'"
     backendRefs:
     - name: quixit
       port: 8080
