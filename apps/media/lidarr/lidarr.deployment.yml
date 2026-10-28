@@ -29,7 +29,7 @@ spec:
         - name: PGID
           value: '1000'
         - name: UMASK
-          value: '002'  # group-writable dirs, so plex (nas user PlexMediaServer, the setgid group) can add Plex Versions/
+          value: '002' # group-writable dirs, so plex (nas user PlexMediaServer, the setgid group) can add Plex Versions/
         - name: TZ
           value: 'UTC'
         - name: LIDARR__POSTGRES__HOST
@@ -49,7 +49,7 @@ spec:
           value: lidarr-log
         # Nightly required for the Tubifarry/slskd plugin; the lidarr ImagePolicy
         # tracks the -nightly channel via filterTags.
-        image: linuxserver/lidarr:3.1.6-nightly # {"$imagepolicy": "flux-system:lidarr"}
+        image: linuxserver/lidarr:3.2.0-nightly # {"$imagepolicy": "flux-system:lidarr"}
         imagePullPolicy: IfNotPresent
         name: lidarr
         ports:
