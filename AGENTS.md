@@ -46,3 +46,7 @@ flux gitops for a five-node k3s cluster: kube-master is an amd64 beelink (contro
 - The etcd built-in snapshot cron died silently once; check snapshot freshness (`ssh kube-master 'sudo /usr/local/bin/etcd-snapshot-verify'`), never job success.
 
 <!-- /bmad:context -->
+
+## Temporary exception (until 2027-01-08)
+
+The `reading` namespace (`apps/reading/`) holds study objects applied by hand from `~/projects/reading`: a privileged tracer pod with its service account and role, a kv StatefulSet and Service, and a NetworkPolicy. They are not flux-managed; leave them alone. Their removal is listed in `~/projects/reading/00-foundation/lab.md`, and deleting `apps/reading/` prunes the namespace and everything in it.

@@ -1,0 +1,7 @@
+# flux owns this namespace; the study objects inside it come from ~/projects/reading and are
+# applied by hand on purpose until 2027-01-08, a time-boxed exception to the commit-and-push
+# rule. deleting this directory removes the namespace and everything in it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reading
