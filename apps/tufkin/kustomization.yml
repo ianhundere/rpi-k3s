@@ -7,8 +7,10 @@ resources:
   - ghcr-secret.yml
   - configmap.yml
   - tufkin-postgres-pv-csi.yml
+  - tufkin-db-dumps-pv-csi.yml
   - pvc.yml
   - postgres.yml
+  - db-dump.cronjob.yml
   - deployment.yml
   - service.yml
   - gateway.yml

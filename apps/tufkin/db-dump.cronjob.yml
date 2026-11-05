@@ -1,0 +1,97 @@
+---
+# Nightly logical dump of tufkin-postgres. The postgres data dir already rides
+# the nas's nightly borgbase push as a file copy of a live database; a
+# pg_dump restores on its own, without a matching server binary or a quiet
+# moment. Dumps go to /volume3/rpi-k3s/tufkin/tufkin-db-dumps (same push).
+#
+# A dump counts only once pg_restore reads it back in full and it holds users,
+# client_keys and audit_logs; only then is it renamed into place and dumps older than
+# 14 days pruned. A failed run deletes nothing and stays in the job history.
+# Nothing alerts, so check freshness, not job status:
+#   kubectl get cronjob tufkin-db-dump -n tufkin -o jsonpath='{.status.lastSuccessfulTime}'
+# The file name carries the time, so a hand-triggered run never replaces the
+# nightly one. Keep the image's major version in step with postgres.yml:
+# pg_dump refuses to dump a newer server.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tufkin-db-dump
+  namespace: tufkin
+  labels:
+    app: tufkin
+spec:
+  schedule: '45 9 * * *'
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 3600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: tufkin-db-dump
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+          containers:
+            - name: pg-dump
+              image: postgres:18-alpine
+              env:
+                - name: PGHOST
+                  value: tufkin-postgres
+                - name: PGUSER
+                  value: tufkin
+                - name: PGDATABASE
+                  value: tufkin
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tufkin-credentials
+                      key: db-password
+              command: ['/bin/sh', '-c']
+              args:
+                # $$ escapes are load-bearing -- flux substitutes bare ${...}
+                # from cluster-vars.
+                - |
+                  set -eu
+                  F="/dumps/tufkin-$$(date -u +%Y-%m-%dT%H%MZ).dump"
+                  pg_dump --format=custom --file="$${F}.partial"
+                  # read every data block back (no database needed) and check
+                  # the tables that matter are in it, before it counts
+                  pg_restore --file=/dev/null "$${F}.partial"
+                  LIST="$$(pg_restore --list "$${F}.partial")"
+                  for T in users client_keys audit_logs; do
+                    printf '%s\n' "$${LIST}" | grep -q "TABLE DATA public $${T} " || { echo "dump holds no $${T} data" >&2; exit 1; }
+                  done
+                  mv "$${F}.partial" "$${F}"
+                  find /dumps -maxdepth 1 -name 'tufkin-*.dump' -mtime +13 -print -delete
+                  # leftovers from earlier failed runs
+                  find /dumps -maxdepth 1 -name 'tufkin-*.dump.partial' -print -delete
+                  ls -l /dumps
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ['ALL']
+                seccompProfile:
+                  type: RuntimeDefault
+              volumeMounts:
+                - name: dumps
+                  mountPath: /dumps
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+          volumes:
+            - name: dumps
+              persistentVolumeClaim:
+                claimName: tufkin-db-dumps
