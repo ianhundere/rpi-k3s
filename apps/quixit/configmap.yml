@@ -33,6 +33,10 @@ data:
   # CORS
   QUIXIT_CORS_ORIGINS: "https://${QUIXIT_HOST}"
 
+  # Envoy reaches quixit from a pod IP; trust the pod CIDR so c.ClientIP() is
+  # the address Envoy appended to X-Forwarded-For (quixit#330).
+  QUIXIT_TRUSTED_PROXIES: "10.42.0.0/16"
+
   # Session
   QUIXIT_SESSION_EXPIRY: "3600"
 

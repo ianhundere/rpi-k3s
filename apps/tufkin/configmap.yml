@@ -18,6 +18,10 @@ data:
   TUFKIN_LOG_LEVEL: "info"
   TUFKIN_LOG_FORMAT: "json"
   TUFKIN_SECURITY_CORS_ALLOWED_ORIGINS: "https://${TUFKIN_HOST},https://${QUIXIT_HOST}"
+  # Envoy and quixit reach tufkin from pod IPs; trust the pod CIDR so the
+  # client is the first non-pod entry of X-Forwarded-For, read from the right
+  # (tufkin#155). The image must not run without this.
+  TUFKIN_SECURITY_TRUSTED_PROXIES: "10.42.0.0/16"
   TUFKIN_REGISTRATION_ENABLED: "true"
   TUFKIN_REGISTRATION_OTP_TTL: "10m"
   TUFKIN_REGISTRATION_MAX_ATTEMPTS: "5"
