@@ -9,6 +9,10 @@
 #
 # Adding a caller: add a `from` entry for it, nothing else in the namespace
 # needs to know.
+#
+# The policy controller admits a new pod a few seconds after it starts (seen
+# 2026-11-05: blocked at 5s, open at 10s), so a job that connects at once gets
+# `connection refused`. Make it wait: db-dump.cronjob.yml polls pg_isready.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
