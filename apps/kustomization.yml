@@ -11,3 +11,4 @@ resources:
   - gatus/
   - capacity-recorder/
   - llm/
+  - reading/

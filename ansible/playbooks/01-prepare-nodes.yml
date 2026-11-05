@@ -93,6 +93,20 @@
         state: present
       when: ansible_architecture == "x86_64" or (install_apparmor | default(false) | bool)
 
+    # Tracing tools for the ~/projects/reading study builds (bpftrace one-liners,
+    # bpftool for BTF dumps, clang for bpf2go, tcpdump as the capture reference).
+    # Workers only. Under the kube-master fallback (see
+    # ~/projects/reading/00-foundation/lab.md), widen the when to include it.
+    - name: Install tracing tools on workers
+      ansible.builtin.apt:
+        name:
+          - bpftrace
+          - bpftool
+          - clang
+          - tcpdump
+        state: present
+      when: inventory_hostname in groups['workers']
+
     # --- DietPi backup filter (k3s exclusions) -------------------------
     - name: Check for DietPi
       ansible.builtin.stat:
