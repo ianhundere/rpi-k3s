@@ -61,6 +61,15 @@ spec:
                 # from cluster-vars.
                 - |
                   set -eu
+                  # the namespace's network policy admits a new pod a few
+                  # seconds after it starts; wait for postgres instead of
+                  # failing the first connect
+                  n=0
+                  until pg_isready -q -t 2; do
+                    n=$$((n + 1))
+                    [ "$${n}" -lt 30 ] || { echo "postgres not reachable" >&2; exit 1; }
+                    sleep 2
+                  done
                   F="/dumps/tufkin-$$(date -u +%Y-%m-%dT%H%MZ).dump"
                   pg_dump --format=custom --file="$${F}.partial"
                   # read every data block back (no database needed) and check
