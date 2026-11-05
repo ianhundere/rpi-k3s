@@ -1,0 +1,82 @@
+---
+# Ingress only. tufkin trusts the pod CIDR for X-Forwarded-For (it must, since
+# envoy and quixit reach it from pod IPs), so any pod that could reach it could
+# also pick the address its rate limits key on. These two policies limit who
+# can reach it; egress stays open. Listed callers: envoy (the public auth.
+# host), quixit's backend (oauth, userinfo, registration, password) and gatus
+# (health probe). kubelet probes come from the node and are not matched by a
+# pod selector, so check readiness after changing anything here.
+#
+# Adding a caller: add a `from` entry for it, nothing else in the namespace
+# needs to know.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tufkin-ingress
+  namespace: tufkin
+  labels:
+    app: tufkin
+spec:
+  podSelector:
+    matchLabels:
+      app: tufkin
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # the envoy gateway data plane (public traffic for auth.${QUIXIT_HOST})
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: envoy-gateway-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: envoy
+        # quixit's backend (TUFKIN_BASE_URL is the in-cluster service)
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: quixit
+          podSelector:
+            matchLabels:
+              app: quixit
+        # gatus: tufkin-internal health check
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: gatus
+          podSelector:
+            matchLabels:
+              app: gatus
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Postgres: tufkin itself, the nightly dump job, and gatus' tcp check.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tufkin-postgres-ingress
+  namespace: tufkin
+  labels:
+    app: tufkin
+spec:
+  podSelector:
+    matchLabels:
+      app: tufkin-postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: tufkin
+        - podSelector:
+            matchLabels:
+              app: tufkin-db-dump
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: gatus
+          podSelector:
+            matchLabels:
+              app: gatus
+      ports:
+        - protocol: TCP
+          port: 5432
