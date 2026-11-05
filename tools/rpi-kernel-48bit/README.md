@@ -46,6 +46,9 @@ manually if SD corruption is ever suspected).
 That is safe **only because** the SD-card rootfs path is built-in — the build
 script asserts `CONFIG_MMC_BCM2835=y`, `CONFIG_MMC_SDHCI_IPROC=y`,
 `CONFIG_EXT4_FS=y` and fails the build if a future defconfig demotes them.
+Keep `MODULES=most` (the stock default) in `/etc/initramfs-tools/initramfs.conf`:
+with no initramfs `/` mounts as `/dev/root`, `MODULES=dep` can't resolve it, and
+every stock kernel update then fails in `update-initramfs`.
 
 ## Usage
 
