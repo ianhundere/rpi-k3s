@@ -12,3 +12,21 @@ spec:
   resources:
     requests:
       storage: 1Gi
+---
+# Only the dump job mounts this, one run at a time (concurrencyPolicy Forbid).
+# Static-bound to the dumps PV.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tufkin-db-dumps
+  namespace: tufkin
+  labels:
+    app: tufkin
+spec:
+  storageClassName: ""
+  volumeName: tufkin-db-dumps-csi
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
