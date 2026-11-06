@@ -118,7 +118,7 @@ spec:
           subPath: prowlarr
       # shares gluetun's netns so cloudflare clearance matches prowlarr's egress
       # ip. HOST keeps the unauthenticated fetch api off the pod ip.
-      # prowlarr talks to the haproxy below on 8191; this listens on 8192.
+      # prowlarr talks to the cache below on 8191; this listens on 8192.
       - name: flaresolverr
         image: ghcr.io/flaresolverr/flaresolverr:v3.5.2 # {"$imagepolicy": "flux-system:flaresolverr"}
         imagePullPolicy: IfNotPresent
@@ -137,36 +137,41 @@ spec:
         - name: LANG
           value: en_US
         # deliberate req!=lim exemption (AGENTS.md): idles ~62Mi, one cloudflare solve
-        # peaks 0.5-1Gi. 1536Mi is a burst ceiling; the queue below keeps it to one.
+        # peaks 0.5-1Gi. 1536Mi is a burst ceiling; the cache below keeps it to one.
         resources:
           requests:
             cpu: 100m
             memory: 256Mi
           limits:
             memory: 1536Mi
-      # queues flaresolverr to one solve at a time (see its configmap).
-      - name: flaresolverr-queue
-        image: haproxy:3.2.9-alpine
+      # one solve at a time, and replays each host's clearance (see its configmap).
+      - name: flaresolverr-cache
+        image: python:3.13.15-alpine3.24
         imagePullPolicy: IfNotPresent
+        command: ['python', '-u', '/app/shim.py']
+        securityContext:
+          runAsUser: 65534
+          runAsGroup: 65534
+          allowPrivilegeEscalation: false
         volumeMounts:
-        - mountPath: /usr/local/etc/haproxy
-          name: flaresolverr-haproxy
+        - mountPath: /app
+          name: flaresolverr-cache
           readOnly: true
         resources:
           requests:
             cpu: 10m
-            memory: 32Mi
+            memory: 64Mi
           limits:
-            memory: 32Mi
+            memory: 64Mi
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:
       - name: media-config
         persistentVolumeClaim:
           claimName: media-config
-      - name: flaresolverr-haproxy
+      - name: flaresolverr-cache
         configMap:
-          name: flaresolverr-haproxy
+          name: flaresolverr-cache
       - name: tun-device
         hostPath:
           path: /dev/net/tun

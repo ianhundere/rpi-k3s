@@ -3,5 +3,5 @@ kind: Kustomization
 resources:
   - prowlarr.vpn_secret.yml
   - prowlarr.service.yml
-  - flaresolverr-haproxy.configmap.yml
+  - flaresolverr-cache.configmap.yml
   - prowlarr.deployment.yml
