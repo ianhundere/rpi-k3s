@@ -23,8 +23,8 @@ spec:
     spec:
       hostname: prowlarr
       enableServiceLinks: false
-      # unpinned, but 1216Mi needs a pi with a free 1.2Gi gap, often none.
-      # prefer master so it doesn't eat arm64 headroom.
+      # unpinned and 960Mi requested fits a pi; prefer master so neither it nor
+      # flaresolverr's chromium bursts eat arm64 headroom.
       affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -133,12 +133,14 @@ spec:
         # without it eztv's challenge returns empty cookies (FlareSolverr#1780)
         - name: LANG
           value: en_US
+        # deliberate req!=lim exemption (adr 0001): idles at ~62Mi, but one turnstile
+        # solve blew through 512Mi. 1536Mi is a burst ceiling; tighten from a measured peak.
         resources:
           requests:
             cpu: 100m
-            memory: 512Mi
+            memory: 256Mi
           limits:
-            memory: 512Mi
+            memory: 1536Mi
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:

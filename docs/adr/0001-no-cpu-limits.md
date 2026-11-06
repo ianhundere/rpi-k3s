@@ -11,7 +11,7 @@ the pis have four slow cores and 4gb. cpu limits are enforced by cfs quota, whic
 
 ## Decision
 
-every container sets memory request == limit and no cpu limit (cpu requests only, for scheduling), with the one exemption recorded below. stateful containers (postgres, mongo, the arrs) default to at least 1Gi because 512Mi silently ooms after weeks of working-set creep; a 14-day soaked peak can override that default (0006). pods therefore sit in the burstable qos class on purpose.
+every container sets memory request == limit and no cpu limit (cpu requests only, for scheduling), with the two exemptions recorded below. stateful containers (postgres, mongo, the arrs) default to at least 1Gi because 512Mi silently ooms after weeks of working-set creep; a 14-day soaked peak can override that default (0006). pods therefore sit in the burstable qos class on purpose.
 
 ## Consequences
 
@@ -19,4 +19,5 @@ every container sets memory request == limit and no cpu limit (cpu requests only
 - one rule for every container: a size change is one edit with no second knob to keep consistent (locality).
 - `tools/audit-flux-tiers.sh` asserts the rule for the flux controllers; nothing yet asserts it for `apps/`. a manifest lint is the open candidate.
 - one exemption: the envoy data plane runs 256Mi request / 1Gi limit in `infrastructure/envoy-gateway/envoyproxy.yml`. its tcmalloc drifts upward over weeks, so the limit is a ceiling to survive, not a working set; it is paired with the weekly pod recycle in `infrastructure/envoy-gateway/cronjob-rotate.yml`, which resets allocator state before the ceiling is reached. neither half works alone - do not "fix" the request up to the limit, and do not drop the cronjob.
+- second exemption (2026-11-06): the flaresolverr sidecar in `apps/media/prowlarr/prowlarr.deployment.yml` runs 256Mi request / 1536Mi limit. chromium idles at ~62Mi and spikes only while solving a cloudflare challenge; one turnstile solve passed 493Mi anon and oom-killed it at a 512Mi req==lim, and no node had room for a 1Gi request. the request is the idle working set plus startup margin, the limit a burst ceiling: tighten it to a measured solve peak with 0006's margin rule, and keep the request near idle.
 - do not "fix" burstable qos by adding cpu limits.
