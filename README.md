@@ -12,7 +12,7 @@ flux-managed k3s cluster on four raspberry pi 4s (4gb), a beelink mini s (n5095,
 - `k3s-config/` - the k3s server and agent config of record
 - `tools/` - `audit-flux-tiers.sh`, `audit-sops-drift.sh`, `kubeconfig-refresh/`, `rpi-kernel-48bit/`, `etcd-snapshot/`
 - `.github/workflows/flux-image-pr.yml` - turns flux image bumps into a daily pr
-- `AGENTS.md`, `CONTEXT.md`, `docs/adr/` - agent rules, vocabulary, decisions
+- `AGENTS.md`, `CONTEXT.md` - agent rules, vocabulary
 
 ## nodes
 
@@ -34,7 +34,7 @@ flash raspberry pi os (enable ssh in the imager), reserve the ips on the router,
 cd ansible && ansible-playbook playbooks/99-full-bootstrap.yml
 ```
 
-the playbooks set hostname and timezone, append `cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory` to the pi `cmdline.txt`, install `nfs-common` (plus apparmor on amd64), install the k3s server, join the agents and print the remaining manual steps. the master is deliberately not tainted (`docs/adr/0005-master-untainted.md`). copy `k3s-config/k3s_server-config.yml` to `/etc/rancher/k3s/config.yaml` on the master (fill `node-ip` and `tls-san`) so the disabled servicelb/traefik and the etcd snapshot schedule survive a reinstall; `k3s_agent-config.yml` is the same for workers. `vcgencmd measure_temp` checks poe-hat temps.
+the playbooks set hostname and timezone, append `cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory` to the pi `cmdline.txt`, install `nfs-common` (plus apparmor on amd64), install the k3s server, join the agents and print the remaining manual steps. the master is deliberately not tainted. copy `k3s-config/k3s_server-config.yml` to `/etc/rancher/k3s/config.yaml` on the master (fill `node-ip` and `tls-san`) so the disabled servicelb/traefik and the etcd snapshot schedule survive a reinstall; `k3s_agent-config.yml` is the same for workers. `vcgencmd measure_temp` checks poe-hat temps.
 
 ### local kubectl
 
@@ -84,7 +84,7 @@ flux reconcile kustomization apps    # or: infrastructure
 
 per-app `secret.yml` files are plaintext templates: every value is a `${VAR}` that flux fills at postbuild from the `cluster-vars` configmap and the `cluster-secrets` secret. the only file holding real secret values is `config/cluster-secrets.enc.yaml`. write `$${VAR}` for anything flux must leave alone (shell vars in scripts, gatus env). adding a secret: add the key with `sops config/cluster-secrets.enc.yaml`, re-apply as below, reference `${VAR}` in the manifest.
 
-flux does not manage `config/` (`docs/adr/0002-config-applied-by-hand.md`); apply both objects server-side after every edit:
+flux does not manage `config/`; apply both objects server-side after every edit:
 
 ```bash
 sops -d config/cluster-secrets.enc.yaml | kubectl apply --server-side --force-conflicts -f -

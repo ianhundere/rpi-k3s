@@ -3,11 +3,11 @@
 
 ## rpi-k3s
 
-flux gitops for a five-node k3s cluster: kube-master is an amd64 beelink (control plane, etcd, deliberately untainted), kube-worker1-4 are arm64 raspberry pi 4s on custom 48-bit kernels, storage is a synology nas over csi-driver-nfs. `README.md` has the layout and procedures, `CONTEXT.md` the vocabulary, `docs/adr/` the decisions; ops history lives in the owner's notes, not here.
+flux gitops for a five-node k3s cluster: kube-master is an amd64 beelink (control plane, etcd, deliberately untainted), kube-worker1-4 are arm64 raspberry pi 4s on custom 48-bit kernels, storage is a synology nas over csi-driver-nfs. `README.md` has the layout and procedures, `CONTEXT.md` the vocabulary; decision records and ops history live in the owner's notes, not here.
 
 ## Policy
 
-- Change the cluster by commit + push; never `kubectl apply`, `edit`, `patch` or `scale` a flux-managed object. The only hand-applied objects are the two in `config/`: `kubectl apply --server-side --force-conflicts` (`docs/adr/0002-config-applied-by-hand.md`).
+- Change the cluster by commit + push; never `kubectl apply`, `edit`, `patch` or `scale` a flux-managed object. The only hand-applied objects are the two in `config/`: `kubectl apply --server-side --force-conflicts`.
 - Never read `config/*.enc.yaml` or any file containing `ENC[`; `grep -c 'ENC\[' <file>` is the only permitted touch. If a sops command fails, `git checkout -- <file>` instead of inspecting it.
 - `git add` named files; never `-A` or `.`. Leave `research/` untracked: the research skill writes there and the owner decides what lands. Squash fix-up commits before pushing.
 - Bounce a pod with `kubectl delete pod -n <ns> -l app=<app>`, after giving it a chance to recover on its own; never `kubectl rollout restart`: flux strips `restartedAt` and bounces it a second time.
@@ -32,10 +32,10 @@ flux gitops for a five-node k3s cluster: kube-master is an amd64 beelink (contro
 
 ## Conventions that differ from defaults
 
-- Memory request == limit and no cpu limit on every container, burstable on purpose (`docs/adr/0001-no-cpu-limits.md`). Stateful containers (postgres, mongo, the arrs) default to at least 1Gi; a soaked peak can size one lower (`docs/adr/0006-stateful-floor-is-a-default.md`), and each such container carries a manifest comment citing its peak. Two exemptions, both burst ceilings rather than working sets: the envoy data plane is 256Mi request / 1Gi limit in `infrastructure/envoy-gateway/envoyproxy.yml`, a tcmalloc-drift ceiling paired with the weekly pod recycle in `infrastructure/envoy-gateway/cronjob-rotate.yml` (leave both halves alone); prowlarr's flaresolverr sidecar is 256Mi / 1536Mi for chromium's cloudflare-solve spikes.
+- Memory request == limit and no cpu limit on every container, burstable on purpose: cpu limits throttle idle pis, and req==lim alone sets the oom protection. Stateful containers (postgres, mongo, the arrs) default to at least 1Gi; a 14-day peak <=512Mi and not rising sizes one lower, to max(peak x1.5, peak+256Mi) rounded up to 64Mi (databases peak x2, postgres never under 256Mi), and each such container carries a manifest comment citing its peak. Two exemptions, both burst ceilings rather than working sets: the envoy data plane is 256Mi request / 1Gi limit in `infrastructure/envoy-gateway/envoyproxy.yml`, a tcmalloc-drift ceiling paired with the weekly pod recycle in `infrastructure/envoy-gateway/cronjob-rotate.yml` (leave both halves alone); prowlarr's flaresolverr sidecar is 256Mi / 1536Mi for chromium's cloudflare-solve spikes.
 - Probes carry `timeoutSeconds` >= 5; the 1s default crashloops on the pis. Measure ttfb (time to first byte) before switching a tcpSocket probe to httpGet.
 - Manifest comments are 2-3 lines stating the constraint; the story goes in the commit message. User-facing copy is lowercase, terse, no emojis.
-- kube-master carries no taint and must keep hosting unifi and postgres (`docs/adr/0005-master-untainted.md`); never add `node-role.kubernetes.io/master:NoSchedule`.
+- kube-master carries no taint and must keep hosting unifi and postgres; never add `node-role.kubernetes.io/master:NoSchedule`.
 
 ## Known pitfalls
 

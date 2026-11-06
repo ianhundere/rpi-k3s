@@ -136,7 +136,7 @@ spec:
         # without it eztv's challenge returns empty cookies (FlareSolverr#1780)
         - name: LANG
           value: en_US
-        # deliberate req!=lim exemption (adr 0001): idles ~62Mi, one cloudflare solve
+        # deliberate req!=lim exemption (AGENTS.md): idles ~62Mi, one cloudflare solve
         # peaks 0.5-1Gi. 1536Mi is a burst ceiling; the queue below keeps it to one.
         resources:
           requests:

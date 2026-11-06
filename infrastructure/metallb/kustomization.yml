@@ -47,7 +47,7 @@ patches:
       metadata:
         name: metallb-webhook-service
         namespace: metallb-system
-  # req == lim, cpu request only (adr 0001). 14-day peaks: controller 33Mi, speaker 30Mi.
+  # req == lim, cpu request only. 14-day peaks: controller 33Mi, speaker 30Mi.
   - patch: |
       apiVersion: apps/v1
       kind: Deployment
