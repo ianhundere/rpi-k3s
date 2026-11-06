@@ -127,9 +127,6 @@ spec:
           value: 127.0.0.1
         - name: PORT
           value: '8192'
-        # skips images/css/fonts to cut chromium memory per solve
-        - name: DISABLE_MEDIA
-          value: 'true'
         - name: LOG_LEVEL
           value: info
         - name: LOG_HTML
