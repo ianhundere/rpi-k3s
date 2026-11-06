@@ -133,8 +133,8 @@ spec:
         # without it eztv's challenge returns empty cookies (FlareSolverr#1780)
         - name: LANG
           value: en_US
-        # deliberate req!=lim exemption (adr 0001): idles at ~62Mi, but one turnstile
-        # solve blew through 512Mi. 1536Mi is a burst ceiling; tighten from a measured peak.
+        # deliberate req!=lim exemption (adr 0001): idles ~62Mi, one cloudflare solve
+        # peaks 0.5-1Gi and concurrent solves stack. 1536Mi is a burst ceiling.
         resources:
           requests:
             cpu: 100m
