@@ -137,7 +137,7 @@ spec:
         - name: LANG
           value: en_US
         # deliberate req!=lim exemption (adr 0001): idles ~62Mi, one cloudflare solve
-        # peaks 0.5-1Gi and concurrent solves stack. 1536Mi is a burst ceiling.
+        # peaks 0.5-1Gi. 1536Mi is a burst ceiling; the queue below keeps it to one.
         resources:
           requests:
             cpu: 100m
