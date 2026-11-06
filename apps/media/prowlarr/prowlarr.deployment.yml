@@ -118,12 +118,18 @@ spec:
           subPath: prowlarr
       # shares gluetun's netns so cloudflare clearance matches prowlarr's egress
       # ip. HOST keeps the unauthenticated fetch api off the pod ip.
+      # prowlarr talks to the haproxy below on 8191; this listens on 8192.
       - name: flaresolverr
         image: ghcr.io/flaresolverr/flaresolverr:v3.5.2 # {"$imagepolicy": "flux-system:flaresolverr"}
         imagePullPolicy: IfNotPresent
         env:
         - name: HOST
           value: 127.0.0.1
+        - name: PORT
+          value: '8192'
+        # skips images/css/fonts to cut chromium memory per solve
+        - name: DISABLE_MEDIA
+          value: 'true'
         - name: LOG_LEVEL
           value: info
         - name: LOG_HTML
@@ -141,12 +147,29 @@ spec:
             memory: 256Mi
           limits:
             memory: 1536Mi
+      # queues flaresolverr to one solve at a time (see its configmap).
+      - name: flaresolverr-queue
+        image: haproxy:3.2.9-alpine
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: /usr/local/etc/haproxy
+          name: flaresolverr-haproxy
+          readOnly: true
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 32Mi
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:
       - name: media-config
         persistentVolumeClaim:
           claimName: media-config
+      - name: flaresolverr-haproxy
+        configMap:
+          name: flaresolverr-haproxy
       - name: tun-device
         hostPath:
           path: /dev/net/tun

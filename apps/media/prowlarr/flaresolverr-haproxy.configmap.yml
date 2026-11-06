@@ -1,0 +1,27 @@
+# one solve at a time: each runs its own chromium (0.5-1Gi), so concurrent ones
+# pass flaresolverr's memory limit. extra requests queue; abortonclose drops
+# the queued ones prowlarr has given up on.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flaresolverr-haproxy
+  namespace: media
+data:
+  haproxy.cfg: |
+    global
+      maxconn 64
+
+    defaults
+      mode http
+      timeout connect 5s
+      timeout client 330s
+      timeout server 330s
+      timeout queue 300s
+      option abortonclose
+
+    frontend flaresolverr
+      bind 127.0.0.1:8191
+      default_backend solver
+
+    backend solver
+      server flaresolverr 127.0.0.1:8192 maxconn 1
