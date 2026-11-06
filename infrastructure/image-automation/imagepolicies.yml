@@ -104,6 +104,18 @@ spec:
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImagePolicy
 metadata:
+  name: flaresolverr
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: flaresolverr
+  policy:
+    semver:
+      range: ">=v3.0.0 <v4.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
   name: slskd
   namespace: flux-system
 spec:

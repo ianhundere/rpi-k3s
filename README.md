@@ -149,6 +149,7 @@ media notes:
 - prowlarr manages indexers and syncs them to sonarr, radarr and lidarr. lidarr additionally runs the tubifarry plugin as its own slskd indexer and download client (install via system > plugins; remote path mapping `host=soulseek, remote=/downloads/, local=/downloads/soulseek/` or every import fails)
 - download clients from the arrs: qbittorrent at `qbittorrent.media:80`, soulseek at `soulseek.media:80`
 - qbittorrent, soulseek and prowlarr share a pod with a gluetun sidecar (protonvpn wireguard). qbittorrent and soulseek also run a `port-sync` sidecar that rewrites the listen port when proton rotates the forwarded one (`port-sync.configmap.yml`)
+- prowlarr also runs a flaresolverr sidecar, bound to localhost, for the cloudflare-gated indexers (1337x, eztv and the rest the log reports as "blocked by CloudFlare Protection"). its indexer proxy points at `http://localhost:8191` and only applies to indexers sharing its `flaresolverr` tag; an untagged proxy is disabled
 - qbittorrent's service is a clusterip on port 80; envoy and the tailscale proxy reach it in-cluster
 - calibre probes `httpGet /login` with `timeoutSeconds` 5-10. not `/`, which renders the whole library; not `tcpSocket`, which a hung app still passes
 - linuxserver `DOCKER_MODS` install on every pod start; on arm64 only the vuetorrent mod is cheap enough to keep
