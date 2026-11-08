@@ -9,6 +9,5 @@ resources:
   - irc/
   - tufkin/
   - gatus/
-  - capacity-recorder/
   - llm/
   - reading/
