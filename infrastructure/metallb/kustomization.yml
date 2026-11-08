@@ -1,5 +1,5 @@
 ---
-# metallb v0.14.8, adopted from the 2023 kubectl install. metallb-native.yaml is
+# metallb v0.16.2, adopted from the 2023 kubectl install. metallb-native.yaml is
 # upstream config/manifests/metallb-native.yaml verbatim; every local change is a patch here.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -24,14 +24,6 @@ patches:
     patch: |
       - op: remove
         path: /metadata/labels
-  # the controller injects caBundle at runtime; shipping upstream's placeholder
-  # would make flux own the field and fight the cert rotator.
-  - target:
-      kind: CustomResourceDefinition
-      name: bgppeers.metallb.io
-    patch: |
-      - op: remove
-        path: /spec/conversion/webhook/clientConfig/caBundle
   # the validating webhook and its service are absent live; adoption keeps it that way.
   # metallb crs are not admission-checked, and flux applies the pools without a webhook hop.
   - patch: |
