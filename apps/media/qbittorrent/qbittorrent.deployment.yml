@@ -90,14 +90,15 @@ spec:
         image: linuxserver/qbittorrent:5.3.0 # {"$imagepolicy": "flux-system:qbittorrent"}
         imagePullPolicy: IfNotPresent
         name: qbittorrent
-        # 512Mi is sized on anon (~30Mi); usage sitting at the limit is page cache
-        # the cgroup reclaims, not demand (2026-10 soak).
+        # libtorrent 2.1 (5.3.0-ls483+) buffers writes in heap, not mmap page cache:
+        # anon ~400Mi + ~150Mi unflushed nfs dirty pages oom'd 512Mi with 3 active
+        # downloads (2026-11-08). the october anon ~30Mi soak predates it.
         resources:
           requests:
             cpu: 800m
-            memory: 512Mi
+            memory: 1Gi
           limits:
-            memory: 512Mi
+            memory: 1Gi
         volumeMounts:
         - mountPath: /config
           name: media-config
