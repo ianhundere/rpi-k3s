@@ -37,8 +37,10 @@ data:
   # the address Envoy appended to X-Forwarded-For (quixit#330).
   QUIXIT_TRUSTED_PROXIES: "10.42.0.0/16"
 
-  # Session
-  QUIXIT_SESSION_EXPIRY: "3600"
+  # Session: 90 days, and each visit starts them over (quixit#333). Only the
+  # token's hash is stored, so rolling back past 0.68.0 also needs
+  # DELETE FROM sessions (see quixit docs/deployment-guide.md).
+  QUIXIT_SESSION_EXPIRY: "7776000"
 
   # Database connection pool
   DB_MAX_CONNS: "25"
