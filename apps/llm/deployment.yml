@@ -35,7 +35,7 @@ spec:
             - { name: PYTHONDONTWRITEBYTECODE, value: "1" }
             - { name: SRD_BOX, value: llm-box.llm.svc.cluster.local }
             - { name: SRD_STATE_FILE, value: /data/state.json }
-            - { name: TZ, value: America/Los_Angeles }
+            - { name: TZ, value: America/Vancouver }     # the household's zone; this image reads it as UTC-7 all year
           envFrom:
             - secretRef:
                 name: llm-env

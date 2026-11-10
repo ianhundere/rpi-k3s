@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""llm (the Front Door): the Homelab's face for the Box (AD-3; Stories 3.1-3.4). Standard library only, so it runs from a
+"""llm (the Front Door): the Homelab's face for the Box (AD-3). Standard library only, so it runs from a
 stock python image with this file in a ConfigMap (the Box's repository has no image registry).
 
   POST /_srd/push     the Mode Agent's HMAC-signed state push; kept in memory and in STATE_FILE (an NFS PV)
@@ -9,6 +9,8 @@ stock python image with this file in a ConfigMap (the Box's repository has no im
 When the Box does not answer (connect timeout 2 s), a page load gets the state page and /api/, /ws/ and /v1/ get
 503 JSON whose `detail` is the same sentence. It never invents a mode and never issues or relays a transition.
 Request bodies go to the Box in 64 KiB pieces as they arrive, so an upload of any size fits the pod's 64Mi.
+A client that leaves while the Box works on its request, or while the answer is relayed, is hung up on at the Box, so
+the Box stops the work (a request stopped in Pi away from home does not keep its place on the model).
 """
 import datetime, hashlib, hmac, html, http.client, json, os, select, socket, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -26,6 +28,35 @@ STATE_FILE = os.environ.get("SRD_STATE_FILE", "/data/state.json")
 PIECE = 65536
 HOP = {"connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailers",
        "transfer-encoding", "upgrade", "content-length", "host"}
+
+
+def client_gone(sock):
+    """True once the client has closed its connection or reset it. Bytes waiting that are not the end are not an exit."""
+    try:
+        return sock.recv(1, socket.MSG_PEEK | socket.MSG_DONTWAIT) == b""
+    except BlockingIOError:
+        return False                                   # connected, nothing sent: the usual case
+    except OSError:
+        return True
+
+
+class Watch:
+    """While the Box works on a request or its answer is relayed: the moment the client has gone, hang up on the Box, so
+    the Box drops the work too (its Model Proxy watches its own client, which is this program). Shutting the socket down
+    wakes the handler's read of the answer; close() alone would not reach the Box while that read waits."""
+    def __init__(self, client, upstream):
+        self.client, self.upstream, self.left, self.done = client, upstream, False, threading.Event()
+        threading.Thread(target=self.run, daemon=True).start()
+
+    def run(self):
+        while not self.done.wait(0.5):
+            if client_gone(self.client):
+                self.left = True
+                try:
+                    self.upstream.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+                return
 
 
 class State:
@@ -159,7 +190,7 @@ def make_handler():
                 return self.send(503, json.dumps({"detail": sentence(s), "mode": s.get("mode"), "stale": s.get("stale")}), "application/json")
             return self.send(503, PAGE % html.escape(sentence(s)), "text/html; charset=utf-8")
 
-        # ---- the push receiver (Story 3.2) --------------------------------------------------------------------
+        # ---- the push receiver --------------------------------------------------------------------
         def push(self):
             n = self.length()
             if n is None:
@@ -181,7 +212,7 @@ def make_handler():
                 return self.send(409, json.dumps({"message": "push refused: " + refused}), "application/json")
             return self.send(204, b"", "text/plain")
 
-        # ---- /health when the Box is silent (Story 3.4) --------------------------------------------------------
+        # ---- /health when the Box is silent --------------------------------------------------------
         def health(self):
             try:
                 c = http.client.HTTPConnection(BOX, AGENT_PORT, timeout=CONNECT_S)
@@ -195,7 +226,7 @@ def make_handler():
                 s = STATE.view()
                 return self.send(503, json.dumps(dict(s, source="cache", reason=sentence(s))), "application/json")
 
-        # ---- the proxy (Story 3.1) -----------------------------------------------------------------------------
+        # ---- the proxy -----------------------------------------------------------------------------
         def upstream_port(self):
             return API_PORT if self.path.startswith("/v1/") else CHAT_PORT
 
@@ -213,39 +244,54 @@ def make_handler():
                 self.drain()
                 return self.closed_door()
             c.sock.settimeout(REQUEST_S)
+            self.watch = None
             try:
-                r = self.forward(c)
-            except OSError:
-                c.close()
-                self.drain()
-                return self.closed_door()
-            if self.gone:                              # the client left mid-body: nobody to answer
-                c.close()
-                return
-            self.send_response(r.status)
-            for k, v in r.getheaders():
-                if k.lower() not in HOP:
-                    self.send_header(k, v)
-            if self.command == "HEAD" or r.status in (204, 304) or r.status < 200:
-                if self.command == "HEAD" and r.getheader("content-length"):
-                    self.send_header("content-length", r.getheader("content-length"))
-                self.end_headers()                     # no body, so no chunked framing and no stray terminator
-                c.close()
-                return
-            self.send_header("transfer-encoding", "chunked")
-            self.end_headers()
-            try:
+                try:
+                    r = self.forward(c)
+                except OSError:
+                    if self.left():
+                        return
+                    self.drain()
+                    return self.closed_door()
+                if self.gone:                          # the client left mid-body: nobody to answer
+                    return
+                self.send_response(r.status)
+                for k, v in r.getheaders():
+                    if k.lower() not in HOP:
+                        self.send_header(k, v)
+                if self.command == "HEAD" or r.status in (204, 304) or r.status < 200:
+                    if self.command == "HEAD" and r.getheader("content-length"):
+                        self.send_header("content-length", r.getheader("content-length"))
+                    self.end_headers()                 # no body, so no chunked framing and no stray terminator
+                    return
+                self.send_header("transfer-encoding", "chunked")
+                self.end_headers()
                 while True:
                     piece = r.read1(PIECE)
                     if not piece:
                         break
                     self.wfile.write(b"%x\r\n%s\r\n" % (len(piece), piece))
-                    self.wfile.flush()                       # no buffering: each chunk leaves as it arrives
+                    self.wfile.flush()                 # no buffering: each chunk leaves as it arrives
+                if self.left():                        # an answer with a length just ends when the watch hangs up
+                    return
                 self.wfile.write(b"0\r\n\r\n")
             except (BrokenPipeError, ConnectionResetError):
-                pass
+                self.close_connection = True
+            except http.client.HTTPException:          # a chunked answer broke off: the watch hung up, or the Box did
+                if not self.left():
+                    raise
             finally:
+                if self.watch:
+                    self.watch.done.set()
                 c.close()
+
+        def left(self):
+            """True when the watch saw the client go while the Box worked: nobody is answered, and the connection is
+            not read again."""
+            if self.watch and self.watch.left:
+                self.close_connection = True
+                return True
+            return False
 
         def forward(self, c):
             """Send the request to the Box: its head, then the body piece by piece as it arrives. The Box sees the name
@@ -267,7 +313,10 @@ def make_handler():
                 except OSError:                  # the Box answered early and hung up: drop the rest, read its answer
                     self.drain()
                     break
-            return None if self.gone else c.getresponse()
+            if self.gone:
+                return None
+            self.watch = Watch(self.connection, c.sock)      # from here the Box works for a client that may leave
+            return c.getresponse()
 
         def tunnel(self):
             """WebSocket upgrade (Open WebUI's socket.io): replay the request head, then pipe bytes both ways."""
