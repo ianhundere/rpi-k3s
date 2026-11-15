@@ -26,7 +26,16 @@ username admin@laptop
 password YourSojuPassword
 ```
 
-Multi-network — append the network to username: `admin/libera@laptop`.
+Multi-network — `senpai` and `goguma` multiplex all networks over one connection via `soju.im/bouncer-networks`; for single-network clients, append the network name to username: `admin/irc.libera.chat@laptop`.
+
+## networks
+
+networks and channels live in `/var/lib/soju/soju.db` on the pvc (not in git manifests) and are named after the server endpoint:
+
+- `irc.libera.chat` (`ircs://irc.libera.chat:6697`, sasl plain) — `#ai`, `#ai-feeds`, `##earthquakes`, `##llm`, `#lobsters`, `##machinelearning`, `#ml-news`, `##news`, `#orca`, `#quixit`
+- `irc.efnet.org` (`irc+insecure://irc.efnet.org`, plaintext 6667) — `#high`, `#rave`
+
+note: in soju, `ircs://` (the default) requires a valid ca-signed cert matching the hostname, and `irc+insecure://` means **plaintext irc (port 6667)**, not tls-skip-verify (`irc+insecure://host:6697` speaks plaintext to a tls port and fails with `EOF`). efnet's round-robin servers serve self-signed or expired certs on 6697, so `irc.efnet.org` uses `irc+insecure://irc.efnet.org`.
 
 ## admin (sojuctl)
 
@@ -43,10 +52,13 @@ sojuctl user create -username USER -password "..."
 sojuctl user update USER -password "..."
 sojuctl user status
 
-# add a network for a user
-sojuctl user run admin network create -addr irc.libera.chat:6697 -name libera
-sojuctl user run admin sasl set-plain -network libera Nick Password
+# add a network and channels for a user (name mirrors server endpoint)
+sojuctl user run admin network create -addr irc.libera.chat:6697 -name irc.libera.chat
+sojuctl user run admin sasl set-plain -network irc.libera.chat Nick Password
+sojuctl user run admin network create -addr irc+insecure://irc.efnet.org -name irc.efnet.org
+sojuctl user run admin channel create '#high/irc.efnet.org' -detached false
 sojuctl user run admin network status
+sojuctl user run admin channel status
 ```
 
 ## user-side (BouncerServ)
@@ -54,11 +66,11 @@ sojuctl user run admin network status
 Once connected via an IRC client, `/msg BouncerServ` controls your own networks and channels:
 
 ```irc
-network create -addr irc.libera.chat:6697 -name libera
-network update libera -nick NewNick -enabled true
+network create -addr irc.libera.chat:6697 -name irc.libera.chat
+network update irc.libera.chat -nick NewNick -enabled true
 network status
-channel create #channel/libera -detached false
-sasl set-plain libera Nick Password
+channel create #channel/irc.libera.chat -detached false
+sasl set-plain irc.libera.chat Nick Password
 help [command]
 ```
 
