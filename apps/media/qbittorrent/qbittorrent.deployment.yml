@@ -92,13 +92,14 @@ spec:
         name: qbittorrent
         # libtorrent 2.1 (5.3.0-ls483+) buffers writes in heap, not mmap page cache:
         # anon ~400Mi + ~150Mi unflushed nfs dirty pages oom'd 512Mi with 3 active
-        # downloads (2026-11-08); the same burst topped 1Gi (2026-11-17), so 2Gi.
+        # downloads (2026-11-08); the same burst topped 1Gi (2026-11-17). 2Gi
+        # does not fit any worker's request headroom, so 1536Mi (worker1 only).
         resources:
           requests:
             cpu: 800m
-            memory: 2Gi
+            memory: 1536Mi
           limits:
-            memory: 2Gi
+            memory: 1536Mi
         volumeMounts:
         - mountPath: /config
           name: media-config
