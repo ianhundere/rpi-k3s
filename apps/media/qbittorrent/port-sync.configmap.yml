@@ -10,20 +10,52 @@ data:
     PORT_FILE="/gluetun/forwarded_port"
     API_URL="http://127.0.0.1:9091/api/v2/app/setPreferences"
     LAST_PORT=""
+    MISSES=0
+
+    set_port() {
+      curl -fsS -X POST \
+           --data-urlencode "json={\"listen_port\":$1,\"random_port\":false,\"upnp\":false}" \
+           "$API_URL" > /dev/null
+    }
+
+    # libtorrent drops its tun0 socket when gluetun rebuilds the tunnel and never
+    # rebinds; a same-port setPreferences is a no-op, so bounce the port instead.
+    # reads the shared pod netns; no tun0 means nothing to bind to yet.
+    tun_listening() {
+      ADDR=$(ip -4 -o addr show dev tun0 2>/dev/null | awk '{split($4, a, "/"); print a[1]}')
+      [ -n "$ADDR" ] || return 0
+      WANT=$(echo "$ADDR" | awk -F. -v p="$1" '{printf "%02X%02X%02X%02X:%04X", $4, $3, $2, $1, p}')
+      awk -v w="$WANT" '$2 == w && $4 == "0A" {f = 1} END {exit !f}' /proc/net/tcp
+    }
+
     echo "[port-sync] starting (qbittorrent)"
     while true; do
       if [ -f "$PORT_FILE" ]; then
         PORT=$(tr -d '[:space:]' < "$PORT_FILE" 2>/dev/null || true)
         if [ -n "$PORT" ] && [ "$PORT" != "$LAST_PORT" ]; then
           echo "[port-sync] syncing qbittorrent listen_port=$PORT"
-          if curl -fsS -X POST \
-               --data-urlencode "json={\"listen_port\":$PORT,\"random_port\":false,\"upnp\":false}" \
-               "$API_URL" > /dev/null; then
+          if set_port "$PORT"; then
             LAST_PORT="$PORT"
+            MISSES=0
             echo "[port-sync] ok"
           else
             echo "[port-sync] qbittorrent api call failed, retrying (ensure 'Bypass authentication for clients on localhost' is enabled in qBit Web UI settings)"
           fi
+        elif [ -n "$PORT" ] && ! tun_listening "$PORT"; then
+          MISSES=$((MISSES + 1))
+          if [ "$MISSES" -ge 2 ]; then
+            echo "[port-sync] no listener on tun0:$PORT, forcing qbittorrent to re-listen"
+            ALT=$((PORT + 1))
+            [ "$ALT" -le 65535 ] || ALT=$((PORT - 1))
+            if set_port "$ALT" && set_port "$PORT"; then
+              echo "[port-sync] ok"
+            else
+              LAST_PORT=""
+            fi
+            MISSES=0
+          fi
+        else
+          MISSES=0
         fi
       fi
       sleep 30
