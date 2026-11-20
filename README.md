@@ -192,7 +192,7 @@ tools/audit-sops-drift.sh                         # sops store vs live secret, u
 ssh kube-master 'sudo journalctl -u k3s -e'       # server logs; workers: k3s-agent
 ```
 
-image pulls on the pis are slow; wait for the pod watch before calling a rollout stuck. kube-master's clock is america/new_york; containers log utc.
+image pulls on the pis are slow; wait for the pod watch before calling a rollout stuck. kube-master's clock is america/vancouver; containers log utc.
 
 ## uninstall
 

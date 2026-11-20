@@ -11,3 +11,13 @@
 # when install_apparmor is true, so this flag is belt-and-suspenders.
 ansible_user: dietpi
 install_apparmor: true
+timezone: "America/Vancouver"
+install_thermald: true
+
+# DietPi CPU governor & limits (intel_pstate active HWP + thermald).
+# powersave defaults EPP to balance_performance so idle clocks drop to 800 MHz
+# instead of pinning 1.80 GHz at >60 C; max_freq=60 caps peak at ~1.8 GHz.
+dietpi_cpu_governor: powersave
+dietpi_cpu_max_freq: "60"
+dietpi_cpu_min_freq: "Disabled"
+dietpi_cpu_disable_turbo: 0

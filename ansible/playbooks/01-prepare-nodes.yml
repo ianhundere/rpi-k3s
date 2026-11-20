@@ -35,6 +35,7 @@
       ansible.builtin.command: timedatectl show -p Timezone --value
       register: current_tz
       changed_when: false
+      check_mode: false
 
     - name: Set timezone
       ansible.builtin.command: "timedatectl set-timezone {{ timezone }}"
@@ -93,6 +94,25 @@
         state: present
       when: ansible_architecture == "x86_64" or (install_apparmor | default(false) | bool)
 
+    # Keep x86_64 thermal management (Intel DPTF/RAPL) active on the Beelink
+    # mini-PC while skipping ARM Pi workers cleanly.
+    - name: Install thermald on x86_64 nodes
+      ansible.builtin.apt:
+        name: thermald
+        state: present
+      when: ansible_facts['architecture'] == "x86_64" or (install_thermald | default(false) | bool)
+      register: thermald_pkg
+
+    - name: Enable and start thermald
+      ansible.builtin.systemd_service:
+        name: thermald
+        enabled: true
+        state: started
+      when: >-
+        (ansible_facts['architecture'] == "x86_64"
+         or (install_thermald | default(false) | bool))
+        and not (ansible_check_mode and thermald_pkg is changed)
+
     # Tracing tools for the ~/projects/reading study builds (bpftrace one-liners,
     # bpftool for BTF dumps, clang for bpf2go, tcpdump as the capture reference).
     # Workers only. Under the kube-master fallback (see
@@ -129,6 +149,138 @@
           # k3s: ephemeral pod state incl. NFS bind mounts (2.3TB media library)
           - /var/lib/kubelet/
       when: dietpi_dir.stat.exists
+
+    # --- DietPi CPU governor & frequency limits ------------------------
+    # Codify /boot/dietpi.txt CPU settings and apply via dietpi-set_cpu so
+    # intel_pstate HWP uses powersave/balance_performance instead of pinning
+    # high clocks/heat. Pre-edit slurp avoids /boot/dietpi.txt.*~ clutter.
+    - name: Configure DietPi CPU governor and frequency limits
+      when: dietpi_dir.stat.exists and dietpi_cpu_governor is defined
+      block:
+        - name: Read /boot/dietpi.txt before edits for rollback
+          ansible.builtin.slurp:
+            src: /boot/dietpi.txt
+          register: dietpi_txt_backup
+
+        - name: Find cpufreq policy governor files before applying
+          ansible.builtin.find:
+            paths: /sys/devices/system/cpu/cpufreq
+            patterns: scaling_governor
+            file_type: file
+            recurse: true
+            depth: 2
+          register: cpufreq_gov_files_before
+
+        - name: Read current cpufreq policy governors
+          ansible.builtin.slurp:
+            src: "{{ item.path }}"
+          loop: >-
+            {{ cpufreq_gov_files_before.files
+               | selectattr('path', 'match', '.*/policy[0-9]+/scaling_governor$')
+               | sort(attribute='path') }}
+          loop_control:
+            label: "{{ item.path }}"
+          register: cpufreq_gov_before
+
+        - name: Configure DietPi CPU settings in /boot/dietpi.txt
+          ansible.builtin.lineinfile:
+            path: /boot/dietpi.txt
+            regexp: "^[ \\t]*{{ item.key }}="
+            line: "{{ item.key }}={{ item.value }}"
+            firstmatch: true
+          loop:
+            - { key: "CONFIG_CPU_GOVERNOR", value: "{{ dietpi_cpu_governor }}" }
+            - { key: "CONFIG_CPU_MAX_FREQ", value: "{{ dietpi_cpu_max_freq }}" }
+            - { key: "CONFIG_CPU_MIN_FREQ", value: "{{ dietpi_cpu_min_freq }}" }
+            - { key: "CONFIG_CPU_DISABLE_TURBO", value: "{{ dietpi_cpu_disable_turbo }}" }
+          register: dietpi_txt_config
+
+        - name: Apply DietPi CPU governor settings
+          ansible.builtin.command: /boot/dietpi/func/dietpi-set_cpu
+          when: >-
+            dietpi_txt_config is changed
+            or (cpufreq_gov_before.results | length) == 0
+            or (cpufreq_gov_before.results
+                | map(attribute='content')
+                | map('b64decode')
+                | map('trim')
+                | reject('equalto', dietpi_cpu_governor)
+                | list | length) > 0
+          changed_when: true
+
+        - name: Find cpufreq policy governor files after applying
+          ansible.builtin.find:
+            paths: /sys/devices/system/cpu/cpufreq
+            patterns: scaling_governor
+            file_type: file
+            recurse: true
+            depth: 2
+          register: cpufreq_gov_files_after
+          when: not ansible_check_mode
+
+        - name: Read cpufreq policy governors after applying
+          ansible.builtin.slurp:
+            src: "{{ item.path }}"
+          loop: >-
+            {{ cpufreq_gov_files_after.files
+               | selectattr('path', 'match', '.*/policy[0-9]+/scaling_governor$')
+               | sort(attribute='path') }}
+          loop_control:
+            label: "{{ item.path }}"
+          register: cpufreq_gov_after
+          when: not ansible_check_mode
+
+        - name: Verify all cpufreq policies match target governor
+          ansible.builtin.assert:
+            that:
+              - (cpufreq_gov_after.results | length) > 0
+              - >-
+                (cpufreq_gov_after.results
+                 | map(attribute='content')
+                 | map('b64decode')
+                 | map('trim')
+                 | reject('equalto', dietpi_cpu_governor)
+                 | list | length) == 0
+            fail_msg: >-
+              Expected all cpufreq policy*/scaling_governor values to be
+              '{{ dietpi_cpu_governor }}', got:
+              {{ cpufreq_gov_after.results
+                 | map(attribute='item.path')
+                 | zip(cpufreq_gov_after.results
+                       | map(attribute='content')
+                       | map('b64decode')
+                       | map('trim'))
+                 | map('join', '=')
+                 | list }}
+          when: not ansible_check_mode
+      rescue:
+        - name: Restore /boot/dietpi.txt from pre-edit backup
+          ansible.builtin.copy:
+            content: "{{ dietpi_txt_backup.content | b64decode }}"
+            dest: /boot/dietpi.txt
+            mode: "0644"
+          when:
+            - dietpi_txt_backup is defined
+            - dietpi_txt_backup.content is defined
+            - dietpi_txt_config is defined
+            - dietpi_txt_config is changed
+
+        - name: Re-apply restored DietPi CPU settings best-effort
+          ansible.builtin.command: /boot/dietpi/func/dietpi-set_cpu
+          when:
+            - dietpi_txt_backup is defined
+            - dietpi_txt_backup.content is defined
+            - dietpi_txt_config is defined
+            - dietpi_txt_config is changed
+          failed_when: false
+
+        - name: Fail after DietPi CPU rollback
+          ansible.builtin.fail:
+            msg: >-
+              {{ ansible_failed_task.name | default('DietPi CPU configuration') }}
+              failed: {{ ansible_failed_result.msg
+                         | default(ansible_failed_result.stderr
+                                   | default('see task output above')) }}
 
     # --- optional PoE HAT fan ------------------------------------------
     - name: Locate Pi config.txt
