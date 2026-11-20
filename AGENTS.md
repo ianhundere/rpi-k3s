@@ -1,5 +1,5 @@
 <!-- bmad:context -->
-<!-- Verified 2026-09-09 against 392894e. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
+<!-- Verified 2026-11-20 against 4bc9036. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
 
 ## rpi-k3s
 
@@ -28,7 +28,7 @@ flux gitops for a five-node k3s cluster: kube-master is an amd64 beelink (contro
 - Verify a rollout with `kubectl get pod -n <ns> -w` and the gatus statuses (`kubectl get --raw /api/v1/namespaces/gatus/services/gatus:80/proxy/api/v1/endpoints/statuses`). Pulls on the pis are slow; wait for the watch before calling a rollout stuck. Poll without `sleep`; the owner paces monitoring.
 - gatus config or secret change: `kubectl delete pod -n gatus -l app=gatus` after reconcile.
 - Match the `flux` cli to the version in `clusters/rpi-k3s/flux-system/gotk-components.yaml` before `flux bootstrap` or an upgrade.
-- Nodes: `ssh kube-master` (user dietpi), `ssh kube-worker1..4` (user pi). kube-master's clock is america/new_york; containers log utc.
+- Nodes: `ssh kube-master` (user dietpi), `ssh kube-worker1..4` (user pi). kube-master's clock is america/vancouver; containers log utc.
 
 ## Conventions that differ from defaults
 
