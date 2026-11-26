@@ -11,6 +11,7 @@ spec:
   hostnames:
   - llm.clusterian.pw
   - library.clusterian.pw
+  - maps.clusterian.pw
   parentRefs:
   - name: shared-gateway
     namespace: envoy-gateway-system
@@ -18,6 +19,9 @@ spec:
   - name: shared-gateway
     namespace: envoy-gateway-system
     sectionName: library-http
+  - name: shared-gateway
+    namespace: envoy-gateway-system
+    sectionName: maps-http
   rules:
   - backendRefs:
     - name: llm

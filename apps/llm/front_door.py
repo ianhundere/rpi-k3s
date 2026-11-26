@@ -39,7 +39,12 @@ CHAT_PORT, API_PORT, AGENT_PORT = (int(os.environ.get(k, d)) for k, d in
                                    (("SRD_CHAT_PORT", "8742"), ("SRD_API_PORT", "8741"), ("SRD_AGENT_PORT", "8740")))
 READER_HOST = name_of(os.environ.get("SRD_READER_HOST", "library.clusterian.pw"))   # the offline library; "" for none
 READER_PORT = int(os.environ.get("SRD_READER_PORT", "8743"))                       # its kiwix-serve on the Box
+MAPS_HOST = name_of(os.environ.get("SRD_MAPS_HOST", "maps.clusterian.pw"))         # the offline maps; "" for none
+MAPS_PORT = int(os.environ.get("SRD_MAPS_PORT", "8745"))                           # its viewer on the Box
 SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
+MAPS_CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' blob:; worker-src blob: 'self'; "
+            "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' blob:; "
+            "font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'")
 CONNECT_S = float(os.environ.get("SRD_CONNECT_S", "2"))
 REQUEST_S = float(os.environ.get("SRD_REQUEST_S", "900"))
 STALE_S = float(os.environ.get("SRD_STALE_S", "180"))
@@ -152,6 +157,14 @@ def library_sentence(s):
     return "The offline library answers only in llm mode: " + sentence(s)
 
 
+def maps_sentence(s):
+    """The maps' state page line: the viewer answers only while the Box is in LLM Mode."""
+    if not s.get("stale") and s.get("mode") == "llm":
+        return ("The offline maps viewer is not answering, though the llm box is in llm mode (last heard %s): it may "
+                "be starting or fetching its maps." % s["last_heard"])
+    return "The offline maps answer only in llm mode: " + sentence(s)
+
+
 PAGE = """<!doctype html><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=refresh content=15>
 <title>%(title)s</title><style>body{font:17px system-ui;margin:2.5em;max-width:30em;color:#222}</style>
 <h1>%(title)s</h1><p>%(line)s</p>"""
@@ -169,29 +182,37 @@ def make_handler():
         def handle_one_request(self):
             # until parse_request reads the Host, the request is not the library's, but an answer to it (a bad request
             # line or version, too many headers) may be on that name, so it is sandboxed
-            self.reader, self.sandbox = False, True
+            self.reader, self.maps, self.sandbox, self.maps_csp = False, False, True, False
             return super().handle_one_request()
 
         def parse_request(self):
             if not super().parse_request():
                 return False
-            self.reader = self.sandbox = bool(READER_HOST) and name_of(self.headers.get("host")) == READER_HOST
+            host = name_of(self.headers.get("host"))
+            self.reader = bool(READER_HOST) and host == READER_HOST
+            self.maps = (not self.reader) and bool(MAPS_HOST) and host == MAPS_HOST
+            self.sandbox = self.reader
+            self.maps_csp = self.maps
             return True
 
         def __getattr__(self, name):
-            """On the library's name a method with no handler (TRACE, PROPFIND, ...) is the library's 405, not the
+            """On the library's or maps' name a method with no handler (TRACE, PROPFIND, ...) is a 405, not the
             server's 501; on every other name it stays the server's."""
             if name.startswith("do_") and self.__dict__.get("reader"):
                 return self.library
+            if name.startswith("do_") and self.__dict__.get("maps"):
+                return self.maps_route
             raise AttributeError(name)
 
         def send_response(self, code, message=None):
             """Every answer starts here, send_error's included: on the library's name, and for any answer sent before
             the Host is read (a bad request line or version, too many or too long headers, a request line too long),
-            it carries the sandbox, a header of its own beside any CSP the reader sends."""
+            it carries the sandbox, a header of its own beside any CSP the reader sends; on the maps' name, MAPS_CSP."""
             super().send_response(code, message)
             if self.sandbox:
                 self.send_header("content-security-policy", SANDBOX)
+            elif self.maps_csp:
+                self.send_header("content-security-policy", MAPS_CSP)
 
         def send(self, code, body, ctype, headers=()):
             data = body if isinstance(body, bytes) else body.encode()
@@ -250,6 +271,11 @@ def make_handler():
             if self.reader:
                 page = PAGE % {"title": "library", "line": html.escape(library_sentence(s))}
                 return self.send(503, page, "text/html; charset=utf-8")
+            if self.maps:
+                if self.path.startswith("/api/"):
+                    return self.send(503, json.dumps({"error": maps_sentence(s), "mode": s.get("mode")}), "application/json")
+                page = PAGE % {"title": "maps", "line": html.escape(maps_sentence(s))}
+                return self.send(503, page, "text/html; charset=utf-8")
             if self.path.startswith(("/api/", "/ws/", "/v1/", "/socket.io/")):
                 return self.send(503, json.dumps({"detail": sentence(s), "mode": s.get("mode"), "stale": s.get("stale")}), "application/json")
             return self.send(503, PAGE % {"title": "llm box", "line": html.escape(sentence(s))}, "text/html; charset=utf-8")
@@ -301,6 +327,17 @@ def make_handler():
                 return self.answer_here(302, "", (("location", "/nojs"),))
             return self.relay()
 
+        def maps_route(self):
+            """The maps' name: GET/HEAD everywhere and POST only to /api/route; cookies never cross."""
+            path_only = self.path.split("?", 1)[0].rstrip("/") or "/"
+            if self.command == "POST" and path_only != "/api/route":
+                return self.answer_here(405, "POST on offline maps is allowed on /api/route only", (("allow", "GET, HEAD"),))
+            if self.command not in ("GET", "HEAD", "POST"):
+                return self.answer_here(405, "offline maps allow GET, HEAD and POST /api/route", (("allow", "GET, HEAD, POST"),))
+            if "websocket" in self.headers.get("upgrade", "").lower():
+                return self.answer_here(400, "offline maps have no websocket")
+            return self.relay()
+
         def answer_here(self, code, msg, headers=()):
             """Answer without the Box once the request's body is gone: read and dropped when it has a length (a bad
             length is answered 400), never read when it is chunked, the connection then closed."""
@@ -320,11 +357,15 @@ def make_handler():
         def upstream_port(self):
             if self.reader:
                 return READER_PORT
+            if self.maps:
+                return MAPS_PORT
             return API_PORT if self.path.startswith("/v1/") else CHAT_PORT
 
         def proxy(self):
             if self.reader:
                 return self.library()
+            if self.maps:
+                return self.maps_route()
             if self.headers.get("upgrade", "").lower() == "websocket":
                 return self.tunnel()
             return self.relay()
@@ -358,8 +399,14 @@ def make_handler():
                 self.sandbox = self.reader and ctype != "application/pdf"   # a PDF reads in the browser's own viewer
                 self.send_response(r.status)
                 for k, v in r.getheaders():
-                    if k.lower() not in HOP and not (self.reader and k.lower() == "set-cookie"):
-                        self.send_header(k, v)
+                    kl = k.lower()
+                    if kl in HOP:
+                        continue
+                    if (self.reader or self.maps) and kl == "set-cookie":
+                        continue
+                    if self.maps and kl == "content-security-policy":
+                        continue
+                    self.send_header(k, v)
                 if self.command == "HEAD" or r.status in (204, 304) or r.status < 200:
                     if self.command == "HEAD" and r.getheader("content-length"):
                         self.send_header("content-length", r.getheader("content-length"))
@@ -399,7 +446,7 @@ def make_handler():
             the client asked for (as the WebSocket tunnel does), and the client is appended to X-Forwarded-For. The
             library's reader never gets the request's cookies: they are the chat's."""
             c.putrequest(self.command, self.path, skip_host=True, skip_accept_encoding=True)
-            drop = ("x-forwarded-for", "expect", "cookie") if self.reader else ("x-forwarded-for", "expect")
+            drop = ("x-forwarded-for", "expect", "cookie") if (self.reader or self.maps) else ("x-forwarded-for", "expect")
             for k, v in self.headers.items():
                 # expect: the 100 went to the client already (BaseHTTPRequestHandler), and the body follows at once
                 if k.lower() not in HOP and k.lower() not in drop:
@@ -451,6 +498,8 @@ def make_handler():
         def do_POST(self):
             if self.reader:
                 return self.library()
+            if self.maps:
+                return self.maps_route()
             if self.path == "/_srd/push":
                 return self.push()
             return self.proxy()
@@ -458,6 +507,8 @@ def make_handler():
         def do_GET(self):
             if self.reader:
                 return self.library()
+            if self.maps:
+                return self.maps_route()
             if self.path == "/health":
                 return self.health()
             if self.path == "/_srd/state":
@@ -473,8 +524,9 @@ def main():
     port = int(os.environ.get("SRD_PORT", "8080"))
     srv = ThreadingHTTPServer(("0.0.0.0", port), make_handler())
     srv.daemon_threads = True
-    print("llm on :%d -> %s (chat %d, api %d, agent %d; %s -> reader %d)"
-          % (port, BOX, CHAT_PORT, API_PORT, AGENT_PORT, READER_HOST or "no library name", READER_PORT), flush=True)
+    print("llm on :%d -> %s (chat %d, api %d, agent %d; %s -> reader %d; %s -> maps %d)"
+          % (port, BOX, CHAT_PORT, API_PORT, AGENT_PORT, READER_HOST or "no library name", READER_PORT,
+             MAPS_HOST or "no maps name", MAPS_PORT), flush=True)
     srv.serve_forever()
 
 

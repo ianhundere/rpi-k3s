@@ -12,6 +12,7 @@ spec:
     - { name: api, port: 8741, targetPort: 8741 }
     - { name: agent, port: 8740, targetPort: 8740 }
     - { name: library, port: 8743, targetPort: 8743 }
+    - { name: maps, port: 8745, targetPort: 8745 }
 ---
 apiVersion: discovery.k8s.io/v1
 kind: EndpointSlice
@@ -26,6 +27,7 @@ ports:
   - { name: api, appProtocol: http, protocol: TCP, port: 8741 }
   - { name: agent, appProtocol: http, protocol: TCP, port: 8740 }
   - { name: library, appProtocol: http, protocol: TCP, port: 8743 }
+  - { name: maps, appProtocol: http, protocol: TCP, port: 8745 }
 endpoints:
   - addresses:
       - "${LLM_IP}"

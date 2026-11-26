@@ -171,3 +171,14 @@ spec:
         selector:
           matchLabels:
             kubernetes.io/metadata.name: llm
+  # --- offline maps (the llm box's maps viewer) - HTTP only (internal, LAN dns only; no public record) ---
+  - name: maps-http
+    hostname: maps.clusterian.pw
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: Selector
+        selector:
+          matchLabels:
+            kubernetes.io/metadata.name: llm
