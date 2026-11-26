@@ -14,3 +14,28 @@ spec:
   - backendRefs:
     - name: gatus
       port: 80
+---
+# monitor.clusterian.pw has no public record; away from home gatus is on the tailnet (tailscale.com/expose)
+# lan and cluster only (2026-11-26): the router forwards the WAN's 80/443 to this ingress for the public hosts,
+# so without this rule a WAN client reaches the name with a Host header. it rests on envoy judging the tcp peer:
+# externalTrafficPolicy Local on the envoy service, and no ClientTrafficPolicy trusting X-Forwarded-For (as
+# apps/llm/policies.yml). cert-manager's http-01 challenge routes are routes of their own, so renewals still work.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: gatus-lan-only
+  namespace: gatus
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: gatus-monitor
+  authorization:
+    defaultAction: Deny
+    rules:
+      - name: lan-and-cluster
+        action: Allow
+        principal:
+          clientCIDRs:
+            - 192.168.3.0/24
+            - 10.42.0.0/16

@@ -1,0 +1,18 @@
+# File Browser on the tailnet (2026-11-26), now that its LAN name answers the LAN alone: the Tailscale operator's ingress
+# proxy gives it https://share.<tailnet>.ts.net with a certificate, for the household's devices away from home.
+# Tailnet only, never public: no tailscale.com/funnel annotation, ever. Modelled on apps/llm/tailscale-ingress.yml.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: filebrowser-tailnet
+  namespace: filebrowser
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: filebrowser
+      port:
+        number: 44301
+  tls:
+    - hosts:
+        - share

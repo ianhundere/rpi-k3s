@@ -1,0 +1,18 @@
+# UniFi (through its nginx sidecar on 9080, as the LAN route goes) on the tailnet (2026-11-26), now that its LAN name answers the LAN alone: the Tailscale operator's ingress
+# proxy gives it https://unifi.<tailnet>.ts.net with a certificate, for the household's devices away from home.
+# Tailnet only, never public: no tailscale.com/funnel annotation, ever. Modelled on apps/llm/tailscale-ingress.yml.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: unifi-tailnet
+  namespace: unifi
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: unifi-controller
+      port:
+        number: 9080
+  tls:
+    - hosts:
+        - unifi

@@ -12,3 +12,4 @@ resources:
   - pv-csi.yml
   - pvc.yml
   - gateway.yml
+  - tailscale-ingress.yml
