@@ -1,5 +1,7 @@
-# llm.clusterian.pw: HTTP-only LAN name like monitor.clusterian.pw (no public record; the ER-X static-host-mapping
-# points it at the ingress). Its listener, llm-http, is in infrastructure/envoy-gateway/gateway.yml.
+# llm.clusterian.pw and library.clusterian.pw (the offline library's reader): HTTP-only LAN names like
+# monitor.clusterian.pw (no public record; the ER-X static-host-mapping points each at the ingress). Their listeners,
+# llm-http and library-http, are in infrastructure/envoy-gateway/gateway.yml. Both names are on this one route, so
+# llm-lan-only and the 900 s timeout (policies.yml) cover both; library-http admits routes from this namespace only.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -8,10 +10,14 @@ metadata:
 spec:
   hostnames:
   - llm.clusterian.pw
+  - library.clusterian.pw
   parentRefs:
   - name: shared-gateway
     namespace: envoy-gateway-system
     sectionName: llm-http
+  - name: shared-gateway
+    namespace: envoy-gateway-system
+    sectionName: library-http
   rules:
   - backendRefs:
     - name: llm

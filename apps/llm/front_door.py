@@ -2,12 +2,20 @@
 """llm (the Front Door): the Homelab's face for the Box (AD-3). Standard library only, so it runs from a
 stock python image with this file in a ConfigMap (the Box's repository has no image registry).
 
+Which name a request is for is decided from its Host before anything else. The offline library's name, READER_HOST
+(library.clusterian.pw; empty turns it off), is the Box's kiwix-serve and nothing of the Front Door's own:
+  GET, HEAD           streamed to the reader (:8743); the request's Cookie and the reader's Set-Cookie never cross
+  / and /viewer       302 to /nojs: kiwix's script pages cannot work in the sandbox
+  anything else       405, or 400 for a WebSocket upgrade; /_srd/* and /health are the reader's paths here
+Every answer on it carries the sandbox CSP below as a header of its own, beside any CSP the reader sent, except a
+PDF's, which opens in the browser's own viewer. On every other name:
   POST /_srd/push     the Mode Agent's HMAC-signed state push; kept in memory and in STATE_FILE (an NFS PV)
   GET  /health        proxied to the Mode Agent; when the Box is silent, answered here: 503, source "cache"
   /v1/*               streamed to the Box's model proxy (:8741)
   everything else     streamed to the Chat Surface (:8742), WebSocket upgrades included
 When the Box does not answer (connect timeout 2 s), a page load gets the state page and /api/, /ws/ and /v1/ get
-503 JSON whose `detail` is the same sentence. It never invents a mode and never issues or relays a transition.
+503 JSON whose `detail` is the same sentence; on the library's name it is always the page, its line about the
+library. It never invents a mode and never issues or relays a transition.
 Request bodies go to the Box in 64 KiB pieces as they arrive, so an upload of any size fits the pod's 64Mi.
 A client that leaves while the Box works on its request, or while the answer is relayed, is hung up on at the Box, so
 the Box stops the work (a request stopped in Pi away from home does not keep its place on the model).
@@ -15,9 +23,23 @@ the Box stops the work (a request stopped in Pi away from home does not keep its
 import datetime, hashlib, hmac, html, http.client, json, os, select, socket, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+
+def name_of(host):
+    """The name a Host header asks for: its port and any trailing dot dropped, case folded; '' when there is none."""
+    host = (host or "").strip()
+    if host.startswith("["):                       # an IPv6 address keeps its colons
+        host = host.split("]", 1)[0] + "]"
+    else:
+        host = host.split(":", 1)[0]
+    return host.rstrip(".").casefold()
+
+
 BOX = os.environ.get("SRD_BOX", "llm-box.llm.svc.cluster.local")
 CHAT_PORT, API_PORT, AGENT_PORT = (int(os.environ.get(k, d)) for k, d in
                                    (("SRD_CHAT_PORT", "8742"), ("SRD_API_PORT", "8741"), ("SRD_AGENT_PORT", "8740")))
+READER_HOST = name_of(os.environ.get("SRD_READER_HOST", "library.clusterian.pw"))   # the offline library; "" for none
+READER_PORT = int(os.environ.get("SRD_READER_PORT", "8743"))                       # its kiwix-serve on the Box
+SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
 CONNECT_S = float(os.environ.get("SRD_CONNECT_S", "2"))
 REQUEST_S = float(os.environ.get("SRD_REQUEST_S", "900"))
 STALE_S = float(os.environ.get("SRD_STALE_S", "180"))
@@ -122,9 +144,17 @@ def sentence(s):
     return line
 
 
+def library_sentence(s):
+    """The library's state page line: its reader answers only while the Box is in LLM Mode."""
+    if not s.get("stale") and s.get("mode") == "llm":
+        return ("The offline library is not answering, though the llm box is in llm mode (last heard %s): its reader "
+                "may be starting or fetching its books." % s["last_heard"])
+    return "The offline library answers only in llm mode: " + sentence(s)
+
+
 PAGE = """<!doctype html><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=refresh content=15>
-<title>llm box</title><style>body{font:17px system-ui;margin:2.5em;max-width:30em;color:#222}</style>
-<h1>llm box</h1><p>%s</p>"""
+<title>%(title)s</title><style>body{font:17px system-ui;margin:2.5em;max-width:30em;color:#222}</style>
+<h1>%(title)s</h1><p>%(line)s</p>"""
 
 
 def make_handler():
@@ -135,16 +165,47 @@ def make_handler():
         def log_message(self, fmt, *a):
             pass
 
-        def send(self, code, body, ctype):
+        # ---- which name: decided before any handler runs, and each handler asks it first -----------------------
+        def handle_one_request(self):
+            # until parse_request reads the Host, the request is not the library's, but an answer to it (a bad request
+            # line or version, too many headers) may be on that name, so it is sandboxed
+            self.reader, self.sandbox = False, True
+            return super().handle_one_request()
+
+        def parse_request(self):
+            if not super().parse_request():
+                return False
+            self.reader = self.sandbox = bool(READER_HOST) and name_of(self.headers.get("host")) == READER_HOST
+            return True
+
+        def __getattr__(self, name):
+            """On the library's name a method with no handler (TRACE, PROPFIND, ...) is the library's 405, not the
+            server's 501; on every other name it stays the server's."""
+            if name.startswith("do_") and self.__dict__.get("reader"):
+                return self.library
+            raise AttributeError(name)
+
+        def send_response(self, code, message=None):
+            """Every answer starts here, send_error's included: on the library's name, and for any answer sent before
+            the Host is read (a bad request line or version, too many or too long headers, a request line too long),
+            it carries the sandbox, a header of its own beside any CSP the reader sends."""
+            super().send_response(code, message)
+            if self.sandbox:
+                self.send_header("content-security-policy", SANDBOX)
+
+        def send(self, code, body, ctype, headers=()):
             data = body if isinstance(body, bytes) else body.encode()
             self.send_response(code)
             self.send_header("content-type", ctype)
             self.send_header("content-length", str(len(data)))
             self.send_header("cache-control", "no-store")
+            for k, v in headers:
+                self.send_header(k, v)
             if self.close_connection:           # say so, or Envoy may reuse the connection before it sees the FIN
                 self.send_header("connection", "close")
             self.end_headers()
-            self.wfile.write(data)
+            if self.command != "HEAD":           # a HEAD answer gives the length and no body
+                self.wfile.write(data)
 
         def length(self):
             """The request body's content-length, or None after answering 411 (a chunked body; browsers and SDKs send a
@@ -186,9 +247,12 @@ def make_handler():
 
         def closed_door(self):
             s = STATE.view()
+            if self.reader:
+                page = PAGE % {"title": "library", "line": html.escape(library_sentence(s))}
+                return self.send(503, page, "text/html; charset=utf-8")
             if self.path.startswith(("/api/", "/ws/", "/v1/", "/socket.io/")):
                 return self.send(503, json.dumps({"detail": sentence(s), "mode": s.get("mode"), "stale": s.get("stale")}), "application/json")
-            return self.send(503, PAGE % html.escape(sentence(s)), "text/html; charset=utf-8")
+            return self.send(503, PAGE % {"title": "llm box", "line": html.escape(sentence(s))}, "text/html; charset=utf-8")
 
         # ---- the push receiver --------------------------------------------------------------------
         def push(self):
@@ -226,13 +290,48 @@ def make_handler():
                 s = STATE.view()
                 return self.send(503, json.dumps(dict(s, source="cache", reason=sentence(s))), "application/json")
 
+        # ---- the offline library -------------------------------------------------------------------
+        def library(self):
+            """The library's name: GET and HEAD go to the reader; nothing else reaches the Box."""
+            if self.command not in ("GET", "HEAD"):
+                return self.answer_here(405, "the offline library only reads: GET and HEAD", (("allow", "GET, HEAD"),))
+            if "websocket" in self.headers.get("upgrade", "").lower():
+                return self.answer_here(400, "the offline library has no websocket")
+            if self.path.split("?", 1)[0] in ("/", "/viewer"):     # kiwix's script home and viewer need an origin
+                return self.answer_here(302, "", (("location", "/nojs"),))
+            return self.relay()
+
+        def answer_here(self, code, msg, headers=()):
+            """Answer without the Box once the request's body is gone: read and dropped when it has a length (a bad
+            length is answered 400), never read when it is chunked, the connection then closed."""
+            if self.headers.get("transfer-encoding"):
+                self.close_connection = True
+            else:
+                n = self.length()
+                if n is None:
+                    return
+                self.unread, self.gone = n, False
+                self.drain()
+                if self.gone:                          # the client left mid-body: nobody to answer
+                    return
+            return self.send(code, msg, "text/plain; charset=utf-8", headers)
+
         # ---- the proxy -----------------------------------------------------------------------------
         def upstream_port(self):
+            if self.reader:
+                return READER_PORT
             return API_PORT if self.path.startswith("/v1/") else CHAT_PORT
 
         def proxy(self):
+            if self.reader:
+                return self.library()
             if self.headers.get("upgrade", "").lower() == "websocket":
                 return self.tunnel()
+            return self.relay()
+
+        def relay(self):
+            """Stream the request to the Box and its answer back (the chat, the API, or on the library's name its
+            reader)."""
             n = self.length()
             if n is None:
                 return
@@ -255,9 +354,11 @@ def make_handler():
                     return self.closed_door()
                 if self.gone:                          # the client left mid-body: nobody to answer
                     return
+                ctype = (r.getheader("content-type") or "").split(";", 1)[0].strip().lower()
+                self.sandbox = self.reader and ctype != "application/pdf"   # a PDF reads in the browser's own viewer
                 self.send_response(r.status)
                 for k, v in r.getheaders():
-                    if k.lower() not in HOP:
+                    if k.lower() not in HOP and not (self.reader and k.lower() == "set-cookie"):
                         self.send_header(k, v)
                 if self.command == "HEAD" or r.status in (204, 304) or r.status < 200:
                     if self.command == "HEAD" and r.getheader("content-length"):
@@ -295,11 +396,13 @@ def make_handler():
 
         def forward(self, c):
             """Send the request to the Box: its head, then the body piece by piece as it arrives. The Box sees the name
-            the client asked for (as the WebSocket tunnel does), and the client is appended to X-Forwarded-For."""
+            the client asked for (as the WebSocket tunnel does), and the client is appended to X-Forwarded-For. The
+            library's reader never gets the request's cookies: they are the chat's."""
             c.putrequest(self.command, self.path, skip_host=True, skip_accept_encoding=True)
+            drop = ("x-forwarded-for", "expect", "cookie") if self.reader else ("x-forwarded-for", "expect")
             for k, v in self.headers.items():
                 # expect: the 100 went to the client already (BaseHTTPRequestHandler), and the body follows at once
-                if k.lower() not in HOP and k.lower() not in ("x-forwarded-for", "expect"):
+                if k.lower() not in HOP and k.lower() not in drop:
                     c.putheader(k, v)
             c.putheader("host", self.headers.get("host") or "%s:%d" % (BOX, c.port))
             xff = self.headers.get("x-forwarded-for")
@@ -346,11 +449,15 @@ def make_handler():
                 self.close_connection = True
 
         def do_POST(self):
+            if self.reader:
+                return self.library()
             if self.path == "/_srd/push":
                 return self.push()
             return self.proxy()
 
         def do_GET(self):
+            if self.reader:
+                return self.library()
             if self.path == "/health":
                 return self.health()
             if self.path == "/_srd/state":
@@ -358,7 +465,7 @@ def make_handler():
                 return self.send(200, json.dumps(dict(s, sentence=sentence(s))), "application/json")
             return self.proxy()
 
-        do_PUT = do_DELETE = do_PATCH = do_OPTIONS = do_HEAD = proxy
+        do_PUT = do_DELETE = do_PATCH = do_OPTIONS = do_HEAD = proxy       # each asks the name first too
     return H
 
 
@@ -366,7 +473,8 @@ def main():
     port = int(os.environ.get("SRD_PORT", "8080"))
     srv = ThreadingHTTPServer(("0.0.0.0", port), make_handler())
     srv.daemon_threads = True
-    print("llm on :%d -> %s (chat %d, api %d, agent %d)" % (port, BOX, CHAT_PORT, API_PORT, AGENT_PORT), flush=True)
+    print("llm on :%d -> %s (chat %d, api %d, agent %d; %s -> reader %d)"
+          % (port, BOX, CHAT_PORT, API_PORT, AGENT_PORT, READER_HOST or "no library name", READER_PORT), flush=True)
     srv.serve_forever()
 
 

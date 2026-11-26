@@ -160,3 +160,14 @@ spec:
     allowedRoutes:
       namespaces:
         from: All
+  # --- offline library (the llm box's kiwix-serve) - HTTP only (internal, LAN dns only; no public record) ---
+  - name: library-http
+    hostname: library.clusterian.pw
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: Selector
+        selector:
+          matchLabels:
+            kubernetes.io/metadata.name: llm
