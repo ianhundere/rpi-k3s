@@ -1,0 +1,21 @@
+# LAN and cluster only (same Envoy TCP-peer model as apps/llm/policies.yml and apps/gatus/gateway.yml):
+# WAN traffic hitting port 80 with Host: search.clusterian.pw receives 403.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: searxng-lan-only
+  namespace: searxng
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: searxng
+  authorization:
+    defaultAction: Deny
+    rules:
+      - name: lan-and-cluster
+        action: Allow
+        principal:
+          clientCIDRs:
+            - 192.168.3.0/24
+            - 10.42.0.0/16
